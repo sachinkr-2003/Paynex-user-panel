@@ -1,0 +1,125 @@
+/* ===== PHONE MOCKUP ===== */
+.phone-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 500px;
+}
+.orbit-container {
+  position: absolute;
+  width: 520px;
+  height: 520px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  perspective: 800px;
+}
+.orbit-ring {
+  position: absolute;
+  width: 520px;
+  height: 155px;
+  top: 50%;
+  left: 0;
+  margin-top: -77px;
+  border-radius: 50%;
+  border: 2px solid rgba(245, 158, 11, 0.75);
+  box-shadow:
+    0 0 18px rgba(245, 158, 11, 0.6),
+    0 0 45px rgba(37, 99, 235, 0.35),
+    inset 0 0 18px rgba(245, 158, 11, 0.2);
+  transform: rotateX(68deg);
+  animation: glowPulse 2.5s ease-in-out infinite;
+}
+.orbit-ring-outer {
+  position: absolute;
+  width: 560px;
+  height: 170px;
+  top: 50%;
+  left: -20px;
+  margin-top: -85px;
+  border-radius: 50%;
+  border: 1px solid rgba(37, 99, 235, 0.3);
+  transform: rotateX(68deg);
+}
+.phone-frame {
+  width: 230px;
+  height: 450px;
+  background: linear-gradient(180deg, #0d1124 0%, #05060e 100%);
+  border-radius: 36px;
+  border: 1.5px solid rgba(245, 158, 11, 0.5);
+  overflow: hidden;
+  position: relative;
+  z-index: 2;
+  animation: pulseGlow 3s ease-in-out infinite, floatY 4s ease-in-out infinite;
+}
+.phone-notch {
+  width: 70px;
+  height: 10px;
+  background: #05060e;
+  border-radius: 0 0 10px 10px;
+  margin: 0 auto 0;
+}
+
+/* ===== FEATURE ICON BOX ===== */
+.feature-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+
+/* ===== STEP CIRCLE ===== */
+.step-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 800;
+  color: #05060e;
+  margin: 0 auto 20px;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2), 0 0 25px rgba(245, 158, 11, 0.5);
+  position: relative;
+  z-index: 1;
+}
+
+/* ===== STAT CARD ===== */
+.stat-card {
+  background: rgba(10, 13, 31, 0.7);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 16px;
+  padding: 28px 22px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+.stat-card:hover {
+  background: rgba(16, 22, 48, 0.85);
+  border-color: rgba(245, 158, 11, 0.5);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(245, 158, 11, 0.15);
+}
+
+/* ===== TESTIMONIAL STARS ===== */
+.stars { color: #f59e0b; letter-spacing: 2px; font-size: 15px; }
+
+/* ===== FAQ ===== */
+.faq-card {
+  background: rgba(10, 13, 31, 0.7);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.faq-card:hover { border-color: rgba(245, 158, 11, 0.45); }
+.faq-card.open { border-color: rgba(245, 158, 11, 0.6); box-shadow: 0 0 20px rgba(245, 158, 11, 0.15); }
