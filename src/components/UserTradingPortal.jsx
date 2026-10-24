@@ -2,13 +2,17 @@ import { useState, useEffect, useRef } from 'react';
 import userApi from '../services/api';
 import { showUserSuccess, showUserWarning, showUserError } from '../utils/swal';
 
-const ASSETS = {
-  'BTC/USDT': { name: 'Bitcoin', symbol: 'BTC', basePrice: 5524321, step: 240, icon: '₿', color: '#f7931a', payout: 95 },
-  'ETH/USDT': { name: 'Ethereum', symbol: 'ETH', basePrice: 248762, step: 28, icon: 'Ξ', color: '#627eea', payout: 92 },
-  'SOL/USDT': { name: 'Solana', symbol: 'SOL', basePrice: 12450, step: 4.5, icon: '◎', color: '#9945ff', payout: 90 },
-  'BNB/USDT': { name: 'BNB', symbol: 'BNB', basePrice: 37820, step: 6.2, icon: '🔶', color: '#f3ba2f', payout: 88 },
-  'XRP/USDT': { name: 'XRP', symbol: 'XRP', basePrice: 72.40, step: 0.15, icon: '✕', color: '#38bdf8', payout: 85 },
-  'DOGE/USDT': { name: 'Dogecoin', symbol: 'DOGE', basePrice: 8.64, step: 0.05, icon: 'Ð', color: '#ef4444', payout: 85 },
+const DEFAULT_ASSETS = {
+  'BTC/USDT': { id: 'btc', name: 'Bitcoin', symbol: 'BTC', category: 'Crypto', basePrice: 5524321, step: 240, icon: '₿', color: '#f7931a', returnPercent: 30, payout: 95 },
+  'ETH/USDT': { id: 'eth', name: 'Ethereum', symbol: 'ETH', category: 'Crypto', basePrice: 248762, step: 28, icon: 'Ξ', color: '#627eea', returnPercent: 28, payout: 92 },
+  'SOL/USDT': { id: 'sol', name: 'Solana', symbol: 'SOL', category: 'Crypto', basePrice: 12450, step: 4.5, icon: '◎', color: '#9945ff', returnPercent: 35, payout: 90 },
+  'BNB/USDT': { id: 'bnb', name: 'BNB', symbol: 'BNB', category: 'Crypto', basePrice: 37820, step: 6.2, icon: '🔶', color: '#f3ba2f', returnPercent: 25, payout: 88 },
+  'TATAMOTORS': { id: 'tatamotors', name: 'Tata Motors', symbol: 'TATAMOTORS', category: 'Stock', basePrice: 945, step: 1.5, icon: '🚗', color: '#38bdf8', returnPercent: 40, payout: 90 },
+  'RELIANCE': { id: 'reliance', name: 'Reliance Ind.', symbol: 'RELIANCE', category: 'Stock', basePrice: 2950, step: 3.2, icon: '🏢', color: '#10b981', returnPercent: 22, payout: 85 },
+  'HDFCBANK': { id: 'hdfcbank', name: 'HDFC Bank', symbol: 'HDFCBANK', category: 'Stock', basePrice: 1680, step: 2.1, icon: '🏦', color: '#6366f1', returnPercent: 20, payout: 85 },
+  'AAPL': { id: 'aapl', name: 'Apple Inc.', symbol: 'AAPL', category: 'Stock', basePrice: 18500, step: 15, icon: '🍎', color: '#f43f5e', returnPercent: 32, payout: 88 },
+  'TSLA': { id: 'tsla', name: 'Tesla Inc.', symbol: 'TSLA', category: 'Stock', basePrice: 21500, step: 25, icon: '⚡', color: '#ef4444', returnPercent: 45, payout: 92 },
+  'GOLD': { id: 'gold', name: 'Gold Spot', symbol: 'GOLD', category: 'Commodity', basePrice: 72400, step: 45, icon: '🪙', color: '#eab308', returnPercent: 18, payout: 80 },
 };
 
 const TIMEFRAMES = [
@@ -31,10 +35,12 @@ const UserTradingPortal = ({
 }) => {
   // Navigation Tabs: 'game' (3D Trade Arena), 'home' (APK Screen 5), 'market', 'wallet', 'profile'
   const [currentTab, setCurrentTab] = useState('game');
+  const [assetsMap, setAssetsMap] = useState(DEFAULT_ASSETS);
+  const ASSETS = assetsMap;
   const [selectedAsset, setSelectedAsset] = useState('BTC/USDT');
   const [selectedTimeframe, setSelectedTimeframe] = useState(TIMEFRAMES[1]);
   const [betAmount, setBetAmount] = useState(5000); // Default 5000 as requested by user
-  const [currentPrice, setCurrentPrice] = useState(ASSETS['BTC/USDT'].basePrice);
+  const [currentPrice, setCurrentPrice] = useState(DEFAULT_ASSETS['BTC/USDT'].basePrice);
   const [priceHistory, setPriceHistory] = useState([]);
   const [activeTrade, setActiveTrade] = useState(null);
   const [tradeResult, setTradeResult] = useState(null);
@@ -42,6 +48,60 @@ const UserTradingPortal = ({
   const [balanceVisible, setBalanceVisible] = useState(true);
   const [marketSearch, setMarketSearch] = useState('');
   const [marketFilter, setMarketFilter] = useState('All');
+
+  // Admin-Defined Profit Percentage (Platform Default fallback)
+  const [adminProfitPercent, setAdminProfitPercent] = useState(() => {
+    try {
+      const saved = localStorage.getItem('paynex_admin_percent');
+      return saved ? Number(saved) : 30; // Default 30%
+    } catch {
+      return 30;
+    }
+  });
+
+  // Dynamic asset-specific return rate (e.g. Tata Motors 40%, BTC 30%, Reliance 22%)
+  const currentAsset = assetsMap[selectedAsset] || DEFAULT_ASSETS[selectedAsset] || DEFAULT_ASSETS['BTC/USDT'];
+  const currentAssetRate = currentAsset?.returnPercent ?? adminProfitPercent;
+
+  // Fetch live assets and interest rates from backend
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLiveAssets = async () => {
+      try {
+        const res = await userApi.getAssets();
+        if (res && res.success && Array.isArray(res.assets) && res.assets.length > 0) {
+          const map = {};
+          res.assets.forEach((a) => {
+            const key = a.symbol || a.id;
+            map[key] = {
+              id: a.id,
+              name: a.name,
+              symbol: a.symbol,
+              category: a.category || 'Stock',
+              basePrice: Number(a.basePrice) || 1000,
+              step: Number(a.step) || Math.max(1, (Number(a.basePrice) * 0.001)),
+              icon: a.icon || '📈',
+              color: a.color || '#38bdf8',
+              returnPercent: Number(a.returnPercent) || 30,
+              payout: 90,
+              minStake: a.minStake,
+              maxStake: a.maxStake,
+              isEnabled: a.isEnabled,
+            };
+          });
+          if (isMounted) {
+            setAssetsMap((prev) => ({ ...prev, ...map }));
+          }
+        }
+      } catch (err) {
+        console.warn('Assets sync notice:', err.message);
+      }
+    };
+    fetchLiveAssets();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Settings & Profile Subpages State
   const [activeSettingModal, setActiveSettingModal] = useState(null);
@@ -76,15 +136,6 @@ const UserTradingPortal = ({
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // Admin-Defined Profit Percentage (e.g., 30%, or configured by Admin)
-  const [adminProfitPercent, setAdminProfitPercent] = useState(() => {
-    try {
-      const saved = localStorage.getItem('paynex_admin_percent');
-      return saved ? Number(saved) : 30; // Default 30%
-    } catch {
-      return 30;
-    }
-  });
   const [showAdminConfig, setShowAdminConfig] = useState(false);
 
   const [tradeHistory, setTradeHistory] = useState([
@@ -195,7 +246,7 @@ const UserTradingPortal = ({
     const timer = setInterval(() => {
       const randomUser = SAMPLE_NAMES[Math.floor(Math.random() * SAMPLE_NAMES.length)];
       const randomAmount = AMOUNTS[Math.floor(Math.random() * AMOUNTS.length)];
-      const simProfit = Math.round((randomAmount * adminProfitPercent) / 100);
+      const simProfit = Math.round((randomAmount * currentAssetRate) / 100);
       const simPayout = randomAmount + simProfit;
 
       const newBet = {
@@ -203,7 +254,7 @@ const UserTradingPortal = ({
         name: randomUser.name,
         avatar: randomUser.avatar,
         amount: randomAmount,
-        adminPercent: adminProfitPercent,
+        adminPercent: currentAssetRate,
         profit: simProfit,
         payout: simPayout,
         time: 'Just now',
@@ -216,18 +267,18 @@ const UserTradingPortal = ({
     }, 3500);
 
     return () => clearInterval(timer);
-  }, [selectedAsset, adminProfitPercent]);
+  }, [selectedAsset, currentAssetRate]);
 
   // Calculate Live Staking Pool Totals
   const filteredRoomTraders = roomTraders.filter((t) => !t.asset || t.asset === selectedAsset);
   const roomStakeTotal = filteredRoomTraders.reduce((sum, t) => sum + t.amount, 0);
   const basePoolStake = 1450000;
   const totalRoundPool = basePoolStake + roomStakeTotal;
-  const totalMaturityPayout = Math.round(totalRoundPool * (1 + adminProfitPercent / 100));
+  const totalMaturityPayout = Math.round(totalRoundPool * (1 + currentAssetRate / 100));
 
   // Initialize Price History
   useEffect(() => {
-    const asset = ASSETS[selectedAsset];
+    const asset = ASSETS[selectedAsset] || DEFAULT_ASSETS[selectedAsset] || DEFAULT_ASSETS['BTC/USDT'];
     let price = asset.basePrice;
     const history = [];
     for (let i = 0; i < 40; i++) {
@@ -241,11 +292,11 @@ const UserTradingPortal = ({
     }
     setPriceHistory(history);
     setCurrentPrice(price);
-  }, [selectedAsset]);
+  }, [selectedAsset, assetsMap]);
 
   // Real-Time Price Engine Ticking
   useEffect(() => {
-    const asset = ASSETS[selectedAsset];
+    const asset = ASSETS[selectedAsset] || DEFAULT_ASSETS[selectedAsset] || DEFAULT_ASSETS['BTC/USDT'];
     const interval = setInterval(() => {
       const delta = (Math.random() - 0.485) * asset.step * 3.5;
       setCurrentPrice((prev) => {
@@ -376,7 +427,7 @@ const UserTradingPortal = ({
     ctx.fillText(`Base Stake: ₹${betAmount.toLocaleString('en-IN')}`, 26, baselineY + 1);
 
     // Target Badge
-    const calcProfit = Math.round((betAmount * adminProfitPercent) / 100);
+    const calcProfit = Math.round((betAmount * currentAssetRate) / 100);
     const calcPayout = betAmount + calcProfit;
     const badgeW = 205;
     ctx.fillStyle = 'rgba(16, 185, 129, 0.18)';
@@ -386,7 +437,7 @@ const UserTradingPortal = ({
     ctx.strokeRect(width - badgeW - 20, targetY - 16, badgeW, 24);
     ctx.fillStyle = '#34d399';
     ctx.font = 'bold 11.5px monospace';
-    ctx.fillText(`Target Return (+${adminProfitPercent}%): ₹${calcPayout.toLocaleString('en-IN')}`, width - badgeW - 12, targetY);
+    ctx.fillText(`Target Return (+${currentAssetRate}%): ₹${calcPayout.toLocaleString('en-IN')}`, width - badgeW - 12, targetY);
 
     // Yield Curve
     const curveStartX = 30;
@@ -492,7 +543,7 @@ const UserTradingPortal = ({
       ctx.fill();
       ctx.shadowBlur = 0;
     }
-  }, [chartHeight, betAmount, adminProfitPercent, activeTrade, windowWidth]);
+  }, [chartHeight, betAmount, currentAssetRate, activeTrade, windowWidth]);
 
   const handleStakeGrowth = async () => {
     if (realBalance < betAmount) {
@@ -504,7 +555,7 @@ const UserTradingPortal = ({
       return;
     }
 
-    const profit = Math.round((betAmount * adminProfitPercent) / 100);
+    const profit = Math.round((betAmount * currentAssetRate) / 100);
     const payout = betAmount + profit;
 
     setRealBalance((b) => b - betAmount);
@@ -524,7 +575,7 @@ const UserTradingPortal = ({
       roundId: serverRoundId,
       asset: selectedAsset,
       amount: betAmount,
-      adminPercent: adminProfitPercent,
+      adminPercent: currentAssetRate,
       profit,
       payout,
       timeTotal: selectedTimeframe.seconds,
@@ -537,7 +588,7 @@ const UserTradingPortal = ({
       name: `${user?.name || 'Sachin'} (You)`,
       avatar: '⭐',
       amount: betAmount,
-      adminPercent: adminProfitPercent,
+      adminPercent: currentAssetRate,
       profit,
       payout,
       time: 'Just now',
@@ -548,7 +599,7 @@ const UserTradingPortal = ({
     setLiveTradersCount((c) => c + 1);
   };
 
-  const assetInfo = ASSETS[selectedAsset];
+  const assetInfo = ASSETS[selectedAsset] || DEFAULT_ASSETS[selectedAsset] || DEFAULT_ASSETS['BTC/USDT'];
 
   return (
     <div
@@ -747,8 +798,10 @@ const UserTradingPortal = ({
                       {item.icon}
                     </span>
                     <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontSize: '13px', fontWeight: 800 }}>{symbol}</div>
-                      <div style={{ fontSize: '10px', color: '#10b981', fontWeight: 700 }}>Fixed +{adminProfitPercent}% Return</div>
+                      <div style={{ fontSize: '13px', fontWeight: 800 }}>{item.name || symbol}</div>
+                      <div style={{ fontSize: '10px', color: '#10b981', fontWeight: 700 }}>
+                        Fixed +{item.returnPercent ?? currentAssetRate}% Return
+                      </div>
                     </div>
                   </button>
                 );
@@ -866,7 +919,7 @@ const UserTradingPortal = ({
                     ⚡ Fixed Return
                   </span>
                   <span style={{ fontSize: '13px', fontWeight: 900, color: '#34d399' }}>
-                    +{adminProfitPercent}% Guaranteed
+                    +{currentAssetRate}% Guaranteed
                   </span>
                 </div>
 
@@ -950,7 +1003,7 @@ const UserTradingPortal = ({
                         fontWeight: 800,
                       }}
                     >
-                      🔥 +{adminProfitPercent}% Guaranteed
+                      🔥 +{currentAssetRate}% Guaranteed
                     </span>
                   </div>
                 </div>
@@ -1054,7 +1107,7 @@ const UserTradingPortal = ({
                       fontWeight: 800,
                     }}
                   >
-                    +{adminProfitPercent}% Guaranteed
+                    +{currentAssetRate}% Guaranteed
                   </span>
                 </div>
 
@@ -1152,12 +1205,12 @@ const UserTradingPortal = ({
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8', marginBottom: '4px' }}>
                     <span>Growth Rate:</span>
-                    <span style={{ color: '#fbbf24', fontWeight: 800 }}>+{adminProfitPercent}%</span>
+                    <span style={{ color: '#fbbf24', fontWeight: 800 }}>+{currentAssetRate}%</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8', marginBottom: '6px' }}>
                     <span>Estimated Net Profit:</span>
                     <span style={{ color: '#10b981', fontWeight: 800 }}>
-                      +₹{Math.round((betAmount * adminProfitPercent) / 100).toLocaleString('en-IN')}
+                      +₹{Math.round((betAmount * currentAssetRate) / 100).toLocaleString('en-IN')}
                     </span>
                   </div>
                   <div
@@ -1173,7 +1226,7 @@ const UserTradingPortal = ({
                   >
                     <span>Total Maturity Return:</span>
                     <span style={{ color: '#34d399', fontSize: '16px', fontFamily: 'monospace' }}>
-                      ₹{Math.round(betAmount + (betAmount * adminProfitPercent) / 100).toLocaleString('en-IN')}
+                      ₹{Math.round(betAmount + (betAmount * currentAssetRate) / 100).toLocaleString('en-IN')}
                     </span>
                   </div>
                 </div>
@@ -1202,12 +1255,12 @@ const UserTradingPortal = ({
                   <span style={{ fontSize: '14.5px', fontWeight: 900 }}>
                     {activeTrade
                       ? `⏳ Plan Active • Maturity in ${activeTrade.timeLeft}s`
-                      : `⚡ Stake ₹${betAmount.toLocaleString('en-IN')} & Earn ₹${Math.round(betAmount + (betAmount * adminProfitPercent) / 100).toLocaleString('en-IN')}`}
+                      : `⚡ Stake ₹${betAmount.toLocaleString('en-IN')} & Earn ₹${Math.round(betAmount + (betAmount * currentAssetRate) / 100).toLocaleString('en-IN')}`}
                   </span>
                   <span style={{ fontSize: '10px', fontWeight: 700, opacity: 0.9, marginTop: '2px' }}>
                     {activeTrade
-                      ? `Accruing +${adminProfitPercent}% Profit...`
-                      : `Guaranteed +${adminProfitPercent}% Return on Maturity`}
+                      ? `Accruing +${activeTrade.adminPercent || currentAssetRate}% Profit...`
+                      : `Guaranteed +${currentAssetRate}% Return on Maturity`}
                   </span>
                 </button>
               </div>
@@ -1590,11 +1643,11 @@ const UserTradingPortal = ({
           <div>
             <div style={{ marginBottom: '16px' }}>
               <h3 style={{ fontSize: '22px', fontWeight: 900, color: '#fff', marginBottom: '12px' }}>
-                Crypto Market Live
+                Stocks & Crypto Markets Live
               </h3>
               <input
                 type="text"
-                placeholder="Search coin or symbol (e.g. BTC, ETH, SOL)..."
+                placeholder="Search stocks, crypto or commodity (e.g. Tata Motors, Reliance, Apple, BTC)..."
                 value={marketSearch}
                 onChange={(e) => setMarketSearch(e.target.value)}
                 style={{
@@ -1610,8 +1663,9 @@ const UserTradingPortal = ({
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-              {['All', 'Top Gainers', 'High Volume'].map((flt) => (
+            {/* Category Filter Tabs */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '4px' }}>
+              {['All', 'Stock', 'Crypto', 'Commodity'].map((flt) => (
                 <button
                   key={flt}
                   onClick={() => setMarketFilter(flt)}
@@ -1624,9 +1678,10 @@ const UserTradingPortal = ({
                     fontSize: '12px',
                     fontWeight: 700,
                     cursor: 'pointer',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  {flt}
+                  {flt === 'Stock' ? '📈 Indian Stocks' : flt === 'Crypto' ? '🪙 Crypto' : flt === 'Commodity' ? '🏆 Commodity' : '🌐 All Assets'}
                 </button>
               ))}
             </div>
@@ -1634,9 +1689,17 @@ const UserTradingPortal = ({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {Object.entries(ASSETS)
                 .filter(([sym, data]) => {
+                  if (marketFilter !== 'All') {
+                    const cat = data.category || (sym.includes('/') ? 'Crypto' : 'Stock');
+                    if (cat.toLowerCase() !== marketFilter.toLowerCase()) return false;
+                  }
                   if (marketSearch) {
                     const q = marketSearch.toLowerCase();
-                    return sym.toLowerCase().includes(q) || data.name.toLowerCase().includes(q);
+                    return (
+                      sym.toLowerCase().includes(q) ||
+                      (data.name && data.name.toLowerCase().includes(q)) ||
+                      (data.category && data.category.toLowerCase().includes(q))
+                    );
                   }
                   return true;
                 })
@@ -1656,6 +1719,7 @@ const UserTradingPortal = ({
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       cursor: 'pointer',
+                      transition: 'all 0.15s ease',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -1664,7 +1728,7 @@ const UserTradingPortal = ({
                           width: '40px',
                           height: '40px',
                           borderRadius: '50%',
-                          background: coin.color,
+                          background: coin.color || '#38bdf8',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -1673,29 +1737,45 @@ const UserTradingPortal = ({
                           color: '#fff',
                         }}
                       >
-                        {coin.icon}
+                        {coin.icon || '📈'}
                       </div>
                       <div>
-                        <div style={{ fontSize: '15px', fontWeight: 800 }}>{coin.name}</div>
-                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>{coin.symbol}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '15px', fontWeight: 800 }}>{coin.name}</span>
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              background: 'rgba(255, 255, 255, 0.08)',
+                              color: '#94a3b8',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                            }}
+                          >
+                            {coin.category || 'Stock'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>{coin.symbol || sym}</div>
                       </div>
                     </div>
 
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: '15px', fontWeight: 800, fontFamily: 'monospace' }}>
-                        ₹{coin.basePrice.toLocaleString('en-IN')}
+                        ₹{Number(coin.basePrice || 1000).toLocaleString('en-IN')}
                       </div>
                       <span
                         style={{
                           fontSize: '11px',
-                          fontWeight: 700,
+                          fontWeight: 800,
                           background: 'rgba(16, 185, 129, 0.16)',
                           color: '#10b981',
                           padding: '2px 8px',
                           borderRadius: '6px',
+                          display: 'inline-block',
+                          marginTop: '3px',
                         }}
                       >
-                        +{coin.payout}% Payout
+                        +{coin.returnPercent ?? currentAssetRate}% Guaranteed
                       </span>
                     </div>
                   </div>

@@ -86,6 +86,9 @@ export const userApi = {
   getMyStakes: () => request('/staking/my-rounds'),
   getLivePool: () => request('/staking/live-pool'),
 
+  // Dynamic Stocks & Game Assets
+  getAssets: () => request('/assets'),
+
   // Investment Plans
   getPlans: () => request('/plans'),
   subscribePlan: (planId) =>
