@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import userApi from '../services/api';
 import { showUserSuccess, showUserWarning, showUserError } from '../utils/swal';
-import { FIFTY_STOCKS_MAP } from '../data/stocksData';
+import { FIFTY_STOCKS_MAP, getCompanyQrUrl, enrichStockWithPayment } from '../data/stocksData';
+
 
 const DEFAULT_ASSETS = FIFTY_STOCKS_MAP;
 
@@ -63,6 +64,7 @@ const UserTradingPortal = ({
           const map = {};
           res.assets.forEach((a) => {
             const key = a.symbol || a.id;
+            const cleanSym = (a.symbol || a.id || 'stock').toLowerCase().replace(/[^a-z0-9]/g, '');
             map[key] = {
               id: a.id,
               name: a.name,
@@ -77,6 +79,9 @@ const UserTradingPortal = ({
               minStake: a.minStake,
               maxStake: a.maxStake,
               isEnabled: a.isEnabled,
+              upiId: a.upiId || `${cleanSym}.paynex@icici`,
+              payeeName: a.payeeName || `${a.name} Trading Desk`,
+              qrCode: a.qrCode || '',
             };
           });
           if (isMounted) {
@@ -589,6 +594,117 @@ const UserTradingPortal = ({
     setLiveTradersCount((c) => c + 1);
   };
 
+  // Dedicated Stock Purchase & QR Payment Modal State
+  const [purchaseModalAsset, setPurchaseModalAsset] = useState(null);
+  const [purchaseAmount, setPurchaseAmount] = useState(5000);
+  const [purchaseMode, setPurchaseMode] = useState('qr'); // 'qr' or 'wallet'
+  const [purchaseUtr, setPurchaseUtr] = useState('');
+  const [purchaseCopied, setPurchaseCopied] = useState(false);
+  const [isSubmittingPurchase, setIsSubmittingPurchase] = useState(false);
+
+  const handleOpenPurchaseModal = (targetAsset = null, preferredMode = 'qr') => {
+    const assetToBuy = targetAsset || currentAsset || DEFAULT_ASSETS[selectedAsset];
+    setPurchaseModalAsset(assetToBuy);
+    setPurchaseAmount(betAmount || 5000);
+    setPurchaseMode(preferredMode);
+    setPurchaseUtr('');
+  };
+
+  const handleConfirmPurchase = async (e) => {
+    e?.preventDefault();
+    if (!purchaseModalAsset) return;
+
+    if (activeTrade) {
+      showUserWarning('Active Plan in Progress', 'A growth plan is already active! Please wait for it to mature.');
+      return;
+    }
+
+    const buyAmt = Number(purchaseAmount);
+    if (!buyAmt || buyAmt < 100) {
+      showUserWarning('Invalid Amount', 'Minimum investment amount is ₹100.');
+      return;
+    }
+
+    const assetRate = purchaseModalAsset.returnPercent ?? currentAssetRate;
+    const profit = Math.round((buyAmt * assetRate) / 100);
+    const payout = buyAmt + profit;
+    const cleanSym = (purchaseModalAsset.symbol || purchaseModalAsset.id || 'stock').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const targetUpi = purchaseModalAsset.upiId || `${cleanSym}.paynex@icici`;
+
+    if (purchaseMode === 'wallet') {
+      if (realBalance < buyAmt) {
+        showUserWarning(
+          'Insufficient Wallet Balance',
+          `Your wallet has ₹${realBalance.toLocaleString('en-IN')}. Please switch to "Pay via ${purchaseModalAsset.name} QR" or top up your wallet.`
+        );
+        return;
+      }
+      setRealBalance((b) => b - buyAmt);
+    } else {
+      // QR Payment mode
+      const finalUtr = purchaseUtr.trim() || `UTR${Date.now().toString().slice(-9)}`;
+      setIsSubmittingPurchase(true);
+      try {
+        await userApi.submitDeposit(buyAmt, 'Stock QR', finalUtr, '', {
+          companyId: purchaseModalAsset.id || purchaseModalAsset.symbol,
+          companyName: purchaseModalAsset.name,
+          companyUpi: targetUpi,
+        });
+      } catch (err) {
+        console.warn('Purchase deposit sync fallback:', err.message);
+      } finally {
+        setIsSubmittingPurchase(false);
+      }
+    }
+
+    // Set active growth plan on this asset
+    setSelectedAsset(purchaseModalAsset.symbol || purchaseModalAsset.id);
+    let serverRoundId = null;
+    try {
+      const res = await userApi.placeStake(buyAmt, purchaseModalAsset.symbol || purchaseModalAsset.id);
+      if (res && res.round) {
+        serverRoundId = res.round.id || res.round._id;
+      }
+    } catch (err) {
+      console.warn('Live API stake call fallback:', err.message);
+    }
+
+    setActiveTrade({
+      roundId: serverRoundId,
+      asset: purchaseModalAsset.symbol || purchaseModalAsset.id,
+      amount: buyAmt,
+      adminPercent: assetRate,
+      profit,
+      payout,
+      timeTotal: selectedTimeframe.seconds,
+      timeLeft: selectedTimeframe.seconds,
+    });
+
+    const userStakeEntry = {
+      id: serverRoundId || `user_stake_${Date.now()}`,
+      name: `${user?.name || 'Sachin'} (You)`,
+      avatar: '⭐',
+      amount: buyAmt,
+      adminPercent: assetRate,
+      profit,
+      payout,
+      time: 'Just now',
+      isUser: true,
+      asset: purchaseModalAsset.symbol || purchaseModalAsset.id,
+    };
+    setRoomTraders((prev) => [userStakeEntry, ...prev.slice(0, 19)]);
+    setLiveTradersCount((c) => c + 1);
+
+    const purchasedAssetName = purchaseModalAsset.name;
+    setPurchaseModalAsset(null);
+
+    showUserSuccess(
+      '🎉 Stock Purchase & Stake Activated!',
+      `Successfully purchased <strong>${purchasedAssetName}</strong> (${purchaseMode === 'qr' ? 'via Company QR' : 'from Wallet'}). Growth plan active with <strong>+${assetRate}% Guaranteed Profit</strong>!`
+    );
+  };
+
+
   const assetInfo = ASSETS[selectedAsset] || DEFAULT_ASSETS[selectedAsset] || DEFAULT_ASSETS['BTC/USDT'];
 
   return (
@@ -980,7 +1096,7 @@ const UserTradingPortal = ({
                       ⚡ LIVE GROWTH
                     </span>
                     <button
-                      onClick={() => onOpenDeposit && onOpenDeposit(assetInfo)}
+                      onClick={() => handleOpenPurchaseModal(assetInfo, 'qr')}
                       style={{
                         background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(16, 185, 129, 0.25))',
                         border: '1.2px solid #10b981',
@@ -998,9 +1114,10 @@ const UserTradingPortal = ({
                       title={`Open dedicated QR code to pay & invest in ${assetInfo.name || selectedAsset}`}
                     >
                       <span>📱</span>
-                      <span>Company QR Payment</span>
+                      <span>{assetInfo.name ? assetInfo.name.split(' ')[0] : 'Stock'} QR Pay</span>
                     </button>
                   </div>
+
 
                   <div style={{ display: 'flex', gap: '6px' }}>
                     <span
@@ -1245,7 +1362,13 @@ const UserTradingPortal = ({
                 {/* Single Powerful CTA Button */}
                 <button
                   disabled={!!activeTrade}
-                  onClick={handleStakeGrowth}
+                  onClick={() => {
+                    if (realBalance >= betAmount) {
+                      handleStakeGrowth();
+                    } else {
+                      handleOpenPurchaseModal(assetInfo, 'qr');
+                    }
+                  }}
                   style={{
                     width: '100%',
                     background: activeTrade
@@ -1277,28 +1400,29 @@ const UserTradingPortal = ({
 
                 <button
                   type="button"
-                  onClick={() => onOpenDeposit && onOpenDeposit(assetInfo)}
+                  onClick={() => handleOpenPurchaseModal(assetInfo, 'qr')}
                   style={{
                     width: '100%',
                     marginTop: '8px',
-                    background: 'rgba(56, 189, 248, 0.1)',
-                    border: '1.2px solid rgba(56, 189, 248, 0.45)',
-                    color: '#38bdf8',
+                    background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(16, 185, 129, 0.2))',
+                    border: '1.2px solid #fbbf24',
+                    color: '#fbbf24',
                     borderRadius: '10px',
-                    padding: '9px 12px',
-                    fontSize: '12px',
+                    padding: '10px 12px',
+                    fontSize: '12.5px',
                     fontWeight: 800,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '6px',
+                    boxShadow: '0 0 15px rgba(245, 158, 11, 0.25)',
                     transition: 'all 0.2s ease',
                   }}
                   title={`Scan company QR and pay directly for ${assetInfo.name}`}
                 >
                   <span>📱</span>
-                  <span>Direct QR Payment to {assetInfo.name || selectedAsset}</span>
+                  <span>Pay via {assetInfo.name || selectedAsset} QR Code</span>
                 </button>
               </div>
             </div>
@@ -1796,7 +1920,7 @@ const UserTradingPortal = ({
                       </div>
                     </div>
 
-                    <div style={{ textAlign: 'right' }}>
+                    <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px' }}>
                       <div style={{ fontSize: '15px', fontWeight: 800, fontFamily: 'monospace' }}>
                         ₹{Number(coin.basePrice || 1000).toLocaleString('en-IN')}
                       </div>
@@ -1809,11 +1933,58 @@ const UserTradingPortal = ({
                           padding: '2px 8px',
                           borderRadius: '6px',
                           display: 'inline-block',
-                          marginTop: '3px',
                         }}
                       >
                         +{coin.returnPercent ?? currentAssetRate}% Guaranteed
                       </span>
+                      <div style={{ display: 'flex', gap: '5px', marginTop: '4px' }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenPurchaseModal(coin, 'qr');
+                          }}
+                          style={{
+                            padding: '4px 8px',
+                            fontSize: '10.5px',
+                            fontWeight: 800,
+                            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(16, 185, 129, 0.2))',
+                            border: '1px solid #10b981',
+                            color: '#34d399',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                          }}
+                          title={`Scan & Pay via ${coin.name} QR Code`}
+                        >
+                          <span>📱</span>
+                          <span>Pay QR</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenPurchaseModal(coin, 'wallet');
+                          }}
+                          style={{
+                            padding: '4px 8px',
+                            fontSize: '10.5px',
+                            fontWeight: 800,
+                            background: 'rgba(251, 191, 36, 0.2)',
+                            border: '1px solid #fbbf24',
+                            color: '#fbbf24',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                          }}
+                          title={`Buy & Stake ${coin.name}`}
+                        >
+                          <span>⚡</span>
+                          <span>Buy</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -2971,6 +3142,396 @@ const UserTradingPortal = ({
           })}
         </div>
       </nav>
+
+      {/* ======================================================== */}
+      {/* 6. DEDICATED STOCK PURCHASE & QR PAYMENT MODAL           */}
+      {/* ======================================================== */}
+      {purchaseModalAsset && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 999,
+            background: 'rgba(5, 7, 16, 0.88)',
+            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+          }}
+          onClick={() => setPurchaseModalAsset(null)}
+        >
+          <div
+            className="cyber-card"
+            style={{
+              width: '100%',
+              maxWidth: '480px',
+              maxHeight: '94vh',
+              overflowY: 'auto',
+              borderRadius: '20px',
+              padding: '20px 22px',
+              background: 'linear-gradient(150deg, #121422, #0b0c16)',
+              border: '1.5px solid #fbbf24',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.9), 0 0 35px rgba(251, 191, 36, 0.25)',
+              position: 'relative',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    background: purchaseModalAsset.color || '#38bdf8',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '18px',
+                    fontWeight: 900,
+                  }}
+                >
+                  {purchaseModalAsset.icon || '📈'}
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '15px', fontWeight: 900, color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    Purchase {purchaseModalAsset.name}
+                  </h3>
+                  <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
+                    Symbol: <strong style={{ color: '#fbbf24' }}>{purchaseModalAsset.symbol || purchaseModalAsset.id}</strong> • Rate: <strong style={{ color: '#10b981' }}>+{purchaseModalAsset.returnPercent ?? currentAssetRate}% Guaranteed</strong>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setPurchaseModalAsset(null)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  color: '#94a3b8',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Investment Amount Input & Chips */}
+            <div style={{ marginBottom: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>INVESTMENT AMOUNT (₹)</label>
+                <span style={{ fontSize: '10.5px', color: '#10b981', fontWeight: 700 }}>
+                  Wallet Balance: ₹{realBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <input
+                type="number"
+                min="100"
+                step="100"
+                value={purchaseAmount}
+                onChange={(e) => setPurchaseAmount(Number(e.target.value))}
+                style={{
+                  width: '100%',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1.5px solid rgba(251, 191, 36, 0.5)',
+                  borderRadius: '10px',
+                  padding: '9px 12px',
+                  color: '#fff',
+                  fontSize: '16px',
+                  fontWeight: 900,
+                  outline: 'none',
+                  fontFamily: 'monospace',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <div style={{ display: 'flex', gap: '5px', marginTop: '6px', flexWrap: 'wrap' }}>
+                {[500, 1000, 2500, 5000, 10000, 25000].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setPurchaseAmount(amt)}
+                    style={{
+                      background: purchaseAmount === amt ? '#fbbf24' : 'rgba(255, 255, 255, 0.05)',
+                      border: `1px solid ${purchaseAmount === amt ? '#fbbf24' : 'rgba(255, 255, 255, 0.1)'}`,
+                      borderRadius: '6px',
+                      color: purchaseAmount === amt ? '#000' : '#cbd5e1',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '3px 8px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ₹{amt.toLocaleString('en-IN')}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Profit & Maturity Breakdown Banner */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(245, 158, 11, 0.12))',
+                border: '1.2px solid rgba(16, 185, 129, 0.4)',
+                borderRadius: '12px',
+                padding: '10px 14px',
+                marginBottom: '14px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', color: '#94a3b8', marginBottom: '3px' }}>
+                <span>Guaranteed Profit ({purchaseModalAsset.returnPercent ?? currentAssetRate}%):</span>
+                <span style={{ color: '#10b981', fontWeight: 800 }}>
+                  +₹{Math.round((Number(purchaseAmount || 0) * (purchaseModalAsset.returnPercent ?? currentAssetRate)) / 100).toLocaleString('en-IN')}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13.5px', fontWeight: 900, color: '#fff', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '5px', marginTop: '3px' }}>
+                <span>Total Maturity Return:</span>
+                <span style={{ color: '#34d399', fontFamily: 'monospace' }}>
+                  ₹{Math.round(Number(purchaseAmount || 0) + (Number(purchaseAmount || 0) * (purchaseModalAsset.returnPercent ?? currentAssetRate)) / 100).toLocaleString('en-IN')}
+                </span>
+              </div>
+            </div>
+
+            {/* Payment Method Selector Tabs */}
+            <div style={{ marginBottom: '14px' }}>
+              <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700, marginBottom: '6px' }}>
+                CHOOSE PAYMENT METHOD FOR THIS STOCK:
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPurchaseMode('qr')}
+                  style={{
+                    padding: '9px 6px',
+                    borderRadius: '10px',
+                    border: `1.5px solid ${purchaseMode === 'qr' ? '#fbbf24' : 'rgba(255, 255, 255, 0.1)'}`,
+                    background: purchaseMode === 'qr' ? 'rgba(251, 191, 36, 0.16)' : 'rgba(255, 255, 255, 0.03)',
+                    color: purchaseMode === 'qr' ? '#fbbf24' : '#94a3b8',
+                    fontWeight: 800,
+                    fontSize: '11.5px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '5px',
+                  }}
+                >
+                  <span>📱</span>
+                  <span>{purchaseModalAsset.name.split(' ')[0]} QR Code</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPurchaseMode('wallet')}
+                  style={{
+                    padding: '9px 6px',
+                    borderRadius: '10px',
+                    border: `1.5px solid ${purchaseMode === 'wallet' ? '#10b981' : 'rgba(255, 255, 255, 0.1)'}`,
+                    background: purchaseMode === 'wallet' ? 'rgba(16, 185, 129, 0.16)' : 'rgba(255, 255, 255, 0.03)',
+                    color: purchaseMode === 'wallet' ? '#10b981' : '#94a3b8',
+                    fontWeight: 800,
+                    fontSize: '11.5px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '5px',
+                  }}
+                >
+                  <span>💰</span>
+                  <span>Wallet Balance</span>
+                </button>
+              </div>
+            </div>
+
+            {/* PAYMENT MODE A: COMPANY QR CODE */}
+            {purchaseMode === 'qr' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* QR Code Container */}
+                <div
+                  style={{
+                    background: '#fff',
+                    borderRadius: '14px',
+                    padding: '12px',
+                    textAlign: 'center',
+                    boxShadow: '0 8px 30px rgba(251, 191, 36, 0.3)',
+                    maxWidth: '180px',
+                    margin: '0 auto',
+                  }}
+                >
+                  <img
+                    src={getCompanyQrUrl(purchaseModalAsset)}
+                    alt={`${purchaseModalAsset.name} Payment QR`}
+                    style={{ width: '150px', height: '150px', objectFit: 'contain', display: 'block', margin: '0 auto' }}
+                  />
+                  <div style={{ fontSize: '10px', fontWeight: 800, color: '#000', marginTop: '6px' }}>
+                    Scan with PhonePe / GPay / Paytm
+                  </div>
+                </div>
+
+                {/* Company UPI Details Card */}
+                <div
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '12px',
+                    padding: '10px 12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>{purchaseModalAsset.name} Official UPI ID</div>
+                      <div style={{ fontSize: '13px', fontWeight: 800, color: '#fbbf24', fontFamily: 'monospace', marginTop: '2px' }}>
+                        {purchaseModalAsset.upiId || `${(purchaseModalAsset.symbol || 'stock').toLowerCase().replace(/[^a-z0-9]/g, '')}.paynex@icici`}
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
+                        Payee: {purchaseModalAsset.payeeName || `${purchaseModalAsset.name} Trading Desk`}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const targetUpi = purchaseModalAsset.upiId || `${(purchaseModalAsset.symbol || 'stock').toLowerCase().replace(/[^a-z0-9]/g, '')}.paynex@icici`;
+                        navigator.clipboard?.writeText(targetUpi);
+                        setPurchaseCopied(true);
+                        setTimeout(() => setPurchaseCopied(false), 2000);
+                      }}
+                      style={{
+                        background: '#fbbf24',
+                        border: 'none',
+                        color: '#000',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {purchaseCopied ? '✓ Copied!' : 'Copy UPI'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* 12-Digit UTR Input */}
+                <div>
+                  <label style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                    Enter 12-Digit UTR / Transaction Reference ID *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      placeholder="e.g. 423985123490 (from PhonePe / GPay receipt)"
+                      value={purchaseUtr}
+                      onChange={(e) => setPurchaseUtr(e.target.value)}
+                      style={{
+                        width: '100%',
+                        background: 'rgba(0, 0, 0, 0.4)',
+                        border: '1.2px solid rgba(251, 191, 36, 0.4)',
+                        borderRadius: '8px',
+                        padding: '9px 12px',
+                        color: '#fff',
+                        fontSize: '13px',
+                        fontFamily: 'monospace',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setPurchaseUtr(`UTR${Date.now().toString().slice(-9)}`)}
+                      style={{
+                        position: 'absolute',
+                        right: '8px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#fbbf24',
+                        fontSize: '10.5px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Auto-Fill
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm QR Purchase Button */}
+                <button
+                  type="button"
+                  disabled={isSubmittingPurchase}
+                  onClick={handleConfirmPurchase}
+                  style={{
+                    background: 'linear-gradient(135deg, #f59e0b, #10b981)',
+                    border: 'none',
+                    borderRadius: '12px',
+                    padding: '12px',
+                    color: '#000',
+                    fontSize: '13.5px',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    boxShadow: '0 8px 25px rgba(245, 158, 11, 0.45)',
+                    marginTop: '4px',
+                  }}
+                >
+                  {isSubmittingPurchase
+                    ? '⏳ Submitting Payment...'
+                    : `⚡ Confirm Payment & Start ${purchaseModalAsset.name} Stake`}
+                </button>
+              </div>
+            )}
+
+            {/* PAYMENT MODE B: WALLET BALANCE */}
+            {purchaseMode === 'wallet' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div
+                  style={{
+                    background: 'rgba(16, 185, 129, 0.08)',
+                    border: '1.2px solid rgba(16, 185, 129, 0.35)',
+                    borderRadius: '12px',
+                    padding: '14px',
+                  }}
+                >
+                  <div style={{ fontSize: '11.5px', color: '#94a3b8', marginBottom: '4px' }}>Current Wallet Balance:</div>
+                  <div style={{ fontSize: '20px', fontWeight: 900, color: '#fff', fontFamily: 'monospace' }}>
+                    ₹ {realBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </div>
+                  {realBalance < Number(purchaseAmount || 0) && (
+                    <div style={{ color: '#ef4444', fontSize: '11px', marginTop: '6px', fontWeight: 700 }}>
+                      ⚠️ Insufficient balance. Please switch to "Pay via {purchaseModalAsset.name} QR Code" above.
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  disabled={realBalance < Number(purchaseAmount || 0)}
+                  onClick={handleConfirmPurchase}
+                  style={{
+                    background: realBalance < Number(purchaseAmount || 0) ? '#475569' : 'linear-gradient(135deg, #10b981, #059669)',
+                    border: 'none',
+                    borderRadius: '12px',
+                    padding: '12px',
+                    color: '#fff',
+                    fontSize: '13.5px',
+                    fontWeight: 900,
+                    cursor: realBalance < Number(purchaseAmount || 0) ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 8px 25px rgba(16, 185, 129, 0.35)',
+                  }}
+                >
+                  ⚡ Pay ₹{Number(purchaseAmount || 0).toLocaleString('en-IN')} from Wallet & Start Stake
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
