@@ -54,8 +54,14 @@ function App() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authInitialTab, setAuthInitialTab] = useState('login');
   const [depositModalOpen, setDepositModalOpen] = useState(false);
+  const [depositTargetCompany, setDepositTargetCompany] = useState(null);
   const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
+
+  const handleOpenDepositForCompany = (company = null) => {
+    setDepositTargetCompany(company);
+    setDepositModalOpen(true);
+  };
 
   useEffect(() => {
     localStorage.setItem('paynex_real_bal', realBalance);
@@ -152,7 +158,7 @@ function App() {
           user={currentUser}
           realBalance={realBalance}
           setRealBalance={setRealBalance}
-          onOpenDeposit={() => setDepositModalOpen(true)}
+          onOpenDeposit={(company) => handleOpenDepositForCompany(company)}
           onOpenWithdraw={() => setWithdrawModalOpen(true)}
           onLogout={handleLogout}
         />
@@ -160,7 +166,11 @@ function App() {
         {/* Global Deposit & Withdraw Modals */}
         <DepositModal
           isOpen={depositModalOpen}
-          onClose={() => setDepositModalOpen(false)}
+          onClose={() => {
+            setDepositModalOpen(false);
+            setDepositTargetCompany(null);
+          }}
+          initialCompany={depositTargetCompany}
           onRechargeDemo={handleDeposit}
         />
 
@@ -254,7 +264,11 @@ function App() {
 
       <DepositModal
         isOpen={depositModalOpen}
-        onClose={() => setDepositModalOpen(false)}
+        onClose={() => {
+          setDepositModalOpen(false);
+          setDepositTargetCompany(null);
+        }}
+        initialCompany={depositTargetCompany}
         onRechargeDemo={handleDeposit}
       />
 

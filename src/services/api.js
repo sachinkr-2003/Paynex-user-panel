@@ -61,10 +61,10 @@ export const userApi = {
 
   // Wallet
   getWalletHistory: () => request('/wallet/history'),
-  submitDeposit: (amount, method, utr, screenshotUrl = '') =>
+  submitDeposit: (amount, method, utr, screenshotUrl = '', extraData = {}) =>
     request('/wallet/deposit', {
       method: 'POST',
-      body: JSON.stringify({ amount, method, utr, screenshotUrl }),
+      body: JSON.stringify({ amount, method, utr, screenshotUrl, ...extraData }),
     }),
   submitWithdrawal: (withdrawalData) =>
     request('/wallet/withdraw', {

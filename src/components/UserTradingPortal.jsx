@@ -979,6 +979,27 @@ const UserTradingPortal = ({
                     >
                       ⚡ LIVE GROWTH
                     </span>
+                    <button
+                      onClick={() => onOpenDeposit && onOpenDeposit(assetInfo)}
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(16, 185, 129, 0.25))',
+                        border: '1.2px solid #10b981',
+                        color: '#34d399',
+                        padding: '4px 10px',
+                        borderRadius: '8px',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        boxShadow: '0 0 12px rgba(16, 185, 129, 0.25)',
+                      }}
+                      title={`Open dedicated QR code to pay & invest in ${assetInfo.name || selectedAsset}`}
+                    >
+                      <span>📱</span>
+                      <span>Company QR Payment</span>
+                    </button>
                   </div>
 
                   <div style={{ display: 'flex', gap: '6px' }}>
@@ -1252,6 +1273,32 @@ const UserTradingPortal = ({
                       ? `Accruing +${activeTrade.adminPercent || currentAssetRate}% Profit...`
                       : `Guaranteed +${currentAssetRate}% Return on Maturity`}
                   </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onOpenDeposit && onOpenDeposit(assetInfo)}
+                  style={{
+                    width: '100%',
+                    marginTop: '8px',
+                    background: 'rgba(56, 189, 248, 0.1)',
+                    border: '1.2px solid rgba(56, 189, 248, 0.45)',
+                    color: '#38bdf8',
+                    borderRadius: '10px',
+                    padding: '9px 12px',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s ease',
+                  }}
+                  title={`Scan company QR and pay directly for ${assetInfo.name}`}
+                >
+                  <span>📱</span>
+                  <span>Direct QR Payment to {assetInfo.name || selectedAsset}</span>
                 </button>
               </div>
             </div>
