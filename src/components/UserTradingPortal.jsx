@@ -1,19 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import userApi from '../services/api';
 import { showUserSuccess, showUserWarning, showUserError } from '../utils/swal';
+import { FIFTY_STOCKS_MAP } from '../data/stocksData';
 
-const DEFAULT_ASSETS = {
-  'BTC/USDT': { id: 'btc', name: 'Bitcoin', symbol: 'BTC', category: 'Crypto', basePrice: 5524321, step: 240, icon: '₿', color: '#f7931a', returnPercent: 30, payout: 95 },
-  'ETH/USDT': { id: 'eth', name: 'Ethereum', symbol: 'ETH', category: 'Crypto', basePrice: 248762, step: 28, icon: 'Ξ', color: '#627eea', returnPercent: 28, payout: 92 },
-  'SOL/USDT': { id: 'sol', name: 'Solana', symbol: 'SOL', category: 'Crypto', basePrice: 12450, step: 4.5, icon: '◎', color: '#9945ff', returnPercent: 35, payout: 90 },
-  'BNB/USDT': { id: 'bnb', name: 'BNB', symbol: 'BNB', category: 'Crypto', basePrice: 37820, step: 6.2, icon: '🔶', color: '#f3ba2f', returnPercent: 25, payout: 88 },
-  'TATAMOTORS': { id: 'tatamotors', name: 'Tata Motors', symbol: 'TATAMOTORS', category: 'Stock', basePrice: 945, step: 1.5, icon: '🚗', color: '#38bdf8', returnPercent: 40, payout: 90 },
-  'RELIANCE': { id: 'reliance', name: 'Reliance Ind.', symbol: 'RELIANCE', category: 'Stock', basePrice: 2950, step: 3.2, icon: '🏢', color: '#10b981', returnPercent: 22, payout: 85 },
-  'HDFCBANK': { id: 'hdfcbank', name: 'HDFC Bank', symbol: 'HDFCBANK', category: 'Stock', basePrice: 1680, step: 2.1, icon: '🏦', color: '#6366f1', returnPercent: 20, payout: 85 },
-  'AAPL': { id: 'aapl', name: 'Apple Inc.', symbol: 'AAPL', category: 'Stock', basePrice: 18500, step: 15, icon: '🍎', color: '#f43f5e', returnPercent: 32, payout: 88 },
-  'TSLA': { id: 'tsla', name: 'Tesla Inc.', symbol: 'TSLA', category: 'Stock', basePrice: 21500, step: 25, icon: '⚡', color: '#ef4444', returnPercent: 45, payout: 92 },
-  'GOLD': { id: 'gold', name: 'Gold Spot', symbol: 'GOLD', category: 'Commodity', basePrice: 72400, step: 45, icon: '🪙', color: '#eab308', returnPercent: 18, payout: 80 },
-};
+const DEFAULT_ASSETS = FIFTY_STOCKS_MAP;
 
 const TIMEFRAMES = [
   { label: '15s Flash', seconds: 15 },
