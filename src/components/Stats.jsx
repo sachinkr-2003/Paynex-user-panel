@@ -28,7 +28,7 @@ const Stats = () => {
               Growing <span className="gradient-text-gold">Together</span>
             </h2>
             <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: 1.7 }}>
-              Join thousands of traders who are already building their financial future with PAYNEX.
+              Join thousands of traders who are already building their financial future with PAYNEX CRYPTO.
             </p>
           </div>
 

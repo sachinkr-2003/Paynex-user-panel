@@ -127,7 +127,7 @@ const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
             }}
           >
             <img
-              src="/paynex_icon.png"
+              src="/paynex-logo.jpg"
               alt="PAYNEX Logo"
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />

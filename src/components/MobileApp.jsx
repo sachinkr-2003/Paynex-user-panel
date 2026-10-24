@@ -54,7 +54,7 @@ const MobileApp = () => {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <img src="/paynex_icon.png" alt="PAYNEX" style={{ width: '22px', height: '22px', borderRadius: '4px', objectFit: 'cover' }} />
+                  <img src="/paynex-logo.jpg" alt="PAYNEX" style={{ width: '22px', height: '22px', borderRadius: '4px', objectFit: 'cover' }} />
                   <span style={{ fontSize: '12px', fontWeight: 900, color: '#fff' }}>PAY<span style={{ color: '#fbbf24' }}>NEX</span></span>
                 </div>
                 <span style={{ fontSize: '10px', color: '#10b981', background: 'rgba(16, 185, 129, 0.2)', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>LIVE ●</span>

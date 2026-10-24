@@ -199,8 +199,8 @@ const Navbar = ({
               }}
             >
               <img
-                src="/paynex_icon.png"
-                alt="Paynex Logo"
+                src="/paynex-logo.jpg"
+                alt="PAYNEX CRYPTO Logo"
                 style={{
                   width: '100%',
                   height: '100%',
@@ -211,17 +211,31 @@ const Navbar = ({
             </div>
 
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span
                   className="font-display"
                   style={{
                     fontWeight: 900,
-                    fontSize: 'clamp(18px, 3.8vw, 22px)',
+                    fontSize: 'clamp(17px, 3.5vw, 21px)',
                     letterSpacing: '0.5px',
                     color: '#fff',
                   }}
                 >
                   PAY<span style={{ color: '#fbbf24', textShadow: '0 0 12px rgba(245, 158, 11, 0.6)' }}>NEX</span>
+                </span>
+                <span
+                  style={{
+                    fontSize: '8.5px',
+                    fontWeight: 900,
+                    color: '#fbbf24',
+                    background: 'rgba(245, 158, 11, 0.15)',
+                    border: '1px solid rgba(245, 158, 11, 0.45)',
+                    padding: '1.5px 5px',
+                    borderRadius: '4px',
+                    letterSpacing: '1px',
+                  }}
+                >
+                  CRYPTO
                 </span>
               </div>
 
@@ -229,7 +243,7 @@ const Navbar = ({
                 className="hidden sm:block"
                 style={{ fontSize: '9px', color: '#94a3b8', letterSpacing: '0.4px', margin: 0, fontWeight: 500 }}
               >
-                Invest Today and Grow Tomorrow
+                INVEST TODAY AND GROW TOMORROW
               </p>
             </div>
           </a>

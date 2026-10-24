@@ -34,14 +34,29 @@ const Footer = () => {
                 }}
               >
                 <img
-                  src="/paynex_icon.png"
-                  alt="Paynex Logo"
+                  src="/paynex-logo.jpg"
+                  alt="PAYNEX CRYPTO Logo"
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                 />
               </div>
               <div>
                 <span className="font-display" style={{ fontSize: '20px', fontWeight: 900, color: '#fff' }}>
                   PAY<span style={{ color: '#fbbf24', textShadow: '0 0 10px rgba(245, 158, 11, 0.5)' }}>NEX</span>
+                </span>
+                <span
+                  style={{
+                    marginLeft: '8px',
+                    fontSize: '9px',
+                    fontWeight: 900,
+                    color: '#fbbf24',
+                    background: 'rgba(245, 158, 11, 0.15)',
+                    border: '1px solid rgba(245, 158, 11, 0.4)',
+                    padding: '2px 5px',
+                    borderRadius: '4px',
+                    letterSpacing: '1px',
+                  }}
+                >
+                  CRYPTO
                 </span>
                 <p style={{ fontSize: '10px', color: '#fbbf24', margin: '2px 0 0', fontWeight: 600 }}>
                   Invest Today and Grow Tomorrow
@@ -137,8 +152,7 @@ const Footer = () => {
           <p style={{ marginBottom: '8px' }}>
             <strong style={{ color: '#94a3b8' }}>Risk Warning:</strong> Trading binary options and cryptocurrency derivatives carries financial risk. PAYNEX provides educational demo accounts for skill development. Invest Today and Grow Tomorrow.
           </p>
-          <p>© 2026 Paynex. All rights reserved.</p>
-
+          <p>© 2026 PAYNEX CRYPTO. All rights reserved.</p>
         </div>
       </div>
     </footer>
