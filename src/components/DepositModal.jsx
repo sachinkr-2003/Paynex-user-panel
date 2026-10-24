@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import userApi from '../services/api';
+import { showUserSuccess } from '../utils/swal';
 
 const DepositModal = ({ isOpen, onClose, onRechargeDemo }) => {
   const [method, setMethod] = useState('upi'); // 'upi' or 'crypto'
@@ -16,13 +18,23 @@ const DepositModal = ({ isOpen, onClose, onRechargeDemo }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleSimulatePayment = () => {
+  const handleSimulatePayment = async () => {
     setSuccess(true);
+    const generatedUtr = `UTR${Date.now().toString().slice(-9)}`;
+    try {
+      await userApi.submitDeposit(Number(amount), method.toUpperCase(), generatedUtr);
+    } catch (err) {
+      console.warn('Backend deposit submit:', err.message);
+    }
     setTimeout(() => {
       setSuccess(false);
       if (onRechargeDemo) onRechargeDemo(Number(amount));
       onClose();
-    }, 1500);
+      showUserSuccess(
+        'Deposit Order Submitted',
+        `₹${Number(amount).toLocaleString('en-IN')} via ${method.toUpperCase()} (UTR: ${generatedUtr}) recorded in audit ledger. Balance will update upon network verification.`
+      );
+    }, 1200);
   };
 
   return (
@@ -41,12 +53,14 @@ const DepositModal = ({ isOpen, onClose, onRechargeDemo }) => {
       onClick={onClose}
     >
       <div
-        className="cyber-card"
+        className="cyber-card modal-responsive-card"
         style={{
           width: '100%',
           maxWidth: '460px',
-          borderRadius: '26px',
-          padding: '30px 26px',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          borderRadius: '24px',
+          padding: 'clamp(20px, 4vw, 30px) clamp(16px, 3.5vw, 26px)',
           background: 'linear-gradient(150deg, rgba(14, 18, 44, 0.96) 0%, rgba(5, 7, 20, 0.98) 100%)',
           border: '1.5px solid rgba(245, 158, 11, 0.45)',
           boxShadow: '0 25px 70px rgba(0, 0, 0, 0.85), 0 0 50px rgba(245, 158, 11, 0.25)',

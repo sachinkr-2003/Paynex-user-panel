@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 *, *::before, *::after {
   margin: 0;
@@ -385,5 +387,139 @@ html, body {
   .nav-mobile-hamburger {
     display: flex !important;
   }
+}
+
+/* Trading Portal Responsive Rules */
+.trading-grid-wrap {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (min-width: 992px) {
+  .trading-grid-wrap {
+    grid-template-columns: minmax(0, 1fr) 360px;
+  }
+}
+
+.portal-header-row {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .portal-header-row {
+    gap: 10px 8px;
+  }
+  .portal-balance-badge {
+    order: 3;
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 8px 14px !important;
+  }
+  .portal-header-actions {
+    gap: 6px !important;
+  }
+  .portal-header-actions button {
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .portal-header-actions button {
+    padding: 5px 8px !important;
+    font-size: 10.5px !important;
+    border-radius: 8px !important;
+  }
+}
+
+/* Modal Responsive Container */
+.modal-responsive-card {
+  width: 100%;
+  max-width: 460px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+/* Custom Scrollbar for smooth in-card scrolling */
+.modal-responsive-card::-webkit-scrollbar,
+.custom-scroll::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.modal-responsive-card::-webkit-scrollbar-thumb,
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: rgba(245, 158, 11, 0.4);
+  border-radius: 10px;
+}
+
+/* Paynex Cyber SweetAlert2 Custom Styling */
+.cyber-swal-popup {
+  border-radius: 18px !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.9), 0 0 40px rgba(245, 158, 11, 0.2) !important;
+  padding: 26px !important;
+}
+
+.cyber-swal-title {
+  font-family: 'Space Grotesk', 'Outfit', sans-serif !important;
+  padding: 0 !important;
+  margin-top: 10px !important;
+}
+
+.cyber-swal-content {
+  font-family: 'Outfit', sans-serif !important;
+  margin: 12px 0 0 0 !important;
+}
+
+.cyber-swal-actions {
+  gap: 12px !important;
+  margin-top: 22px !important;
+}
+
+.cyber-swal-confirm-btn {
+  background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%) !important;
+  color: #05060e !important;
+  font-weight: 800 !important;
+  font-size: 13.5px !important;
+  padding: 11px 24px !important;
+  border: none !important;
+  border-radius: 10px !important;
+  cursor: pointer !important;
+  letter-spacing: 0.04em !important;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.35) !important;
+  transition: all 0.2s ease !important;
+}
+
+.cyber-swal-confirm-btn:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.5) !important;
+}
+
+.cyber-swal-cancel-btn {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #94a3b8 !important;
+  font-weight: 700 !important;
+  font-size: 13.5px !important;
+  padding: 11px 22px !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 10px !important;
+  cursor: pointer !important;
+  letter-spacing: 0.04em !important;
+  transition: all 0.2s ease !important;
+}
+
+.cyber-swal-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #fff !important;
 }
 

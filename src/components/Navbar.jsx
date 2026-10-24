@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react';
 
-const Navbar = ({ onOpenAuth, onOpenDeposit, demoBalance = 50000 }) => {
+const Navbar = ({
+  onOpenAuth,
+  onOpenDeposit,
+  demoBalance = 50000,
+  realBalance = 25480.32,
+  currentUser = null,
+  onOpenTradingDesk,
+  onLogout,
+}) => {
   const [active, setActive] = useState('Home');
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -290,14 +298,71 @@ const Navbar = ({ onOpenAuth, onOpenDeposit, demoBalance = 50000 }) => {
 
           {/* Right Action Bar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-            {/* Sign In Button */}
-            <button
-              onClick={() => onOpenAuth && onOpenAuth('login')}
-              className="btn-cyber-outline hidden sm:inline-flex"
-              style={{ padding: '7px 14px', fontSize: '12px' }}
-            >
-              Sign In
-            </button>
+            {/* Logged in User Profile OR Sign In Button */}
+            {currentUser ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  onClick={onOpenTradingDesk}
+                  className="btn-cyber-primary"
+                  style={{
+                    padding: '7px 12px',
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <span>⚡</span>
+                  <span>Trade Desk</span>
+                </button>
+                <div
+                  onClick={onOpenTradingDesk}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'rgba(255, 255, 255, 0.06)',
+                    border: '1px solid #fbbf24',
+                    borderRadius: '20px',
+                    padding: '3px 8px 3px 3px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <img
+                    src="/sachin_avatar.jpg"
+                    alt="Avatar"
+                    style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover' }}
+                  />
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }} className="hidden md:inline">
+                    {currentUser.name || 'Sachin'}
+                  </span>
+                </div>
+                <button
+                  onClick={onLogout}
+                  title="Logout"
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    border: '1px solid rgba(239, 68, 68, 0.35)',
+                    color: '#f87171',
+                    borderRadius: '8px',
+                    padding: '6px 8px',
+                    fontSize: '11px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Exit
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => onOpenAuth && onOpenAuth('login')}
+                className="btn-cyber-outline hidden sm:inline-flex"
+                style={{ padding: '7px 14px', fontSize: '12px' }}
+              >
+                Sign In
+              </button>
+            )}
 
             {/* Download App CTA */}
             <button
@@ -441,30 +506,75 @@ const Navbar = ({ onOpenAuth, onOpenDeposit, demoBalance = 50000 }) => {
               ))}
             </div>
 
-            {/* Mobile Auth Actions (Create Account removed, full-width Sign In) */}
+            {/* Mobile Auth Actions */}
             <div style={{ marginBottom: '4px' }}>
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onOpenAuth && onOpenAuth('login');
-                }}
-                className="btn-cyber-primary"
-                style={{
-                  padding: '12px',
-                  fontSize: '13.5px',
-                  fontWeight: 800,
-                  textAlign: 'center',
-                  width: '100%',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                }}
-              >
-                <span>🔐</span>
-                <span>Sign In</span>
-              </button>
+              {currentUser ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      onOpenTradingDesk && onOpenTradingDesk();
+                    }}
+                    className="btn-cyber-primary"
+                    style={{
+                      padding: '12px',
+                      fontSize: '13.5px',
+                      fontWeight: 800,
+                      textAlign: 'center',
+                      width: '100%',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    <span>⚡</span>
+                    <span>Enter 3D Trade Desk</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      onLogout && onLogout();
+                    }}
+                    style={{
+                      padding: '10px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      background: 'rgba(239, 68, 68, 0.15)',
+                      border: '1px solid rgba(239, 68, 68, 0.35)',
+                      color: '#f87171',
+                      borderRadius: '10px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Sign Out ({currentUser.name || 'User'})
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenAuth && onOpenAuth('login');
+                  }}
+                  className="btn-cyber-primary"
+                  style={{
+                    padding: '12px',
+                    fontSize: '13.5px',
+                    fontWeight: 800,
+                    textAlign: 'center',
+                    width: '100%',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  <span>🔐</span>
+                  <span>Sign In</span>
+                </button>
+              )}
             </div>
 
             {/* App Promotion Banner in Drawer */}
