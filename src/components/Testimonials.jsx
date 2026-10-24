@@ -1,7 +1,7 @@
 const reviews = [
   {
     name: 'Rahul Sharma',
-    review: '"PAYNEX CRYPTO has made it so fast and easy to trade binary contracts. Sub-second execution and instant 30-sec UPI withdrawals!"',
+    review: '"PAYNEX has made it so fast and easy to trade contracts. Sub-second execution and instant 30-sec UPI withdrawals!"',
     rating: 5,
     initials: 'RS',
     color: '#2563eb',

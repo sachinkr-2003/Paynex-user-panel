@@ -133,30 +133,8 @@ const UserTradingPortal = ({
 
   const [showAdminConfig, setShowAdminConfig] = useState(false);
 
-  const [tradeHistory, setTradeHistory] = useState([
-    {
-      id: 'tx_demo_1',
-      time: '10:24 AM',
-      asset: 'BTC/USDT',
-      amount: 5000,
-      adminPercent: 30,
-      profit: 1500,
-      payout: 6500,
-      isWin: true,
-      wallet: 'real',
-    },
-    {
-      id: 'tx_demo_2',
-      time: '09:45 AM',
-      asset: 'ETH/USDT',
-      amount: 2500,
-      adminPercent: 30,
-      profit: 750,
-      payout: 3250,
-      isWin: true,
-      wallet: 'real',
-    },
-  ]);
+  const [tradeHistory, setTradeHistory] = useState([]);
+
 
   const [walletHistory, setWalletHistory] = useState([]);
 
@@ -1569,7 +1547,15 @@ const UserTradingPortal = ({
                       </tr>
                     </thead>
                     <tbody>
-                      {tradeHistory.map((item, idx) => (
+                      {tradeHistory.length === 0 ? (
+                        <tr>
+                          <td colSpan="6" style={{ padding: '24px 8px', textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>
+                            No stakings placed yet. Start a growth plan above to see your history!
+                          </td>
+                        </tr>
+                      ) : (
+                        tradeHistory.map((item, idx) => (
+
                         <tr key={item.id || idx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
                           <td style={{ padding: '8px 6px', fontWeight: 700 }}>{item.asset}</td>
                           <td style={{ padding: '8px 6px', fontWeight: 600 }}>₹{item.amount.toLocaleString('en-IN')}</td>
@@ -1595,7 +1581,7 @@ const UserTradingPortal = ({
                             </span>
                           </td>
                         </tr>
-                      ))}
+                      )))}
                     </tbody>
                   </table>
                 </div>
@@ -2145,7 +2131,7 @@ const UserTradingPortal = ({
               </p>
               <button
                 onClick={() => {
-                  navigator.clipboard?.writeText('https://paynexcrypto.io/ref/PAYNEX12345');
+                  navigator.clipboard?.writeText('https://paynex.com/ref/PAYNEX12345');
                   alert('Referral link copied to clipboard!');
                 }}
                 className="btn-cyber-primary"
@@ -2895,7 +2881,7 @@ const UserTradingPortal = ({
                     </button>
 
                     <button
-                      onClick={() => window.open('https://t.me/paynexcrypto_support', '_blank')}
+                      onClick={() => window.open('https://t.me/paynex_official', '_blank')}
                       style={{
                         background: 'linear-gradient(135deg, rgba(34, 158, 217, 0.2), rgba(0, 136, 204, 0.15))',
                         border: '1px solid rgba(34, 158, 217, 0.4)',
@@ -2921,7 +2907,7 @@ const UserTradingPortal = ({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontSize: '16px' }}>✉️</span>
                       <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#fff' }}>Official Email:</span>
-                      <strong style={{ color: '#38bdf8', fontSize: '12px' }}>support@paynexcrypto.io</strong>
+                      <strong style={{ color: '#38bdf8', fontSize: '12px' }}>support@paynex.com</strong>
                     </div>
                   </div>
 

@@ -290,7 +290,7 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
                 textOverflow: 'ellipsis',
               }}
             >
-              PAYNEX CRYPTO • INVEST TODAY AND GROW TOMORROW
+              PAYNEX • INVEST TODAY AND GROW TOMORROW
             </span>
           </div>
 
