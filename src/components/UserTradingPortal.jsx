@@ -79,6 +79,7 @@ const UserTradingPortal = ({
   onOpenDeposit,
   onOpenWithdraw,
   onLogout,
+  onBackToWebsite,
 }) => {
   // Navigation Tabs: 'home' (APK Screen 5), 'market', 'game' (3D Trade Arena), 'wallet', 'profile'
   const [currentTab, setCurrentTab] = useState('home');
@@ -897,6 +898,30 @@ const UserTradingPortal = ({
 
             {/* Header Actions (Right) */}
             <div className="portal-header-actions">
+              {onBackToWebsite && (
+                <button
+                  type="button"
+                  onClick={onBackToWebsite}
+                  title="Return to Main Website"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    color: '#f8fafc',
+                    borderRadius: '10px',
+                    padding: '7px clamp(8px, 2vw, 12px)',
+                    fontSize: 'clamp(11px, 2.8vw, 12px)',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                  }}
+                >
+                  <span>🌐</span>
+                  <span>Website</span>
+                </button>
+              )}
               <button
                 onClick={onOpenDeposit}
                 className="btn-cyber-primary"
