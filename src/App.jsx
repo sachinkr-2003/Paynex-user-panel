@@ -20,10 +20,12 @@ import VideoModal from './components/VideoModal';
 import UserTradingPortal from './components/UserTradingPortal';
 import ApkLoginScreen from './components/ApkLoginScreen';
 import ApkRegisterScreen from './components/ApkRegisterScreen';
+import LogoPreloader from './components/LogoPreloader';
 import userApi from './services/api';
 import { showUserConfirm, showUserToast } from './utils/swal';
 
 function App() {
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const saved = localStorage.getItem('paynex_user');
@@ -192,6 +194,9 @@ function App() {
   if (activeView === 'portal' && currentUser) {
     return (
       <div style={{ position: 'relative', minHeight: '100vh', background: '#07070a', color: '#fff' }}>
+        {isInitialLoading && (
+          <LogoPreloader onComplete={() => setIsInitialLoading(false)} />
+        )}
         <UserTradingPortal
           user={currentUser}
           realBalance={realBalance}
@@ -260,6 +265,11 @@ function App() {
   // 3. DEFAULT: Public Website / Landing View (ALWAYS open by default on visit or refresh)
   return (
     <div style={{ position: 'relative', minHeight: '100vh', background: '#050514', color: '#fff', overflowX: 'hidden' }}>
+      {/* Brand Logo Preloader */}
+      {isInitialLoading && (
+        <LogoPreloader onComplete={() => setIsInitialLoading(false)} />
+      )}
+
       {/* 3D Perspective Canvas Background */}
       <BackgroundCanvas />
 
