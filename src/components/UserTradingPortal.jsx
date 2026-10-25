@@ -322,22 +322,26 @@ const UserTradingPortal = ({
           setUserContracts((prev) => {
             const mapped = res.rounds.map((r) => {
               const assetObj = resolveAsset(assetsMap, r.asset);
-              const rate = r.returnPercent || 10;
+              const rate = r.returnPercent || 4;
               const amt = Number(r.stakedAmount || r.amount || 0);
-              const pft = Number(r.profit || Math.round((amt * rate) / 100));
+              const daily = Number(r.dailyInterest || Math.round((amt * rate) / 100));
+              const totalEarned = Number(r.totalInterestEarned || 0);
+              const pft = totalEarned > 0 ? totalEarned : daily;
               return {
                 id: r._id || r.id || `CT-${r.roundId || Date.now()}`,
                 asset: r.asset,
                 assetName: assetObj?.name || r.asset,
                 symbol: assetObj?.symbol || r.asset,
-                icon: assetObj?.icon || '⚡',
+                icon: assetObj?.icon || '📈',
                 color: assetObj?.color || '#fbbf24',
-                category: assetObj?.category || 'Asset',
+                category: assetObj?.category || 'Stock',
                 amount: amt,
                 rate,
+                dailyInterest: daily,
+                totalInterestEarned: totalEarned,
                 profit: pft,
                 payout: Number(r.payout || (amt + pft)),
-                duration: `${r.durationSeconds || 30}s`,
+                duration: '5:00 AM Daily',
                 time: r.createdAt ? new Date(r.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }) : (r.time || 'Recent'),
                 status: r.status === 'Active' ? 'Running' : 'Completed',
               };
