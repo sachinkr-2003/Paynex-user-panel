@@ -252,7 +252,7 @@ const Footer = () => {
               Connect with active traders on our official social channels.
             </p>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {['Telegram', 'WhatsApp', 'Twitter / X', 'Discord'].map((platform) => (
+              {['Telegram', 'Twitter / X', 'Discord', 'YouTube'].map((platform) => (
                 <button
                   key={platform}
                   style={{

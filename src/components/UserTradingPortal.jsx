@@ -230,76 +230,122 @@ const UserTradingPortal = ({
       const saved = localStorage.getItem('paynex_user_contracts');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch {}
-    return [
-      {
-        id: 'CT-98421',
-        asset: 'TATAMOTORS',
-        assetName: 'Tata Motors Ltd',
-        symbol: 'TATAMOTORS',
-        icon: '📈',
-        color: '#3b82f6',
-        category: 'Stock',
-        amount: 10000,
-        rate: 12,
-        profit: 1200,
-        payout: 11200,
-        duration: '60s',
-        time: 'Today, 04:30 PM',
-        status: 'Completed',
-      },
-      {
-        id: 'CT-98210',
-        asset: 'BTC/USDT',
-        assetName: 'Bitcoin',
-        symbol: 'BTC/USDT',
-        icon: '₿',
-        color: '#f59e0b',
-        category: 'Crypto',
-        amount: 5000,
-        rate: 10,
-        profit: 500,
-        payout: 5500,
-        duration: '30s',
-        time: 'Today, 02:15 PM',
-        status: 'Completed',
-      },
-      {
-        id: 'CT-97945',
-        asset: 'RELIANCE',
-        assetName: 'Reliance Industries',
-        symbol: 'RELIANCE',
-        icon: '🏛️',
-        color: '#10b981',
-        category: 'Stock',
-        amount: 15000,
-        rate: 12,
-        profit: 1800,
-        payout: 16800,
-        duration: '60s',
-        time: 'Yesterday, 06:10 PM',
-        status: 'Completed',
-      },
-      {
-        id: 'CT-97612',
-        asset: 'ETH/USDT',
-        assetName: 'Ethereum',
-        symbol: 'ETH/USDT',
-        icon: 'Ξ',
-        color: '#6366f1',
-        category: 'Crypto',
-        amount: 2500,
-        rate: 8,
-        profit: 200,
-        payout: 2700,
-        duration: '30s',
-        time: 'Yesterday, 01:20 PM',
-        status: 'Completed',
-      },
-    ];
+    return [];
   });
+
+  // AI Live Support Chat State
+  const [supportTab, setSupportTab] = useState('chat'); // 'chat' or 'help'
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatId, setChatId] = useState(null);
+  const [isAiTyping, setIsAiTyping] = useState(false);
+  const chatBottomRef = useRef(null);
+
+  // Sync AI Chat when Support Modal is opened
+  useEffect(() => {
+    if (activeSettingModal === 'support') {
+      let isMounted = true;
+      const fetchChat = async () => {
+        setChatLoading(true);
+        try {
+          const res = await userApi.getMyChat();
+          if (isMounted && res?.success && res.chat) {
+            setChatId(res.chat._id);
+            if (Array.isArray(res.chat.messages) && res.chat.messages.length > 0) {
+              setChatMessages(res.chat.messages);
+            } else {
+              setChatMessages([
+                {
+                  sender: 'ai',
+                  text: `Namaste ${user?.name || 'Trader'}! PAYNEX 24/7 AI Desk online hai. 🤖✨\n\nAapko deposit, withdrawal, KYC, staking returns ya password reset me koi bhi sahayata chahiye toh yahan likhein!`,
+                  createdAt: new Date().toISOString(),
+                },
+              ]);
+            }
+          }
+        } catch {
+          if (isMounted && chatMessages.length === 0) {
+            setChatMessages([
+              {
+                sender: 'ai',
+                text: `Namaste ${user?.name || 'Trader'}! PAYNEX 24/7 AI Desk online hai. Kripya apna prashna yahan likhiye.`,
+                createdAt: new Date().toISOString(),
+              },
+            ]);
+          }
+        } finally {
+          if (isMounted) setChatLoading(false);
+        }
+      };
+      fetchChat();
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, [activeSettingModal]);
+
+  // Auto scroll to bottom of chat
+  useEffect(() => {
+    if (activeSettingModal === 'support' && supportTab === 'chat' && chatBottomRef.current) {
+      chatBottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, isAiTyping, activeSettingModal, supportTab]);
+
+  const handleSendChat = async (presetText) => {
+    const text = (presetText || chatInput).trim();
+    if (!text || isAiTyping) return;
+    setChatInput('');
+
+    // Optimistically push user message
+    const optimisticMsg = {
+      sender: 'user',
+      text,
+      createdAt: new Date().toISOString(),
+    };
+    setChatMessages((prev) => [...prev, optimisticMsg]);
+    setIsAiTyping(true);
+
+    try {
+      const res = await userApi.sendChatMessage(text, chatId);
+      if (res?.success) {
+        if (res.chat?._id) setChatId(res.chat._id);
+        if (res.aiReply) {
+          setChatMessages((prev) => [
+            ...prev,
+            {
+              sender: res.aiReply.sender || 'ai',
+              text: res.aiReply.text,
+              createdAt: res.aiReply.createdAt || new Date().toISOString(),
+            },
+          ]);
+        }
+      } else {
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            sender: 'ai',
+            text: 'Aapka sandesh support team tak pahunch gaya hai. AI bot kripya kuch seconds me punah prayas karein.',
+            createdAt: new Date().toISOString(),
+          },
+        ]);
+      }
+    } catch {
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          sender: 'ai',
+          text: 'Network issue ki wajah se response aane me deri ho rahi hai. Kripya punah message bhej kar check karein.',
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+    } finally {
+      setIsAiTyping(false);
+    }
+  };
 
   const [contractFilter, setContractFilter] = useState('all'); // 'all', 'running', 'completed'
   const [walletViewTab, setWalletViewTab] = useState('transactions'); // 'transactions' or 'contracts'
@@ -4273,87 +4319,369 @@ const UserTradingPortal = ({
               {/* 6. HELP & 24/7 PRIORITY SUPPORT MODAL */}
               {activeSettingModal === 'support' && (
                 <div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
+                  {/* Top Mode Selector Tabs */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      padding: '4px',
+                      borderRadius: '12px',
+                      marginBottom: '14px',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      gap: '4px',
+                    }}
+                  >
                     <button
-                      onClick={() => window.open('https://wa.me/919876543210', '_blank')}
+                      onClick={() => setSupportTab('chat')}
                       style={{
-                        background: 'linear-gradient(135deg, rgba(37, 211, 102, 0.2), rgba(18, 140, 126, 0.15))',
-                        border: '1px solid rgba(37, 211, 102, 0.4)',
-                        borderRadius: '12px',
-                        padding: '12px 10px',
-                        color: '#fff',
+                        flex: 1,
+                        padding: '9px 12px',
+                        borderRadius: '9px',
+                        border: 'none',
+                        background: supportTab === 'chat' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'transparent',
+                        color: supportTab === 'chat' ? '#000' : '#94a3b8',
+                        fontWeight: 800,
+                        fontSize: '12.5px',
                         cursor: 'pointer',
-                        textAlign: 'left',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        transition: 'all 0.2s ease',
                       }}
                     >
-                      <div style={{ fontSize: '20px', marginBottom: '4px' }}>💬</div>
-                      <div style={{ fontSize: '13px', fontWeight: 800, color: '#25d366' }}>WhatsApp Care</div>
-                      <div style={{ fontSize: '10px', color: '#cbd5e1' }}>Direct chat with Agent</div>
-                    </button>
-
-                    <button
-                      onClick={() => window.open('https://t.me/paynex_official', '_blank')}
-                      style={{
-                        background: 'linear-gradient(135deg, rgba(34, 158, 217, 0.2), rgba(0, 136, 204, 0.15))',
-                        border: '1px solid rgba(34, 158, 217, 0.4)',
-                        borderRadius: '12px',
-                        padding: '12px 10px',
-                        color: '#fff',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                      }}
-                    >
-                      <div style={{ fontSize: '20px', marginBottom: '4px' }}>✈️</div>
-                      <div style={{ fontSize: '13px', fontWeight: 800, color: '#38bdf8' }}>Telegram Official</div>
-                      <div style={{ fontSize: '10px', color: '#cbd5e1' }}>24x7 Community channel</div>
-                    </button>
-                  </div>
-
-                  <div style={{ background: 'rgba(255, 255, 255, 0.04)', borderRadius: '12px', padding: '12px', marginBottom: '14px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '16px' }}>📞</span>
-                      <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#fff' }}>Toll-Free Helpline:</span>
-                      <strong style={{ color: '#fbbf24', fontSize: '13px', fontFamily: 'monospace' }}>1800 234 5678</strong>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '16px' }}>✉️</span>
-                      <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#fff' }}>Official Email:</span>
-                      <strong style={{ color: '#38bdf8', fontSize: '12px' }}>support@paynex.com</strong>
-                    </div>
-                  </div>
-
-                  {/* FAQs List */}
-                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#fbbf24', marginBottom: '8px' }}>
-                    ❓ Frequently Asked Questions
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {[
-                      { q: 'How fast are withdrawals processed?', a: 'Withdrawals are processed instantly through IMPS/UPI rails within 2 to 15 minutes.' },
-                      { q: 'How is the fixed 2% - 12% return credited?', a: 'Upon maturity of your active round duration (e.g. 15s or 30s), your stake plus fixed profit (2% to 12%) is directly added to your real balance.' },
-                      { q: 'Is my account identity & bank data safe?', a: 'Yes, all sensitive credentials and banking info are encrypted with 256-bit bank-grade SSL.' },
-                    ].map((faq, i) => (
-                      <div
-                        key={i}
-                        onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                      <span>🤖</span>
+                      <span>Live AI Chat</span>
+                      <span
                         style={{
-                          background: 'rgba(255, 255, 255, 0.03)',
-                          borderRadius: '8px',
-                          padding: '8px 10px',
-                          cursor: 'pointer',
+                          background: supportTab === 'chat' ? '#000' : '#10b981',
+                          color: supportTab === 'chat' ? '#fbbf24' : '#fff',
+                          fontSize: '9px',
+                          fontWeight: 900,
+                          padding: '2px 6px',
+                          borderRadius: '10px',
                         }}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', fontWeight: 700, color: '#fff' }}>
-                          <span>{faq.q}</span>
-                          <span style={{ color: '#fbbf24' }}>{openFaq === i ? '▲' : '▼'}</span>
+                        24/7
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => setSupportTab('help')}
+                      style={{
+                        flex: 1,
+                        padding: '9px 12px',
+                        borderRadius: '9px',
+                        border: 'none',
+                        background: supportTab === 'help' ? 'linear-gradient(135deg, #38bdf8, #2563eb)' : 'transparent',
+                        color: supportTab === 'help' ? '#fff' : '#94a3b8',
+                        fontWeight: 800,
+                        fontSize: '12.5px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <span>📋</span>
+                      <span>Helpline & FAQs</span>
+                    </button>
+                  </div>
+
+                  {supportTab === 'chat' ? (
+                    <div>
+                      {/* Security Header Banner */}
+                      <div
+                        style={{
+                          background: 'rgba(16, 185, 129, 0.08)',
+                          border: '1px solid rgba(16, 185, 129, 0.25)',
+                          borderRadius: '10px',
+                          padding: '7px 12px',
+                          marginBottom: '10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          fontSize: '11px',
+                          color: '#6ee7b7',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 8px #10b981' }} />
+                          <strong style={{ color: '#fff' }}>PAYNEX Neural AI Agent</strong>
+                          <span>• Instant reply</span>
                         </div>
-                        {openFaq === i && (
-                          <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '6px' }}>
-                            {faq.a}
+                        <span style={{ color: '#94a3b8', fontSize: '10px' }}>Real-time 24/7 Desk</span>
+                      </div>
+
+                      {/* Chat Messages Container */}
+                      <div
+                        style={{
+                          height: '320px',
+                          overflowY: 'auto',
+                          background: 'rgba(10, 11, 18, 0.85)',
+                          border: '1px solid rgba(255, 255, 255, 0.08)',
+                          borderRadius: '14px',
+                          padding: '12px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '10px',
+                          marginBottom: '10px',
+                        }}
+                      >
+                        {chatLoading ? (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8', fontSize: '12px' }}>
+                            <span>Connecting to PAYNEX AI Desk...</span>
+                          </div>
+                        ) : chatMessages.length === 0 ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b', fontSize: '12px', textAlign: 'center', padding: '20px' }}>
+                            <div style={{ fontSize: '32px', marginBottom: '8px' }}>🤖</div>
+                            <div style={{ color: '#fff', fontWeight: 700, marginBottom: '4px' }}>PAYNEX Live AI Support</div>
+                            <div>Poochhiye koi bhi sawaal (Deposit, Withdrawal, KYC, Trading Rules) in Hindi ya English.</div>
+                          </div>
+                        ) : (
+                          chatMessages.map((msg, idx) => {
+                            const isUser = msg.sender === 'user';
+                            const isAdmin = msg.sender === 'admin';
+                            const timeStr = msg.createdAt
+                              ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                              : '';
+                            return (
+                              <div
+                                key={idx}
+                                style={{
+                                  alignSelf: isUser ? 'flex-end' : 'flex-start',
+                                  maxWidth: '85%',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: isUser ? 'flex-end' : 'flex-start',
+                                }}
+                              >
+                                {!isUser && (
+                                  <div style={{ fontSize: '10px', fontWeight: 800, color: isAdmin ? '#818cf8' : '#fbbf24', marginBottom: '3px', paddingLeft: '4px' }}>
+                                    {isAdmin ? '🛡️ Admin Support' : '🤖 PAYNEX AI Agent'}
+                                  </div>
+                                )}
+                                <div
+                                  style={{
+                                    background: isUser
+                                      ? 'linear-gradient(135deg, #d97706, #b45309)'
+                                      : isAdmin
+                                      ? '#1e1b4b'
+                                      : '#141522',
+                                    border: isUser
+                                      ? '1px solid rgba(251, 191, 36, 0.4)'
+                                      : isAdmin
+                                      ? '1px solid rgba(99, 102, 241, 0.4)'
+                                      : '1px solid rgba(245, 158, 11, 0.25)',
+                                    color: '#fff',
+                                    padding: '10px 13px',
+                                    borderRadius: isUser ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+                                    fontSize: '12.5px',
+                                    lineHeight: 1.45,
+                                    whiteSpace: 'pre-line',
+                                    boxShadow: isUser ? '0 4px 15px rgba(217, 119, 6, 0.25)' : 'none',
+                                  }}
+                                >
+                                  {msg.text}
+                                </div>
+                                {timeStr && (
+                                  <span style={{ fontSize: '9.5px', color: '#64748b', marginTop: '3px', paddingRight: isUser ? '4px' : 0, paddingLeft: !isUser ? '4px' : 0 }}>
+                                    {timeStr}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })
+                        )}
+
+                        {isAiTyping && (
+                          <div style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '8px', background: '#141522', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '14px', padding: '8px 12px' }}>
+                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#fbbf24', animation: 'ping 1s cubic-bezier(0, 0, 0.2, 1) infinite' }} />
+                            <span style={{ fontSize: '11px', color: '#fbbf24', fontStyle: 'italic' }}>PAYNEX AI is typing...</span>
                           </div>
                         )}
+                        <div ref={chatBottomRef} />
                       </div>
-                    ))}
-                  </div>
+
+                      {/* Quick Prompt Suggestion Chips */}
+                      <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '6px', marginBottom: '8px' }}>
+                        {[
+                          '💳 Deposit nahi aaya',
+                          '⚡ Withdrawal kab aayega?',
+                          '🔐 Password reset',
+                          '🪪 KYC verification',
+                          '📈 30% Return rules',
+                        ].map((prompt, i) => (
+                          <button
+                            key={i}
+                            onClick={() => handleSendChat(prompt)}
+                            disabled={isAiTyping}
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              border: '1px solid rgba(245, 158, 11, 0.3)',
+                              borderRadius: '16px',
+                              padding: '5px 10px',
+                              color: '#e2e8f0',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                              flexShrink: 0,
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.borderColor = '#fbbf24';
+                              e.currentTarget.style.color = '#fbbf24';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+                              e.currentTarget.style.color = '#e2e8f0';
+                            }}
+                          >
+                            {prompt}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Chat Input Bar */}
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          handleSendChat();
+                        }}
+                        style={{ display: 'flex', gap: '8px' }}
+                      >
+                        <input
+                          type="text"
+                          value={chatInput}
+                          onChange={(e) => setChatInput(e.target.value)}
+                          placeholder="Type your query (Hindi ya English)..."
+                          disabled={isAiTyping}
+                          style={{
+                            flex: 1,
+                            background: '#141520',
+                            border: '1px solid rgba(255, 255, 255, 0.12)',
+                            borderRadius: '12px',
+                            padding: '11px 14px',
+                            color: '#fff',
+                            fontSize: '13px',
+                            outline: 'none',
+                          }}
+                          onFocus={(e) => (e.target.style.borderColor = '#fbbf24')}
+                          onBlur={(e) => (e.target.style.borderColor = 'rgba(255, 255, 255, 0.12)')}
+                        />
+                        <button
+                          type="submit"
+                          disabled={isAiTyping || !chatInput.trim()}
+                          style={{
+                            background: isAiTyping || !chatInput.trim()
+                              ? 'rgba(255, 255, 255, 0.1)'
+                              : 'linear-gradient(135deg, #f59e0b, #d97706)',
+                            border: 'none',
+                            borderRadius: '12px',
+                            padding: '0 18px',
+                            color: isAiTyping || !chatInput.trim() ? '#64748b' : '#000',
+                            fontWeight: 800,
+                            fontSize: '13px',
+                            cursor: isAiTyping || !chatInput.trim() ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            boxShadow: !isAiTyping && chatInput.trim() ? '0 4px 15px rgba(245, 158, 11, 0.35)' : 'none',
+                          }}
+                        >
+                          <span>Send</span>
+                          <span>➤</span>
+                        </button>
+                      </form>
+                    </div>
+                  ) : (
+                    <div>
+                      {/* Help & Escalation Tab Content */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
+                        <button
+                          onClick={() => window.open('mailto:support@paynex.com', '_blank')}
+                          style={{
+                            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.15))',
+                            border: '1px solid rgba(245, 158, 11, 0.4)',
+                            borderRadius: '12px',
+                            padding: '12px 10px',
+                            color: '#fff',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                          }}
+                        >
+                          <div style={{ fontSize: '20px', marginBottom: '4px' }}>✉️</div>
+                          <div style={{ fontSize: '13px', fontWeight: 800, color: '#fbbf24' }}>Email Support</div>
+                          <div style={{ fontSize: '10px', color: '#cbd5e1' }}>Direct Desk Assistance</div>
+                        </button>
+
+                        <button
+                          onClick={() => window.open('https://t.me/paynex_official', '_blank')}
+                          style={{
+                            background: 'linear-gradient(135deg, rgba(34, 158, 217, 0.2), rgba(0, 136, 204, 0.15))',
+                            border: '1px solid rgba(34, 158, 217, 0.4)',
+                            borderRadius: '12px',
+                            padding: '12px 10px',
+                            color: '#fff',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                          }}
+                        >
+                          <div style={{ fontSize: '20px', marginBottom: '4px' }}>✈️</div>
+                          <div style={{ fontSize: '13px', fontWeight: 800, color: '#38bdf8' }}>Telegram Official</div>
+                          <div style={{ fontSize: '10px', color: '#cbd5e1' }}>24x7 Community channel</div>
+                        </button>
+                      </div>
+
+                      <div style={{ background: 'rgba(255, 255, 255, 0.04)', borderRadius: '12px', padding: '12px', marginBottom: '14px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                          <span style={{ fontSize: '16px' }}>📞</span>
+                          <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#fff' }}>Toll-Free Helpline:</span>
+                          <strong style={{ color: '#fbbf24', fontSize: '13px', fontFamily: 'monospace' }}>1800 234 5678</strong>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '16px' }}>✉️</span>
+                          <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#fff' }}>Official Email:</span>
+                          <strong style={{ color: '#38bdf8', fontSize: '12px' }}>support@paynex.com</strong>
+                        </div>
+                      </div>
+
+                      {/* FAQs List */}
+                      <div style={{ fontSize: '12px', fontWeight: 800, color: '#fbbf24', marginBottom: '8px' }}>
+                        ❓ Frequently Asked Questions
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {[
+                          { q: 'How fast are withdrawals processed?', a: 'Withdrawals are processed instantly through IMPS/UPI rails within 2 to 15 minutes.' },
+                          { q: 'How is the fixed 2% - 12% return credited?', a: 'Upon maturity of your active round duration (e.g. 15s or 30s), your stake plus fixed profit (2% to 12%) is directly added to your real balance.' },
+                          { q: 'Is my account identity & bank data safe?', a: 'Yes, all sensitive credentials and banking info are encrypted with 256-bit bank-grade SSL.' },
+                        ].map((faq, i) => (
+                          <div
+                            key={i}
+                            onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.03)',
+                              borderRadius: '8px',
+                              padding: '8px 10px',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', fontWeight: 700, color: '#fff' }}>
+                              <span>{faq.q}</span>
+                              <span style={{ color: '#fbbf24' }}>{openFaq === i ? '▲' : '▼'}</span>
+                            </div>
+                            {openFaq === i && (
+                              <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '6px' }}>
+                                {faq.a}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

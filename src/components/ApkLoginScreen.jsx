@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import userApi from '../services/api';
-import { showUserToast, showUserSuccess, showUserError } from '../utils/swal';
+import { showUserToast, showUserSuccess, showUserError, PaynexUserSwal } from '../utils/swal';
 
 export default function ApkLoginScreen({ onLoginSuccess, onSwitchToRegister, onSwitchToLanding }) {
   const [emailOrPhone, setEmailOrPhone] = useState('');
@@ -49,8 +49,64 @@ export default function ApkLoginScreen({ onLoginSuccess, onSwitchToRegister, onS
     }
   };
 
-  const handleForgotPassword = () => {
-    showUserToast('Password reset link sent to your registered email.');
+  const handleForgotPassword = async () => {
+    const { value: email } = await PaynexUserSwal.fire({
+      title: '<span style="font-size:18px; font-weight:800; color:#fbbf24;">Reset Password</span>',
+      html: '<span style="font-size:13px; color:#94a3b8;">Enter your registered email address to receive a 6-digit OTP code:</span>',
+      input: 'email',
+      inputValue: emailOrPhone.includes('@') ? emailOrPhone : '',
+      inputPlaceholder: 'name@example.com',
+      showCancelButton: true,
+      confirmButtonText: 'SEND OTP CODE',
+      cancelButtonText: 'CANCEL',
+    });
+
+    if (!email) return;
+
+    try {
+      await userApi.forgotPassword(email);
+    } catch (err) {
+      console.warn('Forgot password request notice:', err.message);
+    }
+
+    const { value: formValues } = await PaynexUserSwal.fire({
+      title: '<span style="font-size:18px; font-weight:800; color:#fbbf24;">Enter OTP & New Password</span>',
+      html: `
+        <div style="font-size:12.5px; color:#94a3b8; margin-bottom:12px;">
+          Verification OTP sent to <strong style="color:#fbbf24;">${email}</strong>
+        </div>
+        <input id="swal-otp" class="swal2-input" placeholder="6-digit OTP code" style="background:#0f1015; color:#fbbf24; text-align:center; letter-spacing:4px; font-family:monospace; font-size:16px; border:1px solid #f59e0b; width:80%; margin:0 auto 10px;" maxlength="6" />
+        <input id="swal-newpass" type="password" class="swal2-input" placeholder="New Password (min 4 chars)" style="background:#0f1015; color:#fff; font-size:14px; border:1px solid rgba(255,255,255,0.2); width:80%; margin:0 auto;" />
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: 'RESET PASSWORD',
+      cancelButtonText: 'CANCEL',
+      preConfirm: () => {
+        const otp = document.getElementById('swal-otp')?.value;
+        const newPass = document.getElementById('swal-newpass')?.value;
+        if (!otp || otp.trim().length < 4) {
+          PaynexUserSwal.showValidationMessage('Please enter valid 6-digit OTP');
+          return false;
+        }
+        if (!newPass || newPass.trim().length < 4) {
+          PaynexUserSwal.showValidationMessage('Password must be at least 4 characters');
+          return false;
+        }
+        return { otp: otp.trim(), newPass: newPass.trim() };
+      },
+    });
+
+    if (formValues) {
+      try {
+        await userApi.resetPassword(email, formValues.otp, formValues.newPass);
+        showUserSuccess('Password Reset', 'Your password has been reset successfully! You can now log in.');
+        setEmailOrPhone(email);
+        setPassword('');
+      } catch (err) {
+        showUserError('Reset Failed', err.message || 'Invalid or expired OTP code.');
+      }
+    }
   };
 
   return (
