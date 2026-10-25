@@ -138,6 +138,8 @@ function App() {
     localStorage.setItem('paynex_user', JSON.stringify(userData));
     setAuthModalOpen(false);
     showUserToast(`Welcome back, ${userData?.name || 'Trader'}!`);
+    setActiveView('portal'); // Direct dashboard on sign in!
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleLogout = async () => {
@@ -154,8 +156,9 @@ function App() {
       localStorage.removeItem('paynex_token');
       localStorage.removeItem('paynex_real_bal');
       setRealBalance(0);
-      setActiveView('website');
+      setActiveView('website'); // Direct website on logout!
       setAuthScreen('login');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       showUserToast('Logged out successfully');
     }
   };
@@ -257,62 +260,6 @@ function App() {
   // 3. DEFAULT: Public Website / Landing View (ALWAYS open by default on visit or refresh)
   return (
     <div style={{ position: 'relative', minHeight: '100vh', background: '#050514', color: '#fff', overflowX: 'hidden' }}>
-      {/* Floating Action Button */}
-      {currentUser ? (
-        <button
-          onClick={() => {
-            setActiveView('portal');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          style={{
-            position: 'fixed',
-            bottom: '24px',
-            right: '24px',
-            zIndex: 9999,
-            background: 'linear-gradient(135deg, #FBBF24, #F59E0B)',
-            color: '#000',
-            border: 'none',
-            borderRadius: '30px',
-            padding: '12px 20px',
-            fontWeight: 900,
-            fontSize: '13px',
-            boxShadow: '0 8px 25px rgba(251, 191, 36, 0.5)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
-          <span>⚡</span>
-          <span>Open Trading Desk</span>
-        </button>
-      ) : (
-        <button
-          onClick={() => handleOpenAuth('login')}
-          style={{
-            position: 'fixed',
-            bottom: '24px',
-            right: '24px',
-            zIndex: 9999,
-            background: 'linear-gradient(135deg, #FBBF24, #F59E0B)',
-            color: '#000',
-            border: 'none',
-            borderRadius: '30px',
-            padding: '12px 20px',
-            fontWeight: 900,
-            fontSize: '13px',
-            boxShadow: '0 8px 25px rgba(251, 191, 36, 0.5)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
-          <span>🔐</span>
-          <span>Trader Sign In</span>
-        </button>
-      )}
-
       {/* 3D Perspective Canvas Background */}
       <BackgroundCanvas />
 
