@@ -211,10 +211,18 @@ const MobileApp = () => {
             </button>
 
             <button
-              onClick={() => setShowIosModal(true)}
+              onClick={() => {
+                const link = document.createElement('a');
+                link.href = '/paynex.mobileconfig';
+                link.setAttribute('download', 'PAYNEX_iOS_App.mobileconfig');
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setShowIosModal(true);
+              }}
               style={{
                 background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.18)',
+                border: '1.5px solid rgba(16, 185, 129, 0.45)',
                 color: '#fff',
                 padding: '9px 18px',
                 borderRadius: '12px',
@@ -222,15 +230,16 @@ const MobileApp = () => {
                 alignItems: 'center',
                 gap: '10px',
                 cursor: 'pointer',
+                boxShadow: '0 0 15px rgba(16, 185, 129, 0.15)',
                 transition: 'transform 0.2s',
               }}
               onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')}
               onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
             >
-              <span style={{ fontSize: '20px' }}>🍎</span>
+              <span style={{ fontSize: '20px' }}>🍏</span>
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: '9px', color: '#94a3b8' }}>Install on iPhone / iPad</div>
-                <div style={{ fontSize: '13px', fontWeight: 800 }}>iOS Web App (PWA)</div>
+                <div style={{ fontSize: '9px', color: '#34d399', fontWeight: 800 }}>Direct Download</div>
+                <div style={{ fontSize: '13px', fontWeight: 800 }}>iOS Web App (Profile)</div>
               </div>
             </button>
           </div>
