@@ -713,121 +713,25 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                 <div style={{ fontSize: '11px', color: '#f59e0b', fontWeight: 800, marginTop: '8px' }}>
                   Scan with PhonePe, Paytm, Google Pay, BHIM, or any UPI App
                 </div>
-                <div style={{ fontSize: '10px', color: '#64748b' }}>
-                  Recipient: {order.merchantName || 'Paynex Trading Desk'}
-                </div>
               </div>
 
-              {/* UPI Intent Deep Links (1-Click Payment on Mobile) */}
-              <div style={{ marginBottom: '14px' }}>
-                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#94a3b8', marginBottom: '6px' }}>
-                  ⚡ Quick Direct Pay (Mobile Browser Deep Links):
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                  {/* PhonePe */}
-                  <a
-                    href={order.phonepeUri}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '8px 4px',
-                      backgroundColor: 'rgba(95, 37, 159, 0.18)',
-                      border: '1px solid rgba(138, 43, 226, 0.4)',
-                      borderRadius: '10px',
-                      color: '#a855f7',
-                      fontSize: '11.5px',
-                      fontWeight: 800,
-                      textDecoration: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <span>🟣 PhonePe</span>
-                  </a>
-
-                  {/* Paytm */}
-                  <a
-                    href={order.paytmUri}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '8px 4px',
-                      backgroundColor: 'rgba(0, 186, 242, 0.15)',
-                      border: '1px solid rgba(0, 186, 242, 0.4)',
-                      borderRadius: '10px',
-                      color: '#38bdf8',
-                      fontSize: '11.5px',
-                      fontWeight: 800,
-                      textDecoration: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <span>🔵 Paytm</span>
-                  </a>
-
-                  {/* Google Pay */}
-                  <a
-                    href={order.gpayUri}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '8px 4px',
-                      backgroundColor: 'rgba(234, 67, 53, 0.15)',
-                      border: '1px solid rgba(234, 67, 53, 0.4)',
-                      borderRadius: '10px',
-                      color: '#fb7185',
-                      fontSize: '11.5px',
-                      fontWeight: 800,
-                      textDecoration: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <span>🔴 GPay</span>
-                  </a>
-                </div>
-              </div>
-
-              {/* Manual Transfer UPI ID Copy Box */}
+              {/* Direct QR Scanner Security Notice */}
               <div
                 style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                  border: '1px solid rgba(245, 158, 11, 0.25)',
                   borderRadius: '12px',
                   padding: '10px 14px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
+                  gap: '10px',
                   marginBottom: '16px',
                 }}
               >
-                <div>
-                  <div style={{ fontSize: '10px', color: '#64748b' }}>Admin Merchant UPI ID:</div>
-                  <div style={{ fontFamily: 'monospace', color: '#f59e0b', fontSize: '13px', fontWeight: 800 }}>
-                    {order.adminUpiId}
-                  </div>
+                <span style={{ fontSize: '18px' }}>🔒</span>
+                <div style={{ fontSize: '11.5px', color: '#cbd5e1', lineHeight: '1.4' }}>
+                  <strong style={{ color: '#f59e0b' }}>Direct QR Scanner:</strong> Please scan the QR code above with any UPI app to complete payment securely. Then enter the 12-digit UTR number below.
                 </div>
-                <button
-                  type="button"
-                  onClick={handleCopyUpi}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    backgroundColor: copiedUpi ? '#10b981' : '#f59e0b',
-                    color: '#000',
-                    fontSize: '11px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  {copiedUpi ? 'Copied! ✅' : 'Copy UPI'}
-                </button>
               </div>
 
               {/* 12-Digit UTR Submission Form */}

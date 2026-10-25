@@ -3719,46 +3719,21 @@ const UserTradingPortal = ({
                   </div>
                 </div>
 
-                {/* Company UPI Details Card */}
+                {/* Direct QR Scanner Security Notice */}
                 <div
                   style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    background: 'rgba(251, 191, 36, 0.06)',
+                    border: '1px solid rgba(251, 191, 36, 0.25)',
                     borderRadius: '12px',
-                    padding: '10px 12px',
+                    padding: '10px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>{purchaseModalAsset.name} Official UPI ID</div>
-                      <div style={{ fontSize: '13px', fontWeight: 800, color: '#fbbf24', fontFamily: 'monospace', marginTop: '2px' }}>
-                        {purchaseModalAsset.upiId || `${(purchaseModalAsset.symbol || 'stock').toLowerCase().replace(/[^a-z0-9]/g, '')}.paynex@icici`}
-                      </div>
-                      <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
-                        Payee: {purchaseModalAsset.payeeName || `${purchaseModalAsset.name} Trading Desk`}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const targetUpi = purchaseModalAsset.upiId || `${(purchaseModalAsset.symbol || 'stock').toLowerCase().replace(/[^a-z0-9]/g, '')}.paynex@icici`;
-                        navigator.clipboard?.writeText(targetUpi);
-                        setPurchaseCopied(true);
-                        setTimeout(() => setPurchaseCopied(false), 2000);
-                      }}
-                      style={{
-                        background: '#fbbf24',
-                        border: 'none',
-                        color: '#000',
-                        padding: '6px 12px',
-                        borderRadius: '6px',
-                        fontSize: '11px',
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {purchaseCopied ? '✓ Copied!' : 'Copy UPI'}
-                    </button>
+                  <span style={{ fontSize: '18px' }}>🔒</span>
+                  <div style={{ fontSize: '11.5px', color: '#cbd5e1', lineHeight: '1.4' }}>
+                    <strong style={{ color: '#fbbf24' }}>Direct QR Scanner:</strong> Scan the QR code above with your payment app (PhonePe, GPay, Paytm) to complete payment securely. Then enter the 12-digit UTR reference below.
                   </div>
                 </div>
 
