@@ -30,10 +30,10 @@ async function request(endpoint, options = {}) {
 
 export const userApi = {
   // Auth
-  register: async (name, email, phone, password) => {
+  register: async (name, email, phone, password, referralCode) => {
     const res = await request('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ name, email, phone, password }),
+      body: JSON.stringify({ name, email, phone, password, referralCode }),
     });
     if (res.token) {
       localStorage.setItem('paynex_user_token', res.token);
