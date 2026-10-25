@@ -203,8 +203,148 @@ const UserTradingPortal = ({
 
   const [showAdminConfig, setShowAdminConfig] = useState(false);
 
+  // Persistent User Contracts State (Tracks all contracts purchased/taken by user)
+  const [userContracts, setUserContracts] = useState(() => {
+    try {
+      const saved = localStorage.getItem('paynex_user_contracts');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [
+      {
+        id: 'CT-98421',
+        asset: 'TATAMOTORS',
+        assetName: 'Tata Motors Ltd',
+        symbol: 'TATAMOTORS',
+        icon: '📈',
+        color: '#3b82f6',
+        category: 'Stock',
+        amount: 10000,
+        rate: 12,
+        profit: 1200,
+        payout: 11200,
+        duration: '60s',
+        time: 'Today, 04:30 PM',
+        status: 'Completed',
+      },
+      {
+        id: 'CT-98210',
+        asset: 'BTC/USDT',
+        assetName: 'Bitcoin',
+        symbol: 'BTC/USDT',
+        icon: '₿',
+        color: '#f59e0b',
+        category: 'Crypto',
+        amount: 5000,
+        rate: 10,
+        profit: 500,
+        payout: 5500,
+        duration: '30s',
+        time: 'Today, 02:15 PM',
+        status: 'Completed',
+      },
+      {
+        id: 'CT-97945',
+        asset: 'RELIANCE',
+        assetName: 'Reliance Industries',
+        symbol: 'RELIANCE',
+        icon: '🏛️',
+        color: '#10b981',
+        category: 'Stock',
+        amount: 15000,
+        rate: 12,
+        profit: 1800,
+        payout: 16800,
+        duration: '60s',
+        time: 'Yesterday, 06:10 PM',
+        status: 'Completed',
+      },
+      {
+        id: 'CT-97612',
+        asset: 'ETH/USDT',
+        assetName: 'Ethereum',
+        symbol: 'ETH/USDT',
+        icon: 'Ξ',
+        color: '#6366f1',
+        category: 'Crypto',
+        amount: 2500,
+        rate: 8,
+        profit: 200,
+        payout: 2700,
+        duration: '30s',
+        time: 'Yesterday, 01:20 PM',
+        status: 'Completed',
+      },
+    ];
+  });
+
+  const [contractFilter, setContractFilter] = useState('all'); // 'all', 'running', 'completed'
+  const [walletViewTab, setWalletViewTab] = useState('transactions'); // 'transactions' or 'contracts'
   const [tradeHistory, setTradeHistory] = useState([]);
 
+  // Auto-sync user contracts with localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('paynex_user_contracts', JSON.stringify(userContracts));
+    } catch {}
+  }, [userContracts]);
+
+  // Live contracts sync with backend
+  useEffect(() => {
+    let isMounted = true;
+    const syncServerContracts = async () => {
+      try {
+        const res = await userApi.getMyStakes();
+        if (isMounted && res && res.success && Array.isArray(res.rounds) && res.rounds.length > 0) {
+          setUserContracts((prev) => {
+            const mapped = res.rounds.map((r) => {
+              const assetObj = resolveAsset(assetsMap, r.asset);
+              const rate = r.returnPercent || 10;
+              const amt = Number(r.stakedAmount || r.amount || 0);
+              const pft = Number(r.profit || Math.round((amt * rate) / 100));
+              return {
+                id: r._id || r.id || `CT-${r.roundId || Date.now()}`,
+                asset: r.asset,
+                assetName: assetObj?.name || r.asset,
+                symbol: assetObj?.symbol || r.asset,
+                icon: assetObj?.icon || '⚡',
+                color: assetObj?.color || '#fbbf24',
+                category: assetObj?.category || 'Asset',
+                amount: amt,
+                rate,
+                profit: pft,
+                payout: Number(r.payout || (amt + pft)),
+                duration: `${r.durationSeconds || 30}s`,
+                time: r.createdAt ? new Date(r.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }) : (r.time || 'Recent'),
+                status: r.status === 'Active' ? 'Running' : 'Completed',
+              };
+            });
+            const existingIds = new Set(mapped.map((m) => m.id));
+            const localOnly = prev.filter((p) => !existingIds.has(p.id));
+            return [...mapped, ...localOnly];
+          });
+        }
+      } catch (err) {
+        console.warn('Server contracts sync notice:', err.message);
+      }
+    };
+    syncServerContracts();
+  }, [assetsMap]);
+
+  // Dynamic Portfolio Calculations: Available Balance & Contract Amount
+  const activeContractAmount = activeTrade
+    ? Number(activeTrade.amount || 0)
+    : userContracts
+        .filter((c) => c.status === 'Running')
+        .reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+
+  const totalPortfolioValue = Number(realBalance || 0) + activeContractAmount;
+  const activeContractsList = userContracts.filter((c) => c.status === 'Running');
+  const completedContractsList = userContracts.filter((c) => c.status === 'Completed');
+  const totalInvestedInContracts = userContracts.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+  const totalProfitEarned = completedContractsList.reduce((sum, c) => sum + (Number(c.profit) || 0), 0);
 
   const [walletHistory, setWalletHistory] = useState([]);
 
@@ -428,7 +568,7 @@ const UserTradingPortal = ({
           }
 
           const resultObj = {
-            id: prev.roundId || `stake_${Date.now()}`,
+            id: prev.contractId || prev.roundId || `stake_${Date.now()}`,
             isWin: true,
             profit,
             payout,
@@ -440,6 +580,15 @@ const UserTradingPortal = ({
 
           setTradeResult(resultObj);
           setTradeHistory((hist) => [resultObj, ...hist]);
+
+          // Update userContracts status to Completed
+          setUserContracts((contracts) =>
+            contracts.map((c) =>
+              (c.status === 'Running' || c.id === prev.contractId || c.id === prev.roundId)
+                ? { ...c, status: 'Completed', time: 'Just now' }
+                : c
+            )
+          );
 
           return null;
         }
@@ -684,7 +833,10 @@ const UserTradingPortal = ({
       console.warn('Live API stake call fallback (offline mode):', err.message);
     }
 
+    const contractId = serverRoundId || `CT-${Math.floor(10000 + Math.random() * 90000)}`;
+
     setActiveTrade({
+      contractId,
       roundId: serverRoundId,
       asset: selectedAsset,
       amount: betAmount,
@@ -694,6 +846,25 @@ const UserTradingPortal = ({
       timeTotal: selectedTimeframe.seconds,
       timeLeft: selectedTimeframe.seconds,
     });
+
+    const newContract = {
+      id: contractId,
+      asset: selectedAsset,
+      assetName: currentAsset?.name || selectedAsset,
+      symbol: currentAsset?.symbol || selectedAsset,
+      icon: currentAsset?.icon || '⚡',
+      color: currentAsset?.color || '#fbbf24',
+      category: currentAsset?.category || 'Asset',
+      amount: betAmount,
+      rate: currentAssetRate,
+      profit,
+      payout,
+      duration: `${selectedTimeframe.seconds}s`,
+      time: 'Just now',
+      status: 'Running',
+      createdAt: Date.now(),
+    };
+    setUserContracts((prevContracts) => [newContract, ...prevContracts]);
 
     // Add user's real stake into the live room participants feed
     const userStakeEntry = {
@@ -791,7 +962,10 @@ const UserTradingPortal = ({
       console.warn('Live API stake call fallback:', err.message);
     }
 
+    const contractId = serverRoundId || `CT-${Math.floor(10000 + Math.random() * 90000)}`;
+
     setActiveTrade({
+      contractId,
       roundId: serverRoundId,
       asset: purchaseModalAsset.symbol || purchaseModalAsset.id,
       amount: buyAmt,
@@ -801,6 +975,25 @@ const UserTradingPortal = ({
       timeTotal: selectedTimeframe.seconds,
       timeLeft: selectedTimeframe.seconds,
     });
+
+    const newContract = {
+      id: contractId,
+      asset: purchaseModalAsset.symbol || purchaseModalAsset.id,
+      assetName: purchaseModalAsset.name,
+      symbol: purchaseModalAsset.symbol || purchaseModalAsset.id,
+      icon: purchaseModalAsset.icon || '📈',
+      color: purchaseModalAsset.color || '#3b82f6',
+      category: purchaseModalAsset.category || 'Stock',
+      amount: buyAmt,
+      rate: assetRate,
+      profit,
+      payout,
+      duration: `${selectedTimeframe.seconds}s`,
+      time: 'Just now',
+      status: 'Running',
+      createdAt: Date.now(),
+    };
+    setUserContracts((prevContracts) => [newContract, ...prevContracts]);
 
     const userStakeEntry = {
       id: serverRoundId || `user_stake_${Date.now()}`,
@@ -826,6 +1019,331 @@ const UserTradingPortal = ({
     );
   };
 
+
+  // Render Rich Contracts History Section
+  const renderContractsHistorySection = ({ title = '📋 My Contracts & Holdings History', subtitle = null }) => {
+    const displayedContracts = userContracts.filter((c) => {
+      if (contractFilter === 'running') return c.status === 'Running';
+      if (contractFilter === 'completed') return c.status === 'Completed';
+      return true;
+    });
+
+    return (
+      <div
+        style={{
+          borderRadius: '22px',
+          padding: 'clamp(14px, 2.5vw, 22px)',
+          background: 'linear-gradient(150deg, rgba(20, 21, 35, 0.98), rgba(11, 12, 20, 0.98))',
+          border: '1.2px solid rgba(245, 158, 11, 0.35)',
+          boxShadow: '0 12px 35px rgba(0, 0, 0, 0.65)',
+          marginBottom: '24px',
+        }}
+      >
+        {/* Section Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '20px' }}>📋</span>
+              <h3 style={{ fontSize: 'clamp(16px, 4vw, 19px)', fontWeight: 800, color: '#fff', margin: 0 }}>
+                {title}
+              </h3>
+              <span
+                style={{
+                  background: 'rgba(251, 191, 36, 0.16)',
+                  border: '1px solid rgba(251, 191, 36, 0.4)',
+                  color: '#fbbf24',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  borderRadius: '12px',
+                  padding: '2px 8px',
+                }}
+              >
+                {userContracts.length} Total
+              </span>
+            </div>
+            <p style={{ fontSize: '12px', color: '#94a3b8', margin: '4px 0 0 0' }}>
+              {subtitle || 'Real-time record of all contracts purchased, locked capital, guaranteed profit yields & payout status.'}
+            </p>
+          </div>
+
+          {/* Quick Dual Balance Indicator within Contracts Section */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <div
+              style={{
+                background: 'rgba(16, 185, 129, 0.12)',
+                border: '1px solid rgba(16, 185, 129, 0.35)',
+                borderRadius: '10px',
+                padding: '4px 10px',
+                textAlign: 'right',
+              }}
+            >
+              <div style={{ fontSize: '10px', color: '#6ee7b7', fontWeight: 600 }}>Available Balance</div>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: '#10b981', fontFamily: 'monospace' }}>
+                ₹{Number(realBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: activeContractAmount > 0 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                border: activeContractAmount > 0 ? '1px solid rgba(245, 158, 11, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '10px',
+                padding: '4px 10px',
+                textAlign: 'right',
+              }}
+            >
+              <div style={{ fontSize: '10px', color: '#fde68a', fontWeight: 600 }}>In Contract</div>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: '#fbbf24', fontFamily: 'monospace' }}>
+                ₹{activeContractAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 4-Stat Portfolio Performance Strip */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+            gap: '8px',
+            marginBottom: '16px',
+            background: 'rgba(0, 0, 0, 0.25)',
+            padding: '10px',
+            borderRadius: '14px',
+            border: '1px solid rgba(255, 255, 255, 0.05)',
+          }}
+        >
+          <div>
+            <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>Total Contracts Taken</div>
+            <div style={{ fontSize: '15px', fontWeight: 800, color: '#fff' }}>{userContracts.length} Contracts</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>Active Working Capital</div>
+            <div style={{ fontSize: '15px', fontWeight: 800, color: '#fbbf24' }}>
+              ₹{activeContractAmount.toLocaleString('en-IN')}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>Total Contract Volume</div>
+            <div style={{ fontSize: '15px', fontWeight: 800, color: '#93c5fd' }}>
+              ₹{totalInvestedInContracts.toLocaleString('en-IN')}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>Total Profit Credited</div>
+            <div style={{ fontSize: '15px', fontWeight: 800, color: '#34d399' }}>
+              +₹{totalProfitEarned.toLocaleString('en-IN')}
+            </div>
+          </div>
+        </div>
+
+        {/* Filter Tabs */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
+          {[
+            { id: 'all', label: `All Contracts (${userContracts.length})` },
+            { id: 'running', label: `⚡ Active / Running (${activeContractsList.length})` },
+            { id: 'completed', label: `✅ Completed (${completedContractsList.length})` },
+          ].map((tab) => {
+            const isSel = contractFilter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setContractFilter(tab.id)}
+                style={{
+                  background: isSel ? 'rgba(251, 191, 36, 0.2)' : 'rgba(255, 255, 255, 0.04)',
+                  border: isSel ? '1.5px solid #fbbf24' : '1px solid rgba(255, 255, 255, 0.08)',
+                  color: isSel ? '#fbbf24' : '#94a3b8',
+                  borderRadius: '10px',
+                  padding: '5px 12px',
+                  fontSize: '11.5px',
+                  fontWeight: isSel ? 800 : 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Contracts Cards List */}
+        {displayedContracts.length === 0 ? (
+          <div
+            style={{
+              padding: '32px 16px',
+              textAlign: 'center',
+              background: 'rgba(0, 0, 0, 0.2)',
+              borderRadius: '14px',
+              border: '1px dashed rgba(255, 255, 255, 0.1)',
+            }}
+          >
+            <div style={{ fontSize: '28px', marginBottom: '8px' }}>📂</div>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: '#e2e8f0', marginBottom: '4px' }}>
+              No Contracts Found
+            </div>
+            <div style={{ fontSize: '12px', color: '#94a3b8', maxWidth: '360px', margin: '0 auto 14px auto' }}>
+              {contractFilter === 'running'
+                ? 'You do not have any active running contracts right now. Stake in any stock or crypto to start guaranteed growth!'
+                : 'No contracts found in this view.'}
+            </div>
+            <button
+              onClick={() => setCurrentTab('market')}
+              className="btn-cyber-primary"
+              style={{ padding: '8px 18px', fontSize: '12px', borderRadius: '10px', fontWeight: 800 }}
+            >
+              + Explore Market & Take Contract
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {displayedContracts.map((c, idx) => {
+              const isRunning = c.status === 'Running';
+              return (
+                <div
+                  key={c.id || idx}
+                  style={{
+                    background: isRunning
+                      ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(20, 21, 35, 0.95))'
+                      : 'rgba(20, 21, 31, 0.85)',
+                    border: isRunning ? '1.5px solid rgba(245, 158, 11, 0.6)' : '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '16px',
+                    padding: '14px 16px',
+                    boxShadow: isRunning ? '0 4px 18px rgba(245, 158, 11, 0.2)' : 'none',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                  }}
+                >
+                  {/* Top line: Asset Info & Status Badge */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '10px',
+                          background: `${c.color || '#fbbf24'}22`,
+                          border: `1.5px solid ${c.color || '#fbbf24'}66`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '18px',
+                        }}
+                      >
+                        {c.icon || '📈'}
+                      </div>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '14px', fontWeight: 800, color: '#fff' }}>
+                            {c.assetName || c.asset}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '9.5px',
+                              fontWeight: 800,
+                              background: 'rgba(255, 255, 255, 0.08)',
+                              color: '#94a3b8',
+                              padding: '1px 5px',
+                              borderRadius: '4px',
+                            }}
+                          >
+                            {c.symbol || c.asset}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#94a3b8' }}>
+                          <span>ID: #{c.id}</span>
+                          <span>•</span>
+                          <span>{c.time || 'Recent'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Status Pill */}
+                    <div>
+                      {isRunning ? (
+                        <div
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: 'rgba(245, 158, 11, 0.2)',
+                            border: '1.2px solid #fbbf24',
+                            borderRadius: '20px',
+                            padding: '3px 10px',
+                          }}
+                        >
+                          <span className="live-pulse-dot" />
+                          <span style={{ fontSize: '11px', fontWeight: 800, color: '#fbbf24' }}>
+                            Active ({activeTrade ? `${activeTrade.timeLeft}s left` : `${c.duration || '30s'}`})
+                          </span>
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            background: 'rgba(16, 185, 129, 0.18)',
+                            border: '1px solid rgba(16, 185, 129, 0.4)',
+                            borderRadius: '20px',
+                            padding: '3px 10px',
+                          }}
+                        >
+                          <span style={{ color: '#10b981', fontSize: '11px' }}>✓</span>
+                          <span style={{ fontSize: '11px', fontWeight: 800, color: '#10b981' }}>
+                            Completed & Credited
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Bottom Line: Investment, Rate, Profit, Payout Grid */}
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(4, 1fr)',
+                      gap: '8px',
+                      background: 'rgba(0, 0, 0, 0.25)',
+                      padding: '8px 12px',
+                      borderRadius: '10px',
+                      border: '1px solid rgba(255, 255, 255, 0.04)',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '10px', color: '#94a3b8' }}>Contract Amount</div>
+                      <div style={{ fontSize: '13px', fontWeight: 800, color: '#fff', fontFamily: 'monospace' }}>
+                        ₹{Number(c.amount || 0).toLocaleString('en-IN')}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '10px', color: '#94a3b8' }}>Return Rate</div>
+                      <div style={{ fontSize: '13px', fontWeight: 800, color: '#fbbf24' }}>
+                        +{c.rate}%
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '10px', color: '#94a3b8' }}>Profit Return</div>
+                      <div style={{ fontSize: '13px', fontWeight: 800, color: '#10b981', fontFamily: 'monospace' }}>
+                        +₹{Number(c.profit || 0).toLocaleString('en-IN')}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '10px', color: '#94a3b8' }}>Total Payout</div>
+                      <div style={{ fontSize: '13px', fontWeight: 900, color: '#60a5fa', fontFamily: 'monospace' }}>
+                        ₹{Number(c.payout || 0).toLocaleString('en-IN')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const assetInfo = resolveAsset(ASSETS, selectedAsset);
 
@@ -967,27 +1485,99 @@ const UserTradingPortal = ({
             </div>
           </div>
 
-          {/* Clean Real Wallet Balance Badge */}
-          <div className="portal-balance-badge">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="live-pulse-dot" />
-              <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>Balance:</span>
+          {/* Dual Balance HUD: Available Balance + In Contract + Quick Action */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '8px',
+              flexWrap: 'wrap',
+              background: 'linear-gradient(135deg, rgba(20, 21, 31, 0.95), rgba(10, 11, 18, 0.98))',
+              border: '1.2px solid rgba(251, 191, 36, 0.28)',
+              borderRadius: '16px',
+              padding: '8px 12px',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
+            }}
+          >
+            {/* Left stats: Available & In Contract */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              {/* Available Balance */}
+              <div
+                style={{
+                  background: 'rgba(16, 185, 129, 0.1)',
+                  border: '1px solid rgba(16, 185, 129, 0.35)',
+                  borderRadius: '10px',
+                  padding: '4px 10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+                title="Available Balance ready to trade or withdraw"
+              >
+                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }} />
+                <span style={{ fontSize: '11px', color: '#a7f3d0', fontWeight: 600 }}>Available:</span>
+                <span style={{ fontSize: 'clamp(13px, 3.5vw, 15px)', fontWeight: 800, color: '#fff', fontFamily: 'monospace' }}>
+                  ₹{Number(realBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+
+              {/* In Contract Amount */}
+              <div
+                style={{
+                  background: activeContractAmount > 0 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                  border: activeContractAmount > 0 ? '1px solid rgba(245, 158, 11, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '10px',
+                  padding: '4px 10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+                title="Amount currently locked in active contracts"
+              >
+                <span style={{ fontSize: '12px' }}>⚡</span>
+                <span style={{ fontSize: '11px', color: '#fbbf24', fontWeight: 600 }}>In Contract:</span>
+                <span style={{ fontSize: 'clamp(13px, 3.5vw, 15px)', fontWeight: 800, color: '#fbbf24', fontFamily: 'monospace' }}>
+                  ₹{activeContractAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: 'clamp(14px, 3.8vw, 16px)', fontWeight: 800, color: '#fff', fontFamily: 'monospace' }}>
-                ₹{realBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </span>
+
+            {/* Right actions: Contracts Link + Add Funds */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                onClick={() => setCurrentTab('contracts')}
+                style={{
+                  background: currentTab === 'contracts' ? 'rgba(245, 158, 11, 0.25)' : 'rgba(255, 255, 255, 0.06)',
+                  border: currentTab === 'contracts' ? '1px solid #fbbf24' : '1px solid rgba(255, 255, 255, 0.12)',
+                  color: currentTab === 'contracts' ? '#fbbf24' : '#cbd5e1',
+                  borderRadius: '8px',
+                  padding: '4px 9px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+                title="View All My Contracts"
+              >
+                <span>📋</span>
+                <span>Contracts ({userContracts.length})</span>
+              </button>
+
               <button
                 onClick={() => onOpenDeposit()}
                 style={{
-                  background: 'rgba(251, 191, 36, 0.18)',
-                  border: '1px solid rgba(251, 191, 36, 0.4)',
-                  color: '#fbbf24',
-                  borderRadius: '6px',
-                  padding: '2px 7px',
-                  fontSize: '10.5px',
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  border: 'none',
+                  color: '#000',
+                  borderRadius: '8px',
+                  padding: '4px 10px',
+                  fontSize: '11px',
                   fontWeight: 800,
                   cursor: 'pointer',
+                  boxShadow: '0 2px 10px rgba(245, 158, 11, 0.35)',
                 }}
                 title="Quick Add Funds"
               >
@@ -1774,93 +2364,12 @@ const UserTradingPortal = ({
                 </div>
               </div>
 
-              {/* Card 2: Your Recent Staking History */}
-              <div
-                className="cyber-card"
-                style={{
-                  borderRadius: '18px',
-                  padding: '16px',
-                  background: 'linear-gradient(150deg, rgba(14, 15, 25, 0.96), rgba(8, 9, 15, 0.98))',
-                  border: '1.2px solid rgba(245, 158, 11, 0.25)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <div>
-                    <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#fff', margin: 0 }}>
-                      📜 Your Staking History
-                    </h4>
-                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                      Settled Fixed Growth Plans
-                    </span>
-                  </div>
-                  <span
-                    style={{
-                      fontSize: '10px',
-                      fontWeight: 800,
-                      background: 'rgba(245, 158, 11, 0.16)',
-                      color: '#fbbf24',
-                      border: '1px solid rgba(245, 158, 11, 0.4)',
-                      padding: '2px 8px',
-                      borderRadius: '12px',
-                    }}
-                  >
-                    100% Credited
-                  </span>
-                </div>
-
-                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', maxHeight: '340px' }} className="custom-scroll">
-                  <table style={{ width: '100%', minWidth: '420px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '12.5px' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)', color: '#94a3b8' }}>
-                        <th style={{ padding: '8px 6px' }}>Asset</th>
-                        <th style={{ padding: '8px 6px' }}>Staked</th>
-                        <th style={{ padding: '8px 6px' }}>Return %</th>
-                        <th style={{ padding: '8px 6px' }}>Profit Earned</th>
-                        <th style={{ padding: '8px 6px' }}>Total Payout</th>
-                        <th style={{ padding: '8px 6px' }}>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tradeHistory.length === 0 ? (
-                        <tr>
-                          <td colSpan="6" style={{ padding: '24px 8px', textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>
-                            No stakings placed yet. Start a growth plan above to see your history!
-                          </td>
-                        </tr>
-                      ) : (
-                        tradeHistory.map((item, idx) => (
-
-                        <tr key={item.id || idx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                          <td style={{ padding: '8px 6px', fontWeight: 700 }}>{item.asset}</td>
-                          <td style={{ padding: '8px 6px', fontWeight: 600 }}>₹{item.amount.toLocaleString('en-IN')}</td>
-                          <td style={{ padding: '8px 6px', color: '#fbbf24', fontWeight: 800 }}>+{item.adminPercent || adminProfitPercent}%</td>
-                          <td style={{ padding: '8px 6px', fontWeight: 800, color: '#34d399' }}>
-                            +₹{item.profit.toLocaleString('en-IN')}
-                          </td>
-                          <td style={{ padding: '8px 6px', fontWeight: 900, color: '#fff', fontFamily: 'monospace' }}>
-                            ₹{item.payout.toLocaleString('en-IN')}
-                          </td>
-                          <td style={{ padding: '8px 6px' }}>
-                            <span
-                              style={{
-                                background: '#10b981',
-                                color: '#000',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                fontSize: '9.5px',
-                                fontWeight: 900,
-                              }}
-                            >
-                              CREDITED
-                            </span>
-                          </td>
-                        </tr>
-                      )))}
-                    </tbody>
-                  </table>
-                </div>
+              {/* Card 2: Your Staking & Contract History */}
+              <div style={{ marginTop: '4px' }}>
+                {renderContractsHistorySection({
+                  title: '📜 Your Staking & Contract History',
+                  subtitle: 'Complete record of contracts taken in the Trading Arena with live settlement tracking.',
+                })}
               </div>
             </div>
           </div>
@@ -1899,7 +2408,7 @@ const UserTradingPortal = ({
               />
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontSize: '14px', color: '#94a3b8', fontWeight: 500 }}>Total Balance</span>
+                <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 600 }}>Total Portfolio Valuation</span>
                 <span
                   onClick={() => setBalanceVisible(!balanceVisible)}
                   style={{ color: '#94a3b8', cursor: 'pointer', fontSize: '18px' }}
@@ -1908,12 +2417,59 @@ const UserTradingPortal = ({
                 </span>
               </div>
 
-              <div style={{ fontSize: '32px', fontWeight: 900, color: '#fff', letterSpacing: '-0.5px', marginBottom: '8px' }}>
-                {balanceVisible ? `₹ ${realBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '₹ ••••••••'}
+              <div style={{ fontSize: 'clamp(28px, 6vw, 34px)', fontWeight: 900, color: '#fff', letterSpacing: '-0.5px', marginBottom: '14px' }}>
+                {balanceVisible ? `₹ ${totalPortfolioValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '₹ ••••••••'}
               </div>
 
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(16, 185, 129, 0.16)', border: '1px solid rgba(16, 185, 129, 0.35)', padding: '3px 10px', borderRadius: '16px', marginBottom: '22px' }}>
-                <span style={{ color: '#10b981', fontSize: '12px' }}>▲ +12.45% (24h)</span>
+              {/* Dual Balance Tiles: Available Balance vs In Contract */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '18px' }}>
+                {/* Available Balance Box */}
+                <div
+                  style={{
+                    background: 'rgba(16, 185, 129, 0.12)',
+                    border: '1px solid rgba(16, 185, 129, 0.35)',
+                    borderRadius: '14px',
+                    padding: '10px 12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981' }} />
+                    <span style={{ fontSize: '11px', color: '#6ee7b7', fontWeight: 700 }}>Available Balance</span>
+                  </div>
+                  <div style={{ fontSize: 'clamp(14px, 3.5vw, 17px)', fontWeight: 900, color: '#fff', fontFamily: 'monospace' }}>
+                    {balanceVisible ? `₹${Number(realBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '₹ ••••••'}
+                  </div>
+                  <div style={{ fontSize: '9.5px', color: '#94a3b8', marginTop: '2px' }}>
+                    Ready for Trade & Bank Withdrawal
+                  </div>
+                </div>
+
+                {/* In Contract Amount Box */}
+                <div
+                  style={{
+                    background: activeContractAmount > 0 ? 'rgba(245, 158, 11, 0.16)' : 'rgba(255, 255, 255, 0.04)',
+                    border: activeContractAmount > 0 ? '1px solid rgba(245, 158, 11, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '14px',
+                    padding: '10px 12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                    <span style={{ fontSize: '11px' }}>⚡</span>
+                    <span style={{ fontSize: '11px', color: '#fbbf24', fontWeight: 700 }}>In Contract Amount</span>
+                  </div>
+                  <div style={{ fontSize: 'clamp(14px, 3.5vw, 17px)', fontWeight: 900, color: '#fbbf24', fontFamily: 'monospace' }}>
+                    {balanceVisible ? `₹${activeContractAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '₹ ••••••'}
+                  </div>
+                  <div style={{ fontSize: '9.5px', color: '#94a3b8', marginTop: '2px' }}>
+                    {activeContractsList.length > 0 ? `${activeContractsList.length} Active Growth Plan` : 'No Active Running Contract'}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(251, 191, 36, 0.12)', border: '1px solid rgba(251, 191, 36, 0.3)', padding: '3px 10px', borderRadius: '16px', marginBottom: '20px' }}>
+                <span style={{ color: '#fbbf24', fontSize: '11px', fontWeight: 700 }}>
+                  📋 {userContracts.length} Total Contracts Taken • +₹{totalProfitEarned.toLocaleString('en-IN')} Profit Credited
+                </span>
               </div>
 
               {/* 3 Buttons in a Row: Deposit (Gold), Withdraw (Dark Outline), Trade (Gold) */}
@@ -2059,6 +2615,12 @@ const UserTradingPortal = ({
                 </button>
               </div>
             </div>
+
+            {/* My Contracts & Holdings History Section (All Contracts taken by user) */}
+            {renderContractsHistorySection({
+              title: '📋 My Active & Matured Contracts',
+              subtitle: 'Live tracker of all contracts purchased, locked amount, guaranteed profit and credit status.',
+            })}
 
             {/* Market Overview Section matching Screen 5 */}
             <div>
@@ -2339,6 +2901,18 @@ const UserTradingPortal = ({
         )}
 
         {/* ======================================================== */}
+        {/* TAB 3B: DEDICATED CONTRACTS & HOLDINGS TAB              */}
+        {/* ======================================================== */}
+        {currentTab === 'contracts' && (
+          <div>
+            {renderContractsHistorySection({
+              title: '📋 All Contracts & Holdings History',
+              subtitle: 'Comprehensive record of all active running contracts and settled investment returns with instant payout status.',
+            })}
+          </div>
+        )}
+
+        {/* ======================================================== */}
         {/* TAB 4: WALLET & TRANSACTIONS (MATCHING SCREEN 10)        */}
         {/* ======================================================== */}
         {currentTab === 'wallet' && (
@@ -2353,10 +2927,30 @@ const UserTradingPortal = ({
                 textAlign: 'center',
               }}
             >
-              <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '6px' }}>Total Wallet Balance</div>
-              <div style={{ fontSize: 'clamp(28px, 7vw, 36px)', fontWeight: 900, color: '#fff', marginBottom: '18px' }}>
-                ₹ {realBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '6px' }}>Total Portfolio Net Balance</div>
+              <div style={{ fontSize: 'clamp(28px, 7vw, 36px)', fontWeight: 900, color: '#fff', marginBottom: '14px' }}>
+                ₹ {totalPortfolioValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </div>
+
+              {/* Sub-grid of Available Balance & In Contract */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '18px', textAlign: 'left' }}>
+                <div style={{ background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.35)', borderRadius: '12px', padding: '10px 12px' }}>
+                  <div style={{ fontSize: '11px', color: '#6ee7b7', fontWeight: 700 }}>🟢 Available Balance</div>
+                  <div style={{ fontSize: 'clamp(14px, 3.5vw, 16px)', fontWeight: 900, color: '#fff', fontFamily: 'monospace' }}>
+                    ₹{Number(realBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </div>
+                  <div style={{ fontSize: '9.5px', color: '#94a3b8', marginTop: '2px' }}>Ready for Instant Withdrawal</div>
+                </div>
+
+                <div style={{ background: activeContractAmount > 0 ? 'rgba(245, 158, 11, 0.16)' : 'rgba(255, 255, 255, 0.04)', border: activeContractAmount > 0 ? '1px solid rgba(245, 158, 11, 0.45)' : '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '10px 12px' }}>
+                  <div style={{ fontSize: '11px', color: '#fbbf24', fontWeight: 700 }}>⚡ In Contract Amount</div>
+                  <div style={{ fontSize: 'clamp(14px, 3.5vw, 16px)', fontWeight: 900, color: '#fbbf24', fontFamily: 'monospace' }}>
+                    ₹{activeContractAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </div>
+                  <div style={{ fontSize: '9.5px', color: '#94a3b8', marginTop: '2px' }}>{activeContractsList.length} Active Plan Running</div>
+                </div>
+              </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'clamp(8px, 2vw, 12px)' }}>
                 <button onClick={onOpenDeposit} className="btn-cyber-primary" style={{ padding: 'clamp(10px, 2.5vw, 12px) 4px', fontSize: 'clamp(12px, 3.2vw, 14px)', borderRadius: '12px' }}>
                   + Deposit Funds
@@ -2379,53 +2973,96 @@ const UserTradingPortal = ({
               </div>
             </div>
 
-            <h4 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '12px' }}>
-              Transaction History {walletHistory.length > 0 && <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 700 }}>(Live Atlas Sync)</span>}
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {(walletHistory.length > 0
-                ? walletHistory
-                : [
-                    { title: 'Deposit (UPI)', date: '12 Oct 2025 10:24 AM', amount: '+ ₹10,000', status: 'Completed', color: '#10b981' },
-                    { title: 'Trading Profit (BTC/USDT)', date: '10 Oct 2025 03:45 PM', amount: '+ ₹950', status: 'Completed', color: '#10b981' },
-                    { title: 'Referral Bonus', date: '08 Oct 2025 11:20 AM', amount: '+ ₹500', status: 'Completed', color: '#fbbf24' },
-                    { title: 'Withdrawal to Bank', date: '05 Oct 2025 09:15 AM', amount: '- ₹2,000', status: 'Completed', color: '#ef4444' },
-                  ]
-              ).map((tx, i) => (
-                <div
-                  key={i}
-                  style={{
-                    background: '#14151f',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '14px',
-                    padding: '14px 16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: '14px', fontWeight: 700 }}>{tx.title}</div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>{tx.date}</div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '15px', fontWeight: 800, color: tx.color }}>{tx.amount}</div>
-                    <span
+            {/* Wallet History View Switcher (Transactions vs Contracts) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <button
+                onClick={() => setWalletViewTab('transactions')}
+                style={{
+                  background: walletViewTab === 'transactions' ? 'rgba(251, 191, 36, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                  border: walletViewTab === 'transactions' ? '1.5px solid #fbbf24' : '1px solid rgba(255, 255, 255, 0.1)',
+                  color: walletViewTab === 'transactions' ? '#fbbf24' : '#94a3b8',
+                  borderRadius: '10px',
+                  padding: '6px 14px',
+                  fontSize: '12px',
+                  fontWeight: walletViewTab === 'transactions' ? 800 : 600,
+                  cursor: 'pointer',
+                }}
+              >
+                💳 Transactions ({walletHistory.length})
+              </button>
+              <button
+                onClick={() => setWalletViewTab('contracts')}
+                style={{
+                  background: walletViewTab === 'contracts' ? 'rgba(251, 191, 36, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                  border: walletViewTab === 'contracts' ? '1.5px solid #fbbf24' : '1px solid rgba(255, 255, 255, 0.1)',
+                  color: walletViewTab === 'contracts' ? '#fbbf24' : '#94a3b8',
+                  borderRadius: '10px',
+                  padding: '6px 14px',
+                  fontSize: '12px',
+                  fontWeight: walletViewTab === 'contracts' ? 800 : 600,
+                  cursor: 'pointer',
+                }}
+              >
+                📋 Contracts History ({userContracts.length})
+              </button>
+            </div>
+
+            {walletViewTab === 'contracts' ? (
+              renderContractsHistorySection({
+                title: '📋 Contracts Taken History',
+                subtitle: 'History of all stakes and stock investment contracts placed from your wallet.',
+              })
+            ) : (
+              <div>
+                <h4 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '12px' }}>
+                  Transaction History {walletHistory.length > 0 && <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 700 }}>(Live Atlas Sync)</span>}
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {(walletHistory.length > 0
+                    ? walletHistory
+                    : [
+                        { title: 'Deposit (UPI)', date: '12 Oct 2025 10:24 AM', amount: '+ ₹10,000', status: 'Completed', color: '#10b981' },
+                        { title: 'Trading Profit (BTC/USDT)', date: '10 Oct 2025 03:45 PM', amount: '+ ₹950', status: 'Completed', color: '#10b981' },
+                        { title: 'Referral Bonus', date: '08 Oct 2025 11:20 AM', amount: '+ ₹500', status: 'Completed', color: '#fbbf24' },
+                        { title: 'Withdrawal to Bank', date: '05 Oct 2025 09:15 AM', amount: '- ₹2,000', status: 'Completed', color: '#ef4444' },
+                      ]
+                  ).map((tx, i) => (
+                    <div
+                      key={i}
                       style={{
-                        fontSize: '10px',
-                        color: tx.color,
-                        background: `${tx.color}22`,
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontWeight: 700,
+                        background: '#14151f',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        borderRadius: '14px',
+                        padding: '14px 16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
                       }}
                     >
-                      {tx.status}
-                    </span>
-                  </div>
+                      <div>
+                        <div style={{ fontSize: '14px', fontWeight: 700 }}>{tx.title}</div>
+                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>{tx.date}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '15px', fontWeight: 800, color: tx.color }}>{tx.amount}</div>
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            color: tx.color,
+                            background: `${tx.color}22`,
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontWeight: 700,
+                          }}
+                        >
+                          {tx.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -3465,6 +4102,7 @@ const UserTradingPortal = ({
             { id: 'home', label: 'Home', icon: '🏠' },
             { id: 'market', label: 'Market', icon: '📊' },
             { id: 'game', label: 'Trade Game', icon: '⚡' },
+            { id: 'contracts', label: 'Contracts', icon: '📋' },
             { id: 'wallet', label: 'Wallet', icon: '💳' },
             { id: 'profile', label: 'Profile', icon: '👤' },
           ].map((tab) => {
