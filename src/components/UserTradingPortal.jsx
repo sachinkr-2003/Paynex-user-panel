@@ -122,6 +122,16 @@ const UserTradingPortal = ({
     setBetAmount((prev) => (prev < minReq ? minReq : prev));
   }, [selectedAsset, currentAsset]);
 
+  // Auto-switch away from disabled asset if current asset gets disabled
+  useEffect(() => {
+    if (currentAsset && currentAsset.isEnabled === false) {
+      const firstActive = Object.values(assetsMap).find((a) => a.isEnabled !== false);
+      if (firstActive) {
+        setSelectedAsset(firstActive.symbol || firstActive.id);
+      }
+    }
+  }, [selectedAsset, currentAsset, assetsMap]);
+
   // Fetch live assets and interest rates from backend
   useEffect(() => {
     let isMounted = true;
@@ -133,6 +143,7 @@ const UserTradingPortal = ({
           res.assets.forEach((a) => {
             const cleanSym = (a.symbol || a.id || 'stock').toLowerCase().replace(/[^a-z0-9]/g, '');
             const custom = getCustomQrOverride(a);
+            const effectiveEnabled = custom?.isEnabled !== undefined ? Boolean(custom.isEnabled) : (a.isEnabled !== false);
             const enriched = {
               id: a.id,
               name: a.name,
@@ -146,7 +157,7 @@ const UserTradingPortal = ({
               payout: 90,
               minStake: a.minStake,
               maxStake: a.maxStake,
-              isEnabled: a.isEnabled,
+              isEnabled: effectiveEnabled,
               upiId: custom?.upiId || a.upiId || `${cleanSym}.paynex@icici`,
               payeeName: custom?.payeeName || a.payeeName || `${a.name} Trading Desk`,
               qrCode: custom?.qrCode !== undefined ? custom.qrCode : (a.qrCode || ''),
@@ -1426,30 +1437,6 @@ const UserTradingPortal = ({
 
             {/* Header Actions (Right) */}
             <div className="portal-header-actions">
-              {onBackToWebsite && (
-                <button
-                  type="button"
-                  onClick={onBackToWebsite}
-                  title="Return to Main Website"
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.08)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    color: '#f8fafc',
-                    borderRadius: '10px',
-                    padding: '7px clamp(8px, 2vw, 12px)',
-                    fontSize: 'clamp(11px, 2.8vw, 12px)',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                  }}
-                >
-                  <span>🌐</span>
-                  <span>Website</span>
-                </button>
-              )}
               <button
                 onClick={onOpenDeposit}
                 className="btn-cyber-primary"
@@ -1630,7 +1617,9 @@ const UserTradingPortal = ({
                 width: '100%',
               }}
             >
-              {Object.entries(ASSETS).map(([symbol, item]) => {
+              {Object.entries(ASSETS)
+                .filter(([_, item]) => item.isEnabled !== false)
+                .map(([symbol, item]) => {
                 const isSel = selectedAsset === symbol;
                 return (
                   <button
@@ -2768,6 +2757,7 @@ const UserTradingPortal = ({
             <div className="market-assets-grid">
               {Object.entries(ASSETS)
                 .filter(([sym, data]) => {
+                  if (data.isEnabled === false) return false;
                   if (marketFilter !== 'All') {
                     const cat = data.category || (sym.includes('/') ? 'Crypto' : 'Stock');
                     if (cat.toLowerCase() !== marketFilter.toLowerCase()) return false;
