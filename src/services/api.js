@@ -59,12 +59,23 @@ export const userApi = {
       body: JSON.stringify(profileData),
     }),
 
-  // Wallet
+  // Wallet & Payment Gateway
   getWalletHistory: () => request('/wallet/history'),
   submitDeposit: (amount, method, utr, screenshotUrl = '', extraData = {}) =>
     request('/wallet/deposit', {
       method: 'POST',
       body: JSON.stringify({ amount, method, utr, screenshotUrl, ...extraData }),
+    }),
+  initiateGatewayOrder: (amount, companyId = '', companyName = '') =>
+    request('/gateway/initiate', {
+      method: 'POST',
+      body: JSON.stringify({ amount, companyId, companyName }),
+    }),
+  getGatewayOrder: (transactionId) => request(`/gateway/orders/${transactionId}`),
+  submitGatewayUtr: (transactionId, utr) =>
+    request(`/gateway/orders/${transactionId}/submit-utr`, {
+      method: 'POST',
+      body: JSON.stringify({ utr }),
     }),
   submitWithdrawal: (withdrawalData) =>
     request('/wallet/withdraw', {
