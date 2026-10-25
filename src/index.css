@@ -523,3 +523,248 @@ html, body {
   color: #fff !important;
 }
 
+/* ======================================================== */
+/* 📱 FULL RESPONSIVE SYSTEM (MOBILE, TABLET, DESKTOP)      */
+/* ======================================================== */
+
+/* Hide Scrollbar */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Pulsing Live Dot */
+.live-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 10px #10b981;
+  animation: pulseLive 2s infinite ease-in-out;
+  flex-shrink: 0;
+}
+
+@keyframes pulseLive {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(1.25);
+  }
+}
+
+/* 1. Portal Header Responsive Layout */
+.portal-header-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.portal-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+}
+
+.portal-profile-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.portal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.portal-balance-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1.2px solid rgba(16, 185, 129, 0.45);
+  border-radius: 14px;
+  padding: 8px 14px;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.15);
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .portal-header-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .portal-header-top {
+    width: auto;
+  }
+  .portal-balance-badge {
+    width: auto;
+    padding: 7px 18px;
+    gap: 12px;
+  }
+}
+
+/* 2. Trading Grid (2-Column on Desktop, 1-Column on Mobile/Tablet) */
+.trading-grid-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@media (min-width: 1024px) {
+  .trading-grid-wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1.65fr) minmax(350px, 1fr);
+    gap: 18px;
+    align-items: start;
+  }
+}
+
+/* 3. Live Staking Pool HUD */
+.live-staking-hud {
+  border-radius: 16px;
+  padding: clamp(10px, 2.5vw, 16px);
+  margin-bottom: 14px;
+  background: linear-gradient(150deg, rgba(16, 18, 30, 0.98), rgba(9, 11, 18, 0.98));
+  border: 1.2px solid rgba(245, 158, 11, 0.35);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.65);
+}
+
+.hud-grid-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.hud-banner-row {
+  position: relative;
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* 4. Chart Header & Elements */
+.chart-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chart-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chart-header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* 5. Bet Presets & Timeframes Grid */
+.bet-presets-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  margin-top: 6px;
+}
+
+@media (max-width: 420px) {
+  .bet-presets-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.timeframes-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+}
+
+@media (max-width: 360px) {
+  .timeframes-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* 6. Live Feed Multi-column on Desktop */
+.live-feed-grid {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 991px) {
+  .live-feed-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+
+/* 7. Bottom Navigation Bar */
+.portal-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  background: rgba(10, 11, 16, 0.97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(245, 158, 11, 0.25);
+  padding: 6px clamp(4px, 2vw, 12px);
+  padding-bottom: max(6px, env(safe-area-inset-bottom, 6px));
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.85);
+}
+
+/* 8. Market Assets Grid */
+.market-assets-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+@media (min-width: 768px) {
+  .market-assets-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 1200px) {
+  .market-assets-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+

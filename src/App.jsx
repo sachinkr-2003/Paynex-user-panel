@@ -18,6 +18,8 @@ import DepositModal from './components/DepositModal';
 import WithdrawModal from './components/WithdrawModal';
 import VideoModal from './components/VideoModal';
 import UserTradingPortal from './components/UserTradingPortal';
+import ApkLoginScreen from './components/ApkLoginScreen';
+import ApkRegisterScreen from './components/ApkRegisterScreen';
 import userApi from './services/api';
 import { showUserConfirm, showUserToast } from './utils/swal';
 
@@ -34,9 +36,9 @@ function App() {
   const [realBalance, setRealBalance] = useState(() => {
     try {
       const saved = localStorage.getItem('paynex_real_bal');
-      return saved ? Number(saved) : 25480.32;
+      return saved ? Number(saved) : 0;
     } catch {
-      return 25480.32;
+      return 0;
     }
   });
 
@@ -49,11 +51,27 @@ function App() {
     }
   });
 
-  // 'portal' for logged-in game desk, 'landing' for public showcase
-  const [activeView, setActiveView] = useState(() => (currentUser ? 'portal' : 'landing'));
+  // Default to APK login screen for logged-out users as requested by user
+  const [authScreen, setAuthScreen] = useState(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('view') === 'landing') return 'landing';
+      if (urlParams.get('auth') === 'register') return 'register';
+    } catch {}
+    return 'login';
+  });
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authInitialTab, setAuthInitialTab] = useState('login');
-  const [depositModalOpen, setDepositModalOpen] = useState(false);
+  const [depositModalOpen, setDepositModalOpen] = useState(() => {
+    try {
+      return (
+        window.location.pathname.includes('/deposit') ||
+        window.location.search.includes('modal=deposit')
+      );
+    } catch {
+      return false;
+    }
+  });
   const [depositTargetCompany, setDepositTargetCompany] = useState(null);
   const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
@@ -61,6 +79,16 @@ function App() {
   const handleOpenDepositForCompany = (company = null) => {
     setDepositTargetCompany(company);
     setDepositModalOpen(true);
+  };
+
+  const handleCloseDeposit = () => {
+    setDepositModalOpen(false);
+    setDepositTargetCompany(null);
+    try {
+      if (window.location.pathname.includes('/deposit')) {
+        window.history.pushState(null, '', '/');
+      }
+    } catch (_) {}
   };
 
   useEffect(() => {
@@ -99,6 +127,7 @@ function App() {
   }, []);
 
   const handleOpenAuth = (tab = 'login') => {
+    setAuthScreen(tab);
     setAuthInitialTab(tab);
     setAuthModalOpen(true);
   };
@@ -120,7 +149,10 @@ function App() {
       setCurrentUser(null);
       localStorage.removeItem('paynex_user');
       localStorage.removeItem('paynex_user_token');
-      setActiveView('landing');
+      localStorage.removeItem('paynex_token');
+      localStorage.removeItem('paynex_real_bal');
+      setRealBalance(0);
+      setAuthScreen('login');
       showUserToast('Logged out successfully');
     }
   };
@@ -166,10 +198,7 @@ function App() {
         {/* Global Deposit & Withdraw Modals */}
         <DepositModal
           isOpen={depositModalOpen}
-          onClose={() => {
-            setDepositModalOpen(false);
-            setDepositTargetCompany(null);
-          }}
+          onClose={handleCloseDeposit}
           initialCompany={depositTargetCompany}
           onRechargeDemo={handleDeposit}
         />
@@ -184,9 +213,63 @@ function App() {
     );
   }
 
-  // Otherwise render full Public Website / Landing View
+  // When user is not logged in, render the Flutter APK Login / Register Screen by default!
+  if (authScreen === 'register') {
+    return (
+      <ApkRegisterScreen
+        onRegisterSuccess={handleLoginSuccess}
+        onSwitchToLogin={() => setAuthScreen('login')}
+      />
+    );
+  }
+
+  if (authScreen === 'login') {
+    return (
+      <>
+        <ApkLoginScreen
+          onLoginSuccess={handleLoginSuccess}
+          onSwitchToRegister={() => setAuthScreen('register')}
+          onSwitchToLanding={() => setAuthScreen('landing')}
+        />
+        <DepositModal
+          isOpen={depositModalOpen}
+          onClose={handleCloseDeposit}
+          initialCompany={depositTargetCompany}
+          onRechargeDemo={handleDeposit}
+        />
+      </>
+    );
+  }
+
+  // Otherwise render full Public Website / Landing View (when explicitly switched to landing)
   return (
     <div style={{ position: 'relative', minHeight: '100vh', background: '#050514', color: '#fff', overflowX: 'hidden' }}>
+      {/* Floating Button to Switch back to Flutter APK View */}
+      <button
+        onClick={() => setAuthScreen('login')}
+        style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          zIndex: 9999,
+          background: 'linear-gradient(135deg, #FBBF24, #F59E0B)',
+          color: '#000',
+          border: 'none',
+          borderRadius: '30px',
+          padding: '12px 20px',
+          fontWeight: 900,
+          fontSize: '13px',
+          boxShadow: '0 8px 25px rgba(251, 191, 36, 0.5)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}
+      >
+        <span>📱</span>
+        <span>Open Flutter APK UI</span>
+      </button>
+
       {/* 3D Perspective Canvas Background */}
       <BackgroundCanvas />
 

@@ -9,6 +9,9 @@ const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
   const [bankAccount, setBankAccount] = useState('918237461298');
   const [ifsc, setIfsc] = useState('HDFC0001234');
   const [holderName, setHolderName] = useState('Sachin Kumar');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [successMsg, setSuccessMsg] = useState(false);
 
@@ -29,21 +32,35 @@ const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
       return;
     }
 
+    if (!password || !password.trim()) {
+      setPasswordError('Please enter your account login password to authorize withdrawal.');
+      showUserError(
+        'Password Required',
+        'Bina login password ke withdrawal nahi kiya ja sakta. Kripya apna account login password enter karein.'
+      );
+      return;
+    }
+
     setIsProcessing(true);
+    setPasswordError('');
     try {
-      await userApi.submitWithdrawal({
+      const res = await userApi.submitWithdrawal({
         amount: numAmt,
         method: method.toUpperCase(),
         upiId: method === 'upi' ? upiId : '',
         accountNumber: method === 'bank' ? bankAccount : '',
         ifsc: method === 'bank' ? ifsc : '',
         accountHolder: holderName,
+        password: password.trim(),
       });
-    } catch (err) {
-      console.warn('Backend withdraw submit:', err.message);
-    }
 
-    setTimeout(() => {
+      if (res && res.success === false) {
+        setIsProcessing(false);
+        setPasswordError(res.message || 'Incorrect password.');
+        showUserError('Password Verification Failed', res.message || 'Incorrect login password.');
+        return;
+      }
+
       setIsProcessing(false);
       setSuccessMsg(true);
       if (onWithdrawSuccess) {
@@ -51,13 +68,24 @@ const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
       }
       setTimeout(() => {
         setSuccessMsg(false);
+        setPassword('');
         onClose();
         showUserSuccess(
           'Withdrawal Initiated',
-          `₹${numAmt.toLocaleString('en-IN')} payout has been queued for IMPS instant settlement.`
+          `₹${numAmt.toLocaleString('en-IN')} payout has been verified with password & queued for IMPS instant settlement.`
         );
       }, 1500);
-    }, 1200);
+    } catch (err) {
+      setIsProcessing(false);
+      const errMsg = err?.message || 'Incorrect password.';
+      setPasswordError(errMsg);
+      showUserError(
+        'Password Verification Failed',
+        errMsg.includes('Password') || errMsg.includes('password')
+          ? errMsg
+          : `Withdrawal authorization failed: ${errMsg}`
+      );
+    }
   };
 
   return (
@@ -344,6 +372,80 @@ const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
               </div>
             </>
           )}
+
+          {/* Account Login Password Authorization */}
+          <div
+            style={{
+              background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.08), rgba(0, 0, 0, 0.3))',
+              border: passwordError ? '1.5px solid #ef4444' : '1.2px solid rgba(251, 191, 36, 0.4)',
+              borderRadius: '14px',
+              padding: '12px 14px',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <label style={{ fontSize: '12.5px', color: '#fbbf24', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>🔒</span>
+                <span>Enter Account Login Password (Required) *</span>
+              </label>
+            </div>
+            <div
+              style={{
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                background: '#0a0b12',
+                border: '1px solid rgba(255, 255, 255, 0.14)',
+                borderRadius: '10px',
+              }}
+            >
+              <input
+                type={showPassword ? 'text' : 'password'}
+                required
+                placeholder="Enter password you use to log in"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setPasswordError('');
+                }}
+                style={{
+                  width: '100%',
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '12px 42px 12px 14px',
+                  color: '#fff',
+                  fontSize: '14px',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                {showPassword ? '👁️' : '🔒'}
+              </button>
+            </div>
+            {passwordError ? (
+              <div style={{ color: '#ef4444', fontSize: '11px', marginTop: '6px', fontWeight: 700 }}>
+                ⚠️ {passwordError}
+              </div>
+            ) : (
+              <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '6px' }}>
+                🛡️ Security Check: Jis password se aap apna account login karte hain, usi se verify hone ke baad hi payout transfer hoga.
+              </div>
+            )}
+          </div>
 
           {successMsg ? (
             <div

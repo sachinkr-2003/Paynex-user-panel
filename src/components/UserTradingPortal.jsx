@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import userApi from '../services/api';
 import { showUserSuccess, showUserWarning, showUserError } from '../utils/swal';
-import { FIFTY_STOCKS_MAP, getCompanyQrUrl, enrichStockWithPayment } from '../data/stocksData';
+import { FIFTY_STOCKS_MAP, getCompanyQrUrl, enrichStockWithPayment, getCustomQrOverride } from '../data/stocksData';
 
 
 const DEFAULT_ASSETS = FIFTY_STOCKS_MAP || {};
@@ -57,8 +57,8 @@ const UserTradingPortal = ({
   onOpenWithdraw,
   onLogout,
 }) => {
-  // Navigation Tabs: 'game' (3D Trade Arena), 'home' (APK Screen 5), 'market', 'wallet', 'profile'
-  const [currentTab, setCurrentTab] = useState('game');
+  // Navigation Tabs: 'home' (APK Screen 5), 'market', 'game' (3D Trade Arena), 'wallet', 'profile'
+  const [currentTab, setCurrentTab] = useState('home');
   const [assetsMap, setAssetsMap] = useState(DEFAULT_ASSETS);
   const ASSETS = assetsMap;
   const [selectedAsset, setSelectedAsset] = useState('BTC/USDT');
@@ -100,6 +100,7 @@ const UserTradingPortal = ({
           const map = {};
           res.assets.forEach((a) => {
             const cleanSym = (a.symbol || a.id || 'stock').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const custom = getCustomQrOverride(a);
             const enriched = {
               id: a.id,
               name: a.name,
@@ -114,9 +115,9 @@ const UserTradingPortal = ({
               minStake: a.minStake,
               maxStake: a.maxStake,
               isEnabled: a.isEnabled,
-              upiId: a.upiId || `${cleanSym}.paynex@icici`,
-              payeeName: a.payeeName || `${a.name} Trading Desk`,
-              qrCode: a.qrCode || '',
+              upiId: custom?.upiId || a.upiId || `${cleanSym}.paynex@icici`,
+              payeeName: custom?.payeeName || a.payeeName || `${a.name} Trading Desk`,
+              qrCode: custom?.qrCode !== undefined ? custom.qrCode : (a.qrCode || ''),
             };
             if (a.id) map[a.id] = enriched;
             if (a.symbol) map[a.symbol] = enriched;
@@ -137,29 +138,29 @@ const UserTradingPortal = ({
 
   // Settings & Profile Subpages State
   const [activeSettingModal, setActiveSettingModal] = useState(null);
-  const [profileName, setProfileName] = useState(() => (user?.name && user.name.toLowerCase() !== 'admin') ? user.name : 'Skraj0451');
-  const [profileEmail, setProfileEmail] = useState(() => (user?.email && !user.email.toLowerCase().includes('admin')) ? user.email : 'skraj0451@gmail.com');
-  const [profilePhone, setProfilePhone] = useState('+91 98765 43210');
+  const [profileName, setProfileName] = useState(() => user?.name || 'Trader');
+  const [profileEmail, setProfileEmail] = useState(() => user?.email || 'trader@paynex.com');
+  const [profilePhone, setProfilePhone] = useState(() => user?.phone || '+91 98765 43210');
   const [profileDob, setProfileDob] = useState('14/08/1998');
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [smsOtpEnabled, setSmsOtpEnabled] = useState(true);
   const [biometricEnabled, setBiometricEnabled] = useState(true);
   const [passForm, setPassForm] = useState({ current: '', newPass: '', confirm: '' });
-  const [bankAccount, setBankAccount] = useState({
-    bankName: 'HDFC Bank',
-    holderName: 'Sachin Kumar',
-    accountNumber: '458912349012',
-    ifsc: 'HDFC0001234',
-    upiId: 'skraj0451@okhdfcbank',
-  });
+  const [bankAccount, setBankAccount] = useState(() => ({
+    bankName: user?.bankDetails?.bankName || 'HDFC Bank',
+    holderName: user?.bankDetails?.holderName || user?.name || 'Trader',
+    accountNumber: user?.bankDetails?.accountNumber || '458912349012',
+    ifsc: user?.bankDetails?.ifsc || 'HDFC0001234',
+    upiId: user?.bankDetails?.upiId || (user?.email ? `${user.email.split('@')[0]}@okhdfcbank` : 'trader@okhdfcbank'),
+  }));
   const [isEditingBank, setIsEditingBank] = useState(false);
-  const [bankForm, setBankForm] = useState({
-    bankName: 'HDFC Bank',
-    holderName: 'Sachin Kumar',
-    accountNumber: '458912349012',
-    ifsc: 'HDFC0001234',
-    upiId: 'skraj0451@okhdfcbank',
-  });
+  const [bankForm, setBankForm] = useState(() => ({
+    bankName: user?.bankDetails?.bankName || 'HDFC Bank',
+    holderName: user?.bankDetails?.holderName || user?.name || 'Trader',
+    accountNumber: user?.bankDetails?.accountNumber || '458912349012',
+    ifsc: user?.bankDetails?.ifsc || 'HDFC0001234',
+    upiId: user?.bankDetails?.upiId || (user?.email ? `${user.email.split('@')[0]}@okhdfcbank` : 'trader@okhdfcbank'),
+  }));
   const [openFaq, setOpenFaq] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -389,8 +390,18 @@ const UserTradingPortal = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    const width = (canvas.width = canvas.parentElement.clientWidth);
-    const height = (canvas.height = chartHeight);
+    const dpr = window.devicePixelRatio || 1;
+    const clientW = canvas.parentElement.clientWidth;
+    const clientH = chartHeight;
+
+    canvas.width = clientW * dpr;
+    canvas.height = clientH * dpr;
+    canvas.style.width = `${clientW}px`;
+    canvas.style.height = `${clientH}px`;
+    ctx.scale(dpr, dpr);
+
+    const width = clientW;
+    const height = clientH;
 
     // Dark cyber backdrop
     ctx.fillStyle = '#060714';
@@ -412,48 +423,65 @@ const UserTradingPortal = ({
       ctx.stroke();
     }
 
-    const baselineY = height - 55;
-    const targetY = 55;
+    const baselineY = height - 50;
+    const targetY = 50;
 
     // Baseline (Initial Stake)
     ctx.setLineDash([4, 4]);
     ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
     ctx.beginPath();
-    ctx.moveTo(20, baselineY);
-    ctx.lineTo(width - 20, baselineY);
+    ctx.moveTo(15, baselineY);
+    ctx.lineTo(width - 15, baselineY);
     ctx.stroke();
 
     // Target Line (Admin Return Rate)
     ctx.strokeStyle = 'rgba(16, 185, 129, 0.5)';
     ctx.beginPath();
-    ctx.moveTo(20, targetY);
-    ctx.lineTo(width - 20, targetY);
+    ctx.moveTo(15, targetY);
+    ctx.lineTo(width - 15, targetY);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Baseline Badge
-    ctx.fillStyle = 'rgba(30, 41, 59, 0.9)';
-    ctx.fillRect(20, baselineY - 14, 155, 22);
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = 'bold 11px Outfit, sans-serif';
-    ctx.fillText(`Base Stake: ₹${betAmount.toLocaleString('en-IN')}`, 26, baselineY + 1);
+    const isMobileCanvas = width < 480;
 
-    // Target Badge
+    // Baseline Badge (Adaptive on mobile so it never collides with target return)
+    const baseBadgeW = isMobileCanvas ? 110 : 155;
+    ctx.fillStyle = 'rgba(30, 41, 59, 0.9)';
+    ctx.fillRect(15, baselineY - 14, baseBadgeW, 22);
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(15, baselineY - 14, baseBadgeW, 22);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = isMobileCanvas ? 'bold 10px Outfit, sans-serif' : 'bold 11px Outfit, sans-serif';
+    ctx.fillText(
+      isMobileCanvas ? `Base: ₹${betAmount.toLocaleString('en-IN')}` : `Base Stake: ₹${betAmount.toLocaleString('en-IN')}`,
+      20,
+      baselineY + 1
+    );
+
+    // Target Badge (Adaptive on mobile)
     const calcProfit = Math.round((betAmount * currentAssetRate) / 100);
     const calcPayout = betAmount + calcProfit;
-    const badgeW = 205;
+    const targetBadgeW = isMobileCanvas ? 135 : 205;
+    const targetBadgeX = width - targetBadgeW - 15;
     ctx.fillStyle = 'rgba(16, 185, 129, 0.18)';
-    ctx.fillRect(width - badgeW - 20, targetY - 16, badgeW, 24);
+    ctx.fillRect(targetBadgeX, targetY - 16, targetBadgeW, 24);
     ctx.strokeStyle = '#10b981';
     ctx.lineWidth = 1;
-    ctx.strokeRect(width - badgeW - 20, targetY - 16, badgeW, 24);
+    ctx.strokeRect(targetBadgeX, targetY - 16, targetBadgeW, 24);
     ctx.fillStyle = '#34d399';
-    ctx.font = 'bold 11.5px monospace';
-    ctx.fillText(`Target Return (+${currentAssetRate}%): ₹${calcPayout.toLocaleString('en-IN')}`, width - badgeW - 12, targetY);
+    ctx.font = isMobileCanvas ? 'bold 10px monospace' : 'bold 11.5px monospace';
+    ctx.fillText(
+      isMobileCanvas
+        ? `Target: ₹${calcPayout.toLocaleString('en-IN')}`
+        : `Target Return (+${currentAssetRate}%): ₹${calcPayout.toLocaleString('en-IN')}`,
+      targetBadgeX + 6,
+      targetY
+    );
 
     // Yield Curve
-    const curveStartX = 30;
-    const curveEndX = width - 40;
+    const curveStartX = isMobileCanvas ? 20 : 30;
+    const curveEndX = width - (isMobileCanvas ? 25 : 40);
     const totalCurveWidth = curveEndX - curveStartX;
 
     // Draw base yield curve trajectory
@@ -749,107 +777,122 @@ const UserTradingPortal = ({
         }}
       >
         <div className="portal-header-row">
-          {/* User Profile Header (Left) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                width: 'clamp(36px, 9vw, 42px)',
-                height: 'clamp(36px, 9vw, 42px)',
-                borderRadius: '50%',
-                border: '2px solid #fbbf24',
-                boxShadow: '0 0 14px rgba(251, 191, 36, 0.4)',
-                overflow: 'hidden',
-                flexShrink: 0,
-              }}
-            >
-              <img
-                src="/sachin_avatar.jpg"
-                alt="Avatar"
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: 'clamp(14px, 3.8vw, 16px)', fontWeight: 800, color: '#fff' }}>
-                  Hello, {user?.name && user.name.toLowerCase() !== 'admin' ? user.name : 'Skraj0451'}
-                </span>
-                <span
-                  style={{
-                    fontSize: '9px',
-                    fontWeight: 900,
-                    background: '#fbbf24',
-                    color: '#000',
-                    padding: '1px 5px',
-                    borderRadius: '4px',
-                  }}
-                >
-                  VIP 1
-                </span>
+          <div className="portal-header-top">
+            {/* User Profile Header (Left) */}
+            <div className="portal-profile-wrap">
+              <div
+                style={{
+                  width: 'clamp(36px, 9vw, 42px)',
+                  height: 'clamp(36px, 9vw, 42px)',
+                  borderRadius: '50%',
+                  border: '2px solid #fbbf24',
+                  boxShadow: '0 0 14px rgba(251, 191, 36, 0.4)',
+                  overflow: 'hidden',
+                  flexShrink: 0,
+                }}
+              >
+                <img
+                  src="/sachin_avatar.jpg"
+                  alt="Avatar"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
               </div>
-              <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0 }}>Welcome back!</p>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: 'clamp(13px, 3.8vw, 16px)', fontWeight: 800, color: '#fff', whiteSpace: 'nowrap' }}>
+                    Hello, {user?.name || 'Trader'}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '9px',
+                      fontWeight: 900,
+                      background: '#fbbf24',
+                      color: '#000',
+                      padding: '1px 5px',
+                      borderRadius: '4px',
+                    }}
+                  >
+                    VIP 1
+                  </span>
+                </div>
+                <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0 }}>Welcome back!</p>
+              </div>
+            </div>
+
+            {/* Header Actions (Right) */}
+            <div className="portal-header-actions">
+              <button
+                onClick={onOpenDeposit}
+                className="btn-cyber-primary"
+                style={{
+                  padding: '7px clamp(9px, 2.2vw, 14px)',
+                  fontSize: 'clamp(11px, 2.8vw, 12px)',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                + Deposit
+              </button>
+              <button
+                onClick={onOpenWithdraw}
+                className="btn-cyber-outline"
+                style={{
+                  padding: '7px clamp(8px, 2vw, 12px)',
+                  fontSize: 'clamp(11px, 2.8vw, 12px)',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Withdraw
+              </button>
+              <button
+                onClick={onLogout}
+                title="Logout"
+                style={{
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  color: '#f87171',
+                  borderRadius: '10px',
+                  padding: '7px 10px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Exit
+              </button>
             </div>
           </div>
 
           {/* Clean Real Wallet Balance Badge */}
-          <div
-            className="portal-balance-badge"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              background: 'rgba(16, 185, 129, 0.12)',
-              border: '1.2px solid rgba(16, 185, 129, 0.45)',
-              borderRadius: '14px',
-              padding: '7px 16px',
-              gap: '8px',
-              boxShadow: '0 0 16px rgba(16, 185, 129, 0.15)',
-            }}
-          >
-            <span
-              style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                background: '#10b981',
-                boxShadow: '0 0 8px #10b981',
-              }}
-            />
-            <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>Balance:</span>
-            <span style={{ fontSize: '14px', fontWeight: 800, color: '#fff', fontFamily: 'monospace' }}>
-              ₹{realBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </span>
-          </div>
-
-          {/* Header Actions (Right) */}
-          <div className="portal-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              onClick={onOpenDeposit}
-              className="btn-cyber-primary"
-              style={{ padding: '7px 14px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' }}
-            >
-              + Deposit
-            </button>
-            <button
-              onClick={onOpenWithdraw}
-              className="btn-cyber-outline"
-              style={{ padding: '7px 12px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
-            >
-              Withdraw
-            </button>
-            <button
-              onClick={onLogout}
-              title="Logout"
-              style={{
-                background: 'rgba(239, 68, 68, 0.15)',
-                border: '1px solid rgba(239, 68, 68, 0.4)',
-                color: '#f87171',
-                borderRadius: '10px',
-                padding: '7px 10px',
-                fontSize: '11px',
-                cursor: 'pointer',
-              }}
-            >
-              Exit
-            </button>
+          <div className="portal-balance-badge">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="live-pulse-dot" />
+              <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>Balance:</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: 'clamp(14px, 3.8vw, 16px)', fontWeight: 800, color: '#fff', fontFamily: 'monospace' }}>
+                ₹{realBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
+              <button
+                onClick={() => onOpenDeposit()}
+                style={{
+                  background: 'rgba(251, 191, 36, 0.18)',
+                  border: '1px solid rgba(251, 191, 36, 0.4)',
+                  color: '#fbbf24',
+                  borderRadius: '6px',
+                  padding: '2px 7px',
+                  fontSize: '10.5px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+                title="Quick Add Funds"
+              >
+                + Add
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -862,7 +905,7 @@ const UserTradingPortal = ({
           width: '100%',
           margin: '0 auto',
           padding: 'clamp(10px, 2.5vw, 18px)',
-          paddingBottom: '100px',
+          paddingBottom: 'clamp(90px, 12vh, 120px)',
           boxSizing: 'border-box',
         }}
       >
@@ -873,13 +916,15 @@ const UserTradingPortal = ({
           <div>
             {/* Asset Selector Ribbon */}
             <div
+              className="hide-scrollbar"
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
                 overflowX: 'auto',
-                paddingBottom: '10px',
-                marginBottom: '14px',
+                WebkitOverflowScrolling: 'touch',
+                paddingBottom: '8px',
+                marginBottom: '12px',
               }}
             >
               {Object.entries(ASSETS).map(([symbol, item]) => {
@@ -894,7 +939,7 @@ const UserTradingPortal = ({
                         : 'rgba(20, 21, 27, 0.9)',
                       border: isSel ? '1.5px solid #fbbf24' : '1px solid rgba(255, 255, 255, 0.08)',
                       borderRadius: '14px',
-                      padding: '8px 14px',
+                      padding: '6px 12px',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
@@ -906,23 +951,26 @@ const UserTradingPortal = ({
                   >
                     <span
                       style={{
-                        width: '30px',
-                        height: '30px',
+                        width: '28px',
+                        height: '28px',
                         borderRadius: '50%',
                         background: item.color,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontWeight: 900,
-                        fontSize: '14px',
+                        fontSize: '13px',
                         color: '#fff',
+                        flexShrink: 0,
                       }}
                     >
                       {item.icon}
                     </span>
-                    <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontSize: '13px', fontWeight: 800 }}>{item.name || symbol}</div>
-                      <div style={{ fontSize: '10px', color: '#10b981', fontWeight: 700 }}>
+                    <div style={{ textAlign: 'left', minWidth: 0 }}>
+                      <div style={{ fontSize: 'clamp(11.5px, 3vw, 13px)', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                        {item.name || symbol}
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#10b981', fontWeight: 700, whiteSpace: 'nowrap' }}>
                         Fixed +{item.returnPercent ?? currentAssetRate}% Return
                       </div>
                     </div>
@@ -932,39 +980,12 @@ const UserTradingPortal = ({
             </div>
 
             {/* Live Multiplayer Pool & Admin Yield HUD */}
-            <div
-              className="cyber-card"
-              style={{
-                borderRadius: '16px',
-                padding: '14px 18px',
-                marginBottom: '16px',
-                background: 'linear-gradient(150deg, rgba(16, 18, 30, 0.98), rgba(9, 11, 18, 0.98))',
-                border: '1.2px solid rgba(245, 158, 11, 0.35)',
-                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.65)',
-              }}
-            >
+            <div className="cyber-card live-staking-hud">
               {/* HUD Header */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '8px',
-                  marginBottom: '10px',
-                }}
-              >
+              <div className="hud-grid-row">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span
-                    style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      background: '#10b981',
-                      boxShadow: '0 0 10px #10b981',
-                    }}
-                  />
-                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#fff' }}>
+                  <span className="live-pulse-dot" />
+                  <span style={{ fontSize: 'clamp(12px, 3.2vw, 13.5px)', fontWeight: 800, color: '#fff' }}>
                     LIVE STAKING POOL • {selectedAsset}
                   </span>
                   <span
@@ -972,41 +993,26 @@ const UserTradingPortal = ({
                       background: 'rgba(56, 189, 248, 0.15)',
                       border: '1px solid rgba(56, 189, 248, 0.35)',
                       color: '#38bdf8',
-                      fontSize: '11px',
+                      fontSize: '10.5px',
                       fontWeight: 700,
-                      padding: '2px 8px',
+                      padding: '2px 7px',
                       borderRadius: '6px',
                     }}
                   >
-                    👥 {liveTradersCount.toLocaleString('en-IN')} Active Investors
+                    👥 {liveTradersCount.toLocaleString('en-IN')} Active
                   </span>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>Total Staked:</span>
-                  <span style={{ fontSize: '15px', fontWeight: 900, color: '#fbbf24', fontFamily: 'monospace' }}>
+                  <span style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: 600 }}>Total Staked:</span>
+                  <span style={{ fontSize: 'clamp(13.5px, 3.5vw, 15px)', fontWeight: 900, color: '#fbbf24', fontFamily: 'monospace' }}>
                     ₹{totalRoundPool.toLocaleString('en-IN')}
                   </span>
                 </div>
               </div>
 
               {/* Pool Growth & Payout Banner */}
-              <div
-                style={{
-                  position: 'relative',
-                  width: '100%',
-                  borderRadius: '12px',
-                  overflow: 'hidden',
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid rgba(245, 158, 11, 0.25)',
-                  padding: '9px 14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '8px',
-                }}
-              >
+              <div className="hud-banner-row">
                 <div
                   style={{
                     position: 'absolute',
@@ -1025,7 +1031,7 @@ const UserTradingPortal = ({
                     zIndex: 2,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
+                    gap: '6px',
                   }}
                 >
                   <span
@@ -1033,15 +1039,15 @@ const UserTradingPortal = ({
                       background: 'rgba(245, 158, 11, 0.2)',
                       border: '1px solid rgba(245, 158, 11, 0.45)',
                       color: '#fbbf24',
-                      padding: '2px 8px',
+                      padding: '2px 7px',
                       borderRadius: '6px',
-                      fontSize: '11px',
+                      fontSize: '10.5px',
                       fontWeight: 800,
                     }}
                   >
                     ⚡ Fixed Return
                   </span>
-                  <span style={{ fontSize: '13px', fontWeight: 900, color: '#34d399' }}>
+                  <span style={{ fontSize: 'clamp(11.5px, 3.2vw, 13px)', fontWeight: 900, color: '#34d399' }}>
                     +{currentAssetRate}% Guaranteed
                   </span>
                 </div>
@@ -1055,12 +1061,12 @@ const UserTradingPortal = ({
                     gap: '6px',
                   }}
                 >
-                  <span style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: 600 }}>
-                    Total Pool Payout:
+                  <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>
+                    Pool Payout:
                   </span>
                   <span
                     style={{
-                      fontSize: '14.5px',
+                      fontSize: 'clamp(13px, 3.5vw, 14.5px)',
                       fontWeight: 900,
                       color: '#34d399',
                       fontFamily: 'monospace',
@@ -1079,76 +1085,82 @@ const UserTradingPortal = ({
                 className="cyber-card"
                 style={{
                   borderRadius: '20px',
-                  padding: '18px',
+                  padding: 'clamp(12px, 2.5vw, 18px)',
                   background: 'linear-gradient(150deg, rgba(14, 15, 24, 0.96), rgba(8, 9, 14, 0.98))',
                   border: '1.2px solid rgba(245, 158, 11, 0.3)',
                 }}
               >
                 {/* Chart Header */}
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: '12px',
-                    flexWrap: 'wrap',
-                    gap: '8px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '18px', fontWeight: 900, color: '#fff' }}>{selectedAsset}</span>
-                    <span style={{ fontSize: '20px', fontWeight: 900, color: '#fbbf24', fontFamily: 'monospace' }}>
-                      ₹{currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        background: 'rgba(16, 185, 129, 0.16)',
-                        color: '#10b981',
-                        padding: '2px 8px',
-                        borderRadius: '6px',
-                      }}
-                    >
-                      ⚡ LIVE GROWTH
-                    </span>
-                    <button
-                      onClick={() => handleOpenPurchaseModal(assetInfo, 'qr')}
-                      style={{
-                        background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(16, 185, 129, 0.25))',
-                        border: '1.2px solid #10b981',
-                        color: '#34d399',
-                        padding: '4px 10px',
-                        borderRadius: '8px',
-                        fontSize: '11px',
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        boxShadow: '0 0 12px rgba(16, 185, 129, 0.25)',
-                      }}
-                      title={`Open dedicated QR code to pay & invest in ${assetInfo.name || selectedAsset}`}
-                    >
-                      <span>📱</span>
-                      <span>{assetInfo.name ? assetInfo.name.split(' ')[0] : 'Stock'} QR Pay</span>
-                    </button>
+                <div style={{ marginBottom: '12px' }}>
+                  {/* Top Row: Asset Symbol + Live Badge (Left) & QR Pay + Guaranteed Return (Right) */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                      <span style={{ fontSize: 'clamp(16px, 4.2vw, 20px)', fontWeight: 900, color: '#fff', letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>
+                        {selectedAsset}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          fontWeight: 800,
+                          background: 'rgba(16, 185, 129, 0.16)',
+                          border: '1px solid rgba(16, 185, 129, 0.4)',
+                          color: '#10b981',
+                          padding: '2px 7px',
+                          borderRadius: '6px',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        ⚡ LIVE
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                      <button
+                        onClick={() => handleOpenPurchaseModal(assetInfo, 'qr')}
+                        style={{
+                          background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(16, 185, 129, 0.22))',
+                          border: '1.2px solid #10b981',
+                          color: '#34d399',
+                          padding: '4px 9px',
+                          borderRadius: '8px',
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          whiteSpace: 'nowrap',
+                          boxShadow: '0 0 12px rgba(16, 185, 129, 0.25)',
+                        }}
+                        title={`Scan QR code to pay & invest in ${assetInfo.name || selectedAsset}`}
+                      >
+                        <span>📱</span>
+                        <span>QR Pay</span>
+                      </button>
+                      <span
+                        style={{
+                          background: 'rgba(245, 158, 11, 0.15)',
+                          border: '1px solid rgba(245, 158, 11, 0.4)',
+                          color: '#fbbf24',
+                          padding: '4px 9px',
+                          borderRadius: '8px',
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        🔥 +{currentAssetRate}% Guaranteed
+                      </span>
+                    </div>
                   </div>
 
-
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <span
-                      style={{
-                        background: 'rgba(245, 158, 11, 0.15)',
-                        border: '1px solid rgba(245, 158, 11, 0.4)',
-                        color: '#fbbf24',
-                        padding: '4px 10px',
-                        borderRadius: '8px',
-                        fontSize: '11px',
-                        fontWeight: 800,
-                      }}
-                    >
-                      🔥 +{currentAssetRate}% Guaranteed
+                  {/* Bottom Row: Large Real-Time Price */}
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                    <span style={{ fontSize: 'clamp(20px, 5.5vw, 25px)', fontWeight: 900, color: '#fbbf24', fontFamily: 'monospace', letterSpacing: '-0.5px' }}>
+                      ₹{currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </span>
+                    <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 700 }}>
+                      ▲ +{currentAssetRate}% Fixed Return
                     </span>
                   </div>
                 </div>
@@ -1261,7 +1273,7 @@ const UserTradingPortal = ({
                   <label style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
                     STAKING DURATION
                   </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px' }}>
+                  <div className="timeframes-grid">
                     {TIMEFRAMES.map((tf) => (
                       <button
                         key={tf.label}
@@ -1272,9 +1284,10 @@ const UserTradingPortal = ({
                           color: selectedTimeframe.label === tf.label ? '#fbbf24' : '#cbd5e1',
                           padding: '6px 2px',
                           borderRadius: '8px',
-                          fontSize: '11px',
+                          fontSize: 'clamp(9.5px, 2.5vw, 11px)',
                           fontWeight: 700,
                           cursor: 'pointer',
+                          whiteSpace: 'nowrap',
                         }}
                       >
                         {tf.label}
@@ -1312,7 +1325,7 @@ const UserTradingPortal = ({
                   />
 
                   {/* Preset Chips */}
-                  <div style={{ display: 'flex', gap: '4px', marginTop: '6px', flexWrap: 'wrap' }}>
+                  <div className="bet-presets-grid">
                     {BET_PRESETS.map((amt) => (
                       <button
                         key={amt}
@@ -1322,10 +1335,12 @@ const UserTradingPortal = ({
                           border: `1px solid ${betAmount === amt ? '#fbbf24' : 'rgba(255, 255, 255, 0.1)'}`,
                           borderRadius: '6px',
                           color: betAmount === amt ? '#fbbf24' : '#cbd5e1',
-                          fontSize: '10.5px',
+                          fontSize: 'clamp(10px, 2.5vw, 11px)',
                           fontWeight: 700,
-                          padding: '3px 7px',
+                          padding: '4px 4px',
                           cursor: 'pointer',
+                          textAlign: 'center',
+                          whiteSpace: 'nowrap',
                         }}
                       >
                         ₹{amt.toLocaleString('en-IN')}
@@ -1445,7 +1460,7 @@ const UserTradingPortal = ({
             </div>
 
             {/* Live Participants / Stakes Feed & User's History */}
-            <div style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: windowWidth < 992 ? '1fr' : '1fr 1fr', gap: '16px', alignItems: 'start' }}>
+            <div className="live-feed-grid">
               {/* Card 1: Live Room Stakes (Who Bet How Much) */}
               <div
                 className="cyber-card"
@@ -1739,6 +1754,90 @@ const UserTradingPortal = ({
               ))}
             </div>
 
+            {/* Guaranteed Growth Plan Banner matching Flutter HomeDashboardScreen */}
+            <div
+              style={{
+                width: '100%',
+                background: 'linear-gradient(135deg, #1E1B2E 0%, #14151F 100%)',
+                borderRadius: '18px',
+                border: '1.2px solid rgba(251, 191, 36, 0.4)',
+                boxShadow: '0 4px 18px rgba(251, 191, 36, 0.14)',
+                padding: '16px 18px',
+                boxSizing: 'border-box',
+                marginBottom: '24px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div
+                    style={{
+                      background: 'rgba(251, 191, 36, 0.2)',
+                      borderRadius: '8px',
+                      padding: '6px 8px',
+                      fontSize: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    ⚡
+                  </div>
+                  <span style={{ fontSize: '15px', fontWeight: 800, color: '#fff' }}>
+                    Guaranteed Growth Plan
+                  </span>
+                </div>
+                <div
+                  style={{
+                    background: 'rgba(16, 185, 129, 0.2)',
+                    border: '1px solid rgba(16, 185, 129, 0.4)',
+                    color: '#10b981',
+                    borderRadius: '6px',
+                    padding: '3px 10px',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                  }}
+                >
+                  +{adminProfitPercent}% Fixed Return
+                </div>
+              </div>
+              <p style={{ fontSize: '12px', color: '#94a3b8', margin: '0 0 14px 0', lineHeight: 1.5 }}>
+                Stake smart on leading stocks & cryptos with zero liquidation risk. Capital and yields are 100% secured by Paynex Treasury.
+              </p>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => setCurrentTab('plans')}
+                  style={{
+                    flex: 1,
+                    background: 'linear-gradient(135deg, #FBBF24, #F59E0B)',
+                    color: '#000',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '10px 14px',
+                    fontSize: '12.5px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Explore Plans →
+                </button>
+                <button
+                  onClick={() => setCurrentTab('game')}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.06)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#fff',
+                    borderRadius: '10px',
+                    padding: '10px 14px',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Quick Stake
+                </button>
+              </div>
+            </div>
+
             {/* Market Overview Section matching Screen 5 */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
@@ -1872,7 +1971,7 @@ const UserTradingPortal = ({
               ))}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div className="market-assets-grid">
               {Object.entries(ASSETS)
                 .filter(([sym, data]) => {
                   if (marketFilter !== 'All') {
@@ -2135,19 +2234,33 @@ const UserTradingPortal = ({
                   flexShrink: 0,
                 }}
               >
-                <img src="/sachin_avatar.jpg" alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <div
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'linear-gradient(135deg, #1f1d13, #11131c)',
+                    color: '#fbbf24',
+                    fontSize: '22px',
+                    fontWeight: 900,
+                  }}
+                >
+                  {(user?.name || 'T')[0].toUpperCase()}
+                </div>
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '18px', fontWeight: 800 }}>
-                    {user?.name && user.name.toLowerCase() !== 'admin' ? user.name : 'Skraj0451'}
+                    {user?.name || 'Trader'}
                   </span>
                   <span style={{ fontSize: '10px', background: '#fbbf24', color: '#000', padding: '2px 6px', borderRadius: '4px', fontWeight: 900 }}>
                     VIP 1
                   </span>
                 </div>
                 <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                  {user?.email && !user.email.toLowerCase().includes('admin') ? user.email : 'skraj0451@gmail.com'}
+                  {user?.email || 'trader@paynex.com'}
                 </div>
               </div>
             </div>
@@ -3100,22 +3213,7 @@ const UserTradingPortal = ({
       </main>
 
       {/* 3. BOTTOM NAVIGATION BAR (MATCHING APK 5-TAB BAR) */}
-      <nav
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 60,
-          background: 'rgba(10, 11, 16, 0.98)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          borderTop: '1px solid rgba(245, 158, 11, 0.25)',
-          padding: '6px clamp(4px, 2vw, 12px)',
-          paddingBottom: 'max(6px, env(safe-area-inset-bottom, 6px))',
-          boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.8)',
-        }}
-      >
+      <nav className="portal-bottom-nav">
         <div
           style={{
             maxWidth: '640px',
@@ -3126,9 +3224,9 @@ const UserTradingPortal = ({
           }}
         >
           {[
-            { id: 'game', label: 'Trade Game', icon: '⚡' },
             { id: 'home', label: 'Home', icon: '🏠' },
             { id: 'market', label: 'Market', icon: '📊' },
+            { id: 'game', label: 'Trade Game', icon: '⚡' },
             { id: 'wallet', label: 'Wallet', icon: '💳' },
             { id: 'profile', label: 'Profile', icon: '👤' },
           ].map((tab) => {
