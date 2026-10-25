@@ -1,0 +1,21 @@
+{
+  "short_name": "PAYNEX",
+  "name": "PAYNEX CRYPTO - Binary Trading & Staking Exchange",
+  "icons": [
+    {
+      "src": "/paynex-logo.jpg",
+      "type": "image/jpeg",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/paynex-logo.jpg",
+      "type": "image/jpeg",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#05060e",
+  "theme_color": "#f59e0b",
+  "display": "standalone",
+  "orientation": "portrait"
+}

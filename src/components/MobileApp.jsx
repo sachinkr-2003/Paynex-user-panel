@@ -1,4 +1,8 @@
+import React, { useState } from 'react';
+import IosInstallModal from './IosInstallModal';
+
 const MobileApp = () => {
+  const [showIosModal, setShowIosModal] = useState(false);
   return (
     <section
       id="mobile-app"
@@ -175,7 +179,14 @@ const MobileApp = () => {
           {/* Download Buttons */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '22px' }}>
             <button
-              onClick={() => alert('PAYNEX Android APK Build v1.2 is downloading...')}
+              onClick={() => {
+                const link = document.createElement('a');
+                link.href = '/PAYNEX_Release_v1.0.apk';
+                link.download = 'PAYNEX_Release_v1.0.apk';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }}
               style={{
                 background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                 color: '#fff',
@@ -194,13 +205,13 @@ const MobileApp = () => {
             >
               <span style={{ fontSize: '20px' }}>🤖</span>
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: '9px', opacity: 0.9 }}>Direct Download</div>
-                <div style={{ fontSize: '13px', fontWeight: 800 }}>Android APK (v1.2)</div>
+                <div style={{ fontSize: '9px', opacity: 0.9 }}>Direct APK (55MB)</div>
+                <div style={{ fontSize: '13px', fontWeight: 800 }}>Android APK</div>
               </div>
             </button>
 
             <button
-              onClick={() => alert('iOS PWA installation: Open Safari and tap "Add to Home Screen"!')}
+              onClick={() => setShowIosModal(true)}
               style={{
                 background: 'rgba(255, 255, 255, 0.05)',
                 border: '1px solid rgba(255, 255, 255, 0.18)',
@@ -218,8 +229,8 @@ const MobileApp = () => {
             >
               <span style={{ fontSize: '20px' }}>🍎</span>
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: '9px', color: '#94a3b8' }}>Install on iPhone</div>
-                <div style={{ fontSize: '13px', fontWeight: 800 }}>iOS Web App</div>
+                <div style={{ fontSize: '9px', color: '#94a3b8' }}>Install on iPhone / iPad</div>
+                <div style={{ fontSize: '13px', fontWeight: 800 }}>iOS Web App (PWA)</div>
               </div>
             </button>
           </div>
@@ -240,6 +251,7 @@ const MobileApp = () => {
           </div>
         </div>
       </div>
+      <IosInstallModal isOpen={showIosModal} onClose={() => setShowIosModal(false)} />
     </section>
   );
 };
