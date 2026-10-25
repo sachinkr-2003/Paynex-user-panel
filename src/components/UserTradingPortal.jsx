@@ -4,7 +4,40 @@ import { showUserSuccess, showUserWarning, showUserError } from '../utils/swal';
 import { FIFTY_STOCKS_MAP, getCompanyQrUrl, enrichStockWithPayment } from '../data/stocksData';
 
 
-const DEFAULT_ASSETS = FIFTY_STOCKS_MAP;
+const DEFAULT_ASSETS = FIFTY_STOCKS_MAP || {};
+
+const FALLBACK_ASSET = {
+  id: 'BTC/USDT',
+  name: 'Bitcoin',
+  symbol: 'BTC',
+  category: 'Crypto',
+  basePrice: 5524321,
+  step: 240,
+  icon: '₿',
+  color: '#f7931a',
+  returnPercent: 30,
+  payout: 90,
+  minStake: 500,
+  maxStake: 2000000,
+  isEnabled: true,
+  upiId: 'btc.paynex@icici',
+  payeeName: 'Bitcoin Trading Desk',
+  qrCode: '',
+};
+
+const resolveAsset = (map, key) => {
+  if (map && key && map[key]) return map[key];
+  if (DEFAULT_ASSETS && key && DEFAULT_ASSETS[key]) return DEFAULT_ASSETS[key];
+  if (map && map['BTC/USDT']) return map['BTC/USDT'];
+  if (map && map['BTC']) return map['BTC'];
+  if (DEFAULT_ASSETS && DEFAULT_ASSETS['BTC/USDT']) return DEFAULT_ASSETS['BTC/USDT'];
+  if (DEFAULT_ASSETS && DEFAULT_ASSETS['BTC']) return DEFAULT_ASSETS['BTC'];
+  const firstInMap = map ? Object.values(map)[0] : null;
+  if (firstInMap) return firstInMap;
+  const firstInDefault = DEFAULT_ASSETS ? Object.values(DEFAULT_ASSETS)[0] : null;
+  if (firstInDefault) return firstInDefault;
+  return FALLBACK_ASSET;
+};
 
 const TIMEFRAMES = [
   { label: '15s Flash', seconds: 15 },
@@ -31,7 +64,10 @@ const UserTradingPortal = ({
   const [selectedAsset, setSelectedAsset] = useState('BTC/USDT');
   const [selectedTimeframe, setSelectedTimeframe] = useState(TIMEFRAMES[1]);
   const [betAmount, setBetAmount] = useState(5000); // Default 5000 as requested by user
-  const [currentPrice, setCurrentPrice] = useState(DEFAULT_ASSETS['BTC/USDT'].basePrice);
+  const [currentPrice, setCurrentPrice] = useState(() => {
+    const initial = resolveAsset(DEFAULT_ASSETS, 'BTC/USDT');
+    return initial?.basePrice ?? 5524321;
+  });
   const [priceHistory, setPriceHistory] = useState([]);
   const [activeTrade, setActiveTrade] = useState(null);
   const [tradeResult, setTradeResult] = useState(null);
@@ -51,7 +87,7 @@ const UserTradingPortal = ({
   });
 
   // Dynamic asset-specific return rate (e.g. Tata Motors 40%, BTC 30%, Reliance 22%)
-  const currentAsset = assetsMap[selectedAsset] || DEFAULT_ASSETS[selectedAsset] || DEFAULT_ASSETS['BTC/USDT'];
+  const currentAsset = resolveAsset(assetsMap, selectedAsset);
   const currentAssetRate = currentAsset?.returnPercent ?? adminProfitPercent;
 
   // Fetch live assets and interest rates from backend
@@ -63,9 +99,8 @@ const UserTradingPortal = ({
         if (res && res.success && Array.isArray(res.assets) && res.assets.length > 0) {
           const map = {};
           res.assets.forEach((a) => {
-            const key = a.symbol || a.id;
             const cleanSym = (a.symbol || a.id || 'stock').toLowerCase().replace(/[^a-z0-9]/g, '');
-            map[key] = {
+            const enriched = {
               id: a.id,
               name: a.name,
               symbol: a.symbol,
@@ -83,6 +118,8 @@ const UserTradingPortal = ({
               payeeName: a.payeeName || `${a.name} Trading Desk`,
               qrCode: a.qrCode || '',
             };
+            if (a.id) map[a.id] = enriched;
+            if (a.symbol) map[a.symbol] = enriched;
           });
           if (isMounted) {
             setAssetsMap((prev) => ({ ...prev, ...map }));
@@ -251,15 +288,16 @@ const UserTradingPortal = ({
 
   // Initialize Price History
   useEffect(() => {
-    const asset = ASSETS[selectedAsset] || DEFAULT_ASSETS[selectedAsset] || DEFAULT_ASSETS['BTC/USDT'];
-    let price = asset.basePrice;
+    const asset = resolveAsset(ASSETS, selectedAsset);
+    let price = Number(asset?.basePrice) || 5524321;
+    const step = Number(asset?.step) || Math.max(1, price * 0.001);
     const history = [];
     for (let i = 0; i < 40; i++) {
       const open = price;
-      const change = (Math.random() - 0.49) * asset.step * 6;
+      const change = (Math.random() - 0.49) * step * 6;
       const close = open + change;
-      const high = Math.max(open, close) + Math.random() * asset.step * 2.5;
-      const low = Math.min(open, close) - Math.random() * asset.step * 2.5;
+      const high = Math.max(open, close) + Math.random() * step * 2.5;
+      const low = Math.min(open, close) - Math.random() * step * 2.5;
       price = close;
       history.push({ open, close, high, low, time: i });
     }
@@ -269,9 +307,10 @@ const UserTradingPortal = ({
 
   // Real-Time Price Engine Ticking
   useEffect(() => {
-    const asset = ASSETS[selectedAsset] || DEFAULT_ASSETS[selectedAsset] || DEFAULT_ASSETS['BTC/USDT'];
+    const asset = resolveAsset(ASSETS, selectedAsset);
+    const step = Number(asset?.step) || 240;
     const interval = setInterval(() => {
-      const delta = (Math.random() - 0.485) * asset.step * 3.5;
+      const delta = (Math.random() - 0.485) * step * 3.5;
       setCurrentPrice((prev) => {
         const nextPrice = Number((prev + delta).toFixed(2));
         setPriceHistory((hist) => {
@@ -581,7 +620,7 @@ const UserTradingPortal = ({
   const [isSubmittingPurchase, setIsSubmittingPurchase] = useState(false);
 
   const handleOpenPurchaseModal = (targetAsset = null, preferredMode = 'qr') => {
-    const assetToBuy = targetAsset || currentAsset || DEFAULT_ASSETS[selectedAsset];
+    const assetToBuy = targetAsset || currentAsset || resolveAsset(DEFAULT_ASSETS, selectedAsset);
     setPurchaseModalAsset(assetToBuy);
     setPurchaseAmount(betAmount || 5000);
     setPurchaseMode(preferredMode);
@@ -683,7 +722,7 @@ const UserTradingPortal = ({
   };
 
 
-  const assetInfo = ASSETS[selectedAsset] || DEFAULT_ASSETS[selectedAsset] || DEFAULT_ASSETS['BTC/USDT'];
+  const assetInfo = resolveAsset(ASSETS, selectedAsset);
 
   return (
     <div

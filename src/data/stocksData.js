@@ -808,7 +808,9 @@ export const enrichStockWithPayment = (s) => {
 };
 
 export const FIFTY_STOCKS_MAP = FIFTY_STOCKS.reduce((acc, stock) => {
-  acc[stock.symbol || stock.id] = enrichStockWithPayment(stock);
+  const enriched = enrichStockWithPayment(stock);
+  if (stock.id) acc[stock.id] = enriched;
+  if (stock.symbol) acc[stock.symbol] = enriched;
   return acc;
 }, {});
 
