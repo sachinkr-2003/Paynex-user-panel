@@ -46,6 +46,29 @@ const TIMEFRAMES = [
   { label: '2m Pro', seconds: 120 },
 ];
 
+const CHART_TIMEFRAMES = [
+  { id: '1S', label: '1S', durationSec: 15, tickMs: 700, count: 40, desc: '1-Second Realtime' },
+  { id: '1M', label: '1M', durationSec: 60, tickMs: 1200, count: 40, desc: '1-Minute Trend' },
+  { id: '5M', label: '5M', durationSec: 300, tickMs: 1800, count: 40, desc: '5-Minute Intraday' },
+  { id: '15M', label: '15M', durationSec: 900, tickMs: 2400, count: 40, desc: '15-Minute Session' },
+  { id: '1H', label: '1H', durationSec: 3600, tickMs: 3000, count: 40, desc: '1-Hour Hourly' },
+  { id: '1D', label: '1D', durationSec: 86400, tickMs: 4000, count: 30, desc: '1-Day Daily' },
+];
+
+const formatTimeLabel = (timestamp, tfId) => {
+  const d = new Date(timestamp);
+  if (tfId === '1S') {
+    return d.toTimeString().split(' ')[0]; // HH:MM:SS
+  }
+  if (tfId === '1M' || tfId === '5M' || tfId === '15M') {
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+  if (tfId === '1H') {
+    return `${String(d.getHours()).padStart(2, '0')}:00`;
+  }
+  return d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+};
+
 const BET_PRESETS = [100, 500, 1000, 2500, 5000, 10000];
 const ADMIN_RETURN_TIERS = [2, 4, 6, 8, 10, 12];
 
@@ -62,6 +85,7 @@ const UserTradingPortal = ({
   const [assetsMap, setAssetsMap] = useState(DEFAULT_ASSETS);
   const ASSETS = assetsMap;
   const [selectedAsset, setSelectedAsset] = useState('BTC/USDT');
+  const [chartTimeframe, setChartTimeframe] = useState('1S');
   const [selectedTimeframe, setSelectedTimeframe] = useState(TIMEFRAMES[1]);
   const [betAmount, setBetAmount] = useState(100); // Default ₹100 min
   const [currentPrice, setCurrentPrice] = useState(() => {
@@ -294,31 +318,61 @@ const UserTradingPortal = ({
   const totalRoundPool = basePoolStake + roomStakeTotal;
   const totalMaturityPayout = Math.round(totalRoundPool * (1 + currentAssetRate / 100));
 
-  // Initialize Price History
+  // Initialize & Route Price History based on selected Asset and Chart Timeframe
   useEffect(() => {
     const asset = resolveAsset(ASSETS, selectedAsset);
     let price = Number(asset?.basePrice) || 5524321;
     const step = Number(asset?.step) || Math.max(1, price * 0.001);
+    const tfConfig = CHART_TIMEFRAMES.find((t) => t.id === chartTimeframe) || CHART_TIMEFRAMES[0];
+    const totalPoints = tfConfig.count;
+    const now = Date.now();
+
+    const stepMultipliers = { '1S': 2, '1M': 4, '5M': 7, '15M': 10, '1H': 15, '1D': 25 };
+    const mult = stepMultipliers[chartTimeframe] || 4;
+
+    const timeDeltas = {
+      '1S': 1000,
+      '1M': 60 * 1000,
+      '5M': 5 * 60 * 1000,
+      '15M': 15 * 60 * 1000,
+      '1H': 60 * 60 * 1000,
+      '1D': 24 * 60 * 60 * 1000,
+    };
+    const pointDeltaMs = timeDeltas[chartTimeframe] || 1000;
+
     const history = [];
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < totalPoints; i++) {
+      const pointTime = now - (totalPoints - 1 - i) * pointDeltaMs;
       const open = price;
-      const change = (Math.random() - 0.49) * step * 6;
-      const close = open + change;
-      const high = Math.max(open, close) + Math.random() * step * 2.5;
-      const low = Math.min(open, close) - Math.random() * step * 2.5;
+      const change = (Math.random() - 0.49) * step * mult;
+      const close = Math.max(price * 0.5, open + change);
+      const high = Math.max(open, close) + Math.random() * step * (mult * 0.5);
+      const low = Math.max(price * 0.4, Math.min(open, close) - Math.random() * step * (mult * 0.5));
       price = close;
-      history.push({ open, close, high, low, time: i });
+      history.push({
+        open,
+        close,
+        high,
+        low,
+        time: i,
+        timestamp: pointTime,
+        timeLabel: formatTimeLabel(pointTime, chartTimeframe),
+      });
     }
     setPriceHistory(history);
     setCurrentPrice(price);
-  }, [selectedAsset, assetsMap]);
+  }, [selectedAsset, assetsMap, chartTimeframe]);
 
-  // Real-Time Price Engine Ticking
+  // Real-Time Price Engine Ticking (Timed by Chart Timeframe)
   useEffect(() => {
     const asset = resolveAsset(ASSETS, selectedAsset);
     const step = Number(asset?.step) || 240;
+    const tfConfig = CHART_TIMEFRAMES.find((t) => t.id === chartTimeframe) || CHART_TIMEFRAMES[0];
+    const stepMultipliers = { '1S': 2, '1M': 4, '5M': 7, '15M': 10, '1H': 15, '1D': 25 };
+    const mult = stepMultipliers[chartTimeframe] || 3.5;
+
     const interval = setInterval(() => {
-      const delta = (Math.random() - 0.485) * step * 3.5;
+      const delta = (Math.random() - 0.485) * step * mult;
       setCurrentPrice((prev) => {
         const nextPrice = Number((prev + delta).toFixed(2));
         setPriceHistory((hist) => {
@@ -331,12 +385,15 @@ const UserTradingPortal = ({
           updated[updated.length - 1] = last;
 
           if (Math.random() > 0.65 && updated.length < 50) {
+            const pointTime = Date.now();
             updated.push({
               open: nextPrice,
               close: nextPrice,
               high: nextPrice,
               low: nextPrice,
               time: updated.length,
+              timestamp: pointTime,
+              timeLabel: formatTimeLabel(pointTime, chartTimeframe),
             });
             if (updated.length > 45) updated.shift();
           }
@@ -344,10 +401,10 @@ const UserTradingPortal = ({
         });
         return nextPrice;
       });
-    }, 700);
+    }, tfConfig.tickMs);
 
     return () => clearInterval(interval);
-  }, [selectedAsset]);
+  }, [selectedAsset, chartTimeframe]);
 
   // Active Staking Growth Countdown Timer
   useEffect(() => {
@@ -563,7 +620,25 @@ const UserTradingPortal = ({
       : `₹${currentPrice.toLocaleString('en-IN', { maximumFractionDigits: 1 })}`;
     ctx.fillText(liveText, badgeX + badgeW / 2, badgeY + 15);
 
-    // 6. Active Staking Overlay Line (if contract is running)
+    // 6. X-Axis Time Labels along the bottom of the chart (Routed by Timeframe)
+    const numTimeLabels = width < 480 ? 3 : 5;
+    ctx.fillStyle = '#64748b';
+    ctx.font = '9.5px monospace';
+    ctx.textAlign = 'center';
+    for (let i = 0; i < numTimeLabels; i++) {
+      const fraction = i / (numTimeLabels - 1);
+      const x = 20 + fraction * (chartW - 40);
+      const dataIdx = Math.min(
+        priceHistory.length - 1,
+        Math.floor(fraction * (priceHistory.length - 1))
+      );
+      const label = priceHistory[dataIdx]?.timeLabel;
+      if (label) {
+        ctx.fillText(label, x, height - 7);
+      }
+    }
+
+    // 7. Active Staking Overlay Line (if contract is running)
     if (activeTrade) {
       const activeEntryY = Math.min(height - 40, Math.max(topPad + 10, lastY + 25));
       ctx.strokeStyle = '#f59e0b';
@@ -580,7 +655,7 @@ const UserTradingPortal = ({
       ctx.textAlign = 'left';
       ctx.fillText(`⚡ Active Holding: ₹${activeTrade.amount.toLocaleString('en-IN')} (+${activeTrade.adminPercent}% in ${activeTrade.timeLeft}s)`, 20, activeEntryY - 5);
     }
-  }, [chartHeight, currentPrice, priceHistory, activeTrade, windowWidth]);
+  }, [chartHeight, currentPrice, priceHistory, activeTrade, windowWidth, chartTimeframe]);
 
   const handleStakeGrowth = async () => {
     if (realBalance < betAmount) {
@@ -925,7 +1000,9 @@ const UserTradingPortal = ({
                 overflowX: 'auto',
                 WebkitOverflowScrolling: 'touch',
                 paddingBottom: '8px',
-                marginBottom: '12px',
+                maxWidth: '780px',
+                margin: '0 auto 12px auto',
+                width: '100%',
               }}
             >
               {Object.entries(ASSETS).map(([symbol, item]) => {
@@ -1286,24 +1363,35 @@ const UserTradingPortal = ({
                     gap: '8px',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    {['1S', '1M', '5M', '15M', '1H', '1D'].map((tf, i) => (
-                      <span
-                        key={tf}
-                        style={{
-                          fontSize: '10px',
-                          fontWeight: 800,
-                          padding: '2px 7px',
-                          borderRadius: '5px',
-                          background: i === 0 ? 'rgba(245, 158, 11, 0.25)' : 'transparent',
-                          color: i === 0 ? '#fbbf24' : '#94a3b8',
-                          border: i === 0 ? '1px solid rgba(245, 158, 11, 0.45)' : '1px solid transparent',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {tf}
-                      </span>
-                    ))}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    {CHART_TIMEFRAMES.map((tf) => {
+                      const isSel = chartTimeframe === tf.id;
+                      return (
+                        <button
+                          key={tf.id}
+                          type="button"
+                          onClick={() => {
+                            setChartTimeframe(tf.id);
+                            setSelectedTimeframe({ label: tf.label, seconds: tf.durationSec });
+                          }}
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            background: isSel ? 'rgba(245, 158, 11, 0.28)' : 'rgba(255, 255, 255, 0.04)',
+                            color: isSel ? '#fbbf24' : '#94a3b8',
+                            border: isSel ? '1.2px solid #fbbf24' : '1px solid rgba(255, 255, 255, 0.08)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            boxShadow: isSel ? '0 0 10px rgba(245, 158, 11, 0.3)' : 'none',
+                          }}
+                          title={tf.desc}
+                        >
+                          {tf.label}
+                        </button>
+                      );
+                    })}
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '10.5px' }}>
@@ -1494,7 +1582,7 @@ const UserTradingPortal = ({
                 </div>
 
                 {/* Action Buttons: 1-Click Wallet Buy OR Scan & Pay QR */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '10px' }}>
                   <button
                     disabled={!!activeTrade}
                     onClick={() => {
