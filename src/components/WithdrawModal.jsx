@@ -3,12 +3,20 @@ import userApi from '../services/api';
 import { showUserSuccess, showUserError } from '../utils/swal';
 
 const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
-  const [method, setMethod] = useState('upi'); // 'upi' or 'bank'
+  const savedUser = (() => {
+    try {
+      const raw = localStorage.getItem('paynex_user');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  })();
+
   const [amount, setAmount] = useState(2000);
-  const [upiId, setUpiId] = useState('sachin@okaxis');
-  const [bankAccount, setBankAccount] = useState('918237461298');
-  const [ifsc, setIfsc] = useState('HDFC0001234');
-  const [holderName, setHolderName] = useState('Sachin Kumar');
+  const [bankName, setBankName] = useState(savedUser?.bankDetails?.bankName || 'HDFC Bank');
+  const [bankAccount, setBankAccount] = useState(savedUser?.bankDetails?.accountNumber || '918237461298');
+  const [ifsc, setIfsc] = useState(savedUser?.bankDetails?.ifsc || 'HDFC0001234');
+  const [holderName, setHolderName] = useState(savedUser?.bankDetails?.holderName || savedUser?.name || 'Trader');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [passwordError, setPasswordError] = useState('');
@@ -32,6 +40,11 @@ const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
       return;
     }
 
+    if (!bankAccount.trim() || !ifsc.trim()) {
+      showUserError('Bank Details Missing', 'Please enter your Bank Account Number and IFSC Code.');
+      return;
+    }
+
     if (!password || !password.trim()) {
       setPasswordError('Please enter your account login password to authorize withdrawal.');
       showUserError(
@@ -46,11 +59,12 @@ const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
     try {
       const res = await userApi.submitWithdrawal({
         amount: numAmt,
-        method: method.toUpperCase(),
-        upiId: method === 'upi' ? upiId : '',
-        accountNumber: method === 'bank' ? bankAccount : '',
-        ifsc: method === 'bank' ? ifsc : '',
-        accountHolder: holderName,
+        method: 'BANK',
+        destinationType: 'Bank Account',
+        bankName: bankName.trim(),
+        accountNumber: bankAccount.trim(),
+        ifsc: ifsc.trim().toUpperCase(),
+        accountHolder: holderName.trim(),
         password: password.trim(),
       });
 
@@ -141,7 +155,7 @@ const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
           ✕
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
           <div
             style={{
               width: '46px',
@@ -170,50 +184,29 @@ const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
           </div>
         </div>
 
-        {/* Withdrawal Method Switcher */}
+        {/* Bank Only Banner */}
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '8px',
-            background: 'rgba(255, 255, 255, 0.05)',
-            padding: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(16, 185, 129, 0.15))',
+            border: '1px solid rgba(245, 158, 11, 0.35)',
+            padding: '10px 14px',
             borderRadius: '12px',
-            marginBottom: '18px',
+            marginBottom: '16px',
           }}
         >
-          <button
-            type="button"
-            onClick={() => setMethod('upi')}
-            style={{
-              background: method === 'upi' ? 'linear-gradient(135deg, #fbbf24, #d97706)' : 'transparent',
-              border: 'none',
-              color: method === 'upi' ? '#000' : '#fff',
-              padding: '8px 0',
-              borderRadius: '8px',
-              fontSize: '13px',
-              fontWeight: 800,
-              cursor: 'pointer',
-            }}
-          >
-            ⚡ Instant UPI
-          </button>
-          <button
-            type="button"
-            onClick={() => setMethod('bank')}
-            style={{
-              background: method === 'bank' ? 'linear-gradient(135deg, #fbbf24, #d97706)' : 'transparent',
-              border: 'none',
-              color: method === 'bank' ? '#000' : '#fff',
-              padding: '8px 0',
-              borderRadius: '8px',
-              fontSize: '13px',
-              fontWeight: 800,
-              cursor: 'pointer',
-            }}
-          >
-            🏦 IMPS Bank Transfer
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '18px' }}>🏦</span>
+            <div>
+              <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#fff' }}>IMPS Direct Bank Transfer</div>
+              <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>Payout destination is verified bank account</div>
+            </div>
+          </div>
+          <span style={{ fontSize: '10px', background: '#10b981', color: '#000', padding: '3px 8px', borderRadius: '6px', fontWeight: 900 }}>
+            BANK ONLY
+          </span>
         </div>
 
         <form onSubmit={handleWithdraw} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -280,38 +273,40 @@ const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
             </div>
           </div>
 
-          {method === 'upi' ? (
-            <div>
-              <label style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                Your UPI ID (VPA)
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="mobile@upi / username@okhdfcbank"
-                value={upiId}
-                onChange={(e) => setUpiId(e.target.value)}
-                style={{
-                  width: '100%',
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  borderRadius: '10px',
-                  padding: '10px 14px',
-                  color: '#fff',
-                  fontSize: '13px',
-                  outline: 'none',
-                }}
-              />
-            </div>
-          ) : (
-            <>
+          {/* Bank Account Details Form */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               <div>
-                <label style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                <label style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                  Bank Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. HDFC Bank, SBI, ICICI"
+                  value={bankName}
+                  onChange={(e) => setBankName(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: '10px',
+                    padding: '10px 12px',
+                    color: '#fff',
+                    fontSize: '13px',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
                   Account Holder Name
                 </label>
                 <input
                   type="text"
                   required
+                  placeholder="Full name as per bank"
                   value={holderName}
                   onChange={(e) => setHolderName(e.target.value)}
                   style={{
@@ -319,59 +314,69 @@ const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
                     background: 'rgba(255, 255, 255, 0.04)',
                     border: '1px solid rgba(255, 255, 255, 0.15)',
                     borderRadius: '10px',
-                    padding: '10px 14px',
+                    padding: '10px 12px',
                     color: '#fff',
                     fontSize: '13px',
                     outline: 'none',
+                    boxSizing: 'border-box',
                   }}
                 />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '8px' }}>
-                <div>
-                  <label style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                    Account Number
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={bankAccount}
-                    onChange={(e) => setBankAccount(e.target.value)}
-                    style={{
-                      width: '100%',
-                      background: 'rgba(255, 255, 255, 0.04)',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      borderRadius: '10px',
-                      padding: '10px 14px',
-                      color: '#fff',
-                      fontSize: '13px',
-                      outline: 'none',
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                    IFSC Code
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={ifsc}
-                    onChange={(e) => setIfsc(e.target.value.toUpperCase())}
-                    style={{
-                      width: '100%',
-                      background: 'rgba(255, 255, 255, 0.04)',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      borderRadius: '10px',
-                      padding: '10px 14px',
-                      color: '#fff',
-                      fontSize: '13px',
-                      outline: 'none',
-                    }}
-                  />
-                </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '8px' }}>
+              <div>
+                <label style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                  Bank Account Number *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Enter full account number"
+                  value={bankAccount}
+                  onChange={(e) => setBankAccount(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    borderRadius: '10px',
+                    padding: '10px 12px',
+                    color: '#fbbf24',
+                    fontFamily: 'monospace',
+                    fontWeight: 800,
+                    fontSize: '14px',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
               </div>
-            </>
-          )}
+              <div>
+                <label style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                  IFSC Code *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. HDFC0001234"
+                  value={ifsc}
+                  onChange={(e) => setIfsc(e.target.value.toUpperCase())}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                    borderRadius: '10px',
+                    padding: '10px 12px',
+                    color: '#38bdf8',
+                    fontFamily: 'monospace',
+                    fontWeight: 800,
+                    fontSize: '14px',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            </div>
+          </div>
 
           {/* Account Login Password Authorization */}
           <div

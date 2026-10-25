@@ -4132,30 +4132,6 @@ const UserTradingPortal = ({
                       <div style={{ fontSize: '13px', color: '#fff', fontFamily: 'monospace', fontWeight: 800, letterSpacing: '1px', margin: '4px 0' }}>
                         •••• •••• •••• {bankAccount.accountNumber.slice(-4)}
                       </div>
-                      <div style={{ fontSize: '11px', color: '#94a3b8' }}>IFSC Code: <strong style={{ color: '#38bdf8' }}>{bankAccount.ifsc}</strong></div>
-                    </div>
-
-                    {/* Saved UPI Card */}
-                    <div
-                      style={{
-                        background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(16, 185, 129, 0.15))',
-                        border: '1.2px solid rgba(245, 158, 11, 0.4)',
-                        borderRadius: '14px',
-                        padding: '12px 14px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>Linked UPI ID</div>
-                        <div style={{ fontSize: '13.5px', fontWeight: 900, color: '#fbbf24', fontFamily: 'monospace', marginTop: '2px' }}>
-                          {bankAccount.upiId}
-                        </div>
-                      </div>
-                      <span style={{ fontSize: '10px', background: '#10b981', color: '#000', padding: '2px 6px', borderRadius: '4px', fontWeight: 900 }}>
-                        INSTANT PAYOUTS ✅
-                      </span>
                     </div>
                   </div>
 
@@ -4166,12 +4142,12 @@ const UserTradingPortal = ({
                       className="btn-cyber-outline"
                       style={{ width: '100%', padding: '11px', fontSize: '12.5px', fontWeight: 800, cursor: 'pointer' }}
                     >
-                      ✏️ Edit or Change Bank / UPI Details
+                      ✏️ Edit or Change Bank Account Details
                     </button>
                   ) : (
                     <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '12px', padding: '12px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
                       <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#fbbf24', marginBottom: '8px' }}>
-                        Update Bank / UPI Details
+                        Update Bank Account (Account No & IFSC)
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         <input
@@ -4200,13 +4176,6 @@ const UserTradingPortal = ({
                           placeholder="IFSC Code (e.g. HDFC0001234)"
                           value={bankForm.ifsc}
                           onChange={(e) => setBankForm({ ...bankForm, ifsc: e.target.value.toUpperCase() })}
-                          style={{ width: '100%', background: 'rgba(0, 0, 0, 0.4)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '8px', padding: '8px 10px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
-                        />
-                        <input
-                          type="text"
-                          placeholder="UPI ID (e.g. name@upi)"
-                          value={bankForm.upiId}
-                          onChange={(e) => setBankForm({ ...bankForm, upiId: e.target.value })}
                           style={{ width: '100%', background: 'rgba(0, 0, 0, 0.4)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '8px', padding: '8px 10px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
                         />
                         <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
