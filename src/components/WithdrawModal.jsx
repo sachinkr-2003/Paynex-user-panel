@@ -224,7 +224,7 @@ const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
             <input
               type="number"
               required
-              min="500"
+              min="100"
               max={realBalance}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
@@ -241,8 +241,8 @@ const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
               }}
             />
             {/* Quick Chips */}
-            <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
-              {[1000, 2000, 5000, 10000].map((amt) => (
+            <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
+              {[100, 500, 1000, 2000, 5000].map((amt) => (
                 <button
                   key={amt}
                   type="button"

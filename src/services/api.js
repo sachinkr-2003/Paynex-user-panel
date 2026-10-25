@@ -72,10 +72,10 @@ export const userApi = {
       body: JSON.stringify({ amount, companyId, companyName }),
     }),
   getGatewayOrder: (transactionId) => request(`/gateway/orders/${transactionId}`),
-  submitGatewayUtr: (transactionId, utr) =>
+  submitGatewayUtr: (transactionId, utr, screenshotProof = '') =>
     request(`/gateway/orders/${transactionId}/submit-utr`, {
       method: 'POST',
-      body: JSON.stringify({ utr }),
+      body: JSON.stringify({ utr, screenshotProof }),
     }),
   submitWithdrawal: (withdrawalData) =>
     request('/wallet/withdraw', {

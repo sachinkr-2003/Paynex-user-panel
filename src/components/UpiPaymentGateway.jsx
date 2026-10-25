@@ -7,10 +7,12 @@ import { FIFTY_STOCKS, enrichStockWithPayment } from '../data/stocksData';
 const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany = null }) => {
   // Navigation Steps: 'input' -> 'checkout' -> 'under_review' -> 'success' | 'expired'
   const [step, setStep] = useState('input');
-  const [amount, setAmount] = useState(2000);
+  const [amount, setAmount] = useState(100);
   const [loading, setLoading] = useState(false);
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(false);
+  const [screenshotProof, setScreenshotProof] = useState('');
+  const [screenshotFileName, setScreenshotFileName] = useState('');
 
   // Active Gateway Order Data from Backend
   const [order, setOrder] = useState(null);
@@ -66,6 +68,8 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
       setOrder(null);
       setUtrNumber('');
       setUtrError('');
+      setScreenshotProof('');
+      setScreenshotFileName('');
       setLoading(false);
       setSubmittingUtr(false);
       if (timerRef.current) clearInterval(timerRef.current);
@@ -211,7 +215,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
 
     setSubmittingUtr(true);
     try {
-      const res = await userApi.submitGatewayUtr(order.transactionId, utrNumber);
+      const res = await userApi.submitGatewayUtr(order.transactionId, utrNumber, screenshotProof);
       if (res?.success) {
         setStep('under_review');
         showUserSuccess(
@@ -244,6 +248,22 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
     navigator.clipboard?.writeText(cryptoAddress);
     setCopiedAddress(true);
     setTimeout(() => setCopiedAddress(false), 2200);
+  };
+
+  const handleScreenshotFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        showUserError('File Too Large', 'Please select an image smaller than 10MB.');
+        return;
+      }
+      setScreenshotFileName(file.name);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setScreenshotProof(event.target?.result || '');
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   // Quick auto-fill verified NPCI test UTR
@@ -485,7 +505,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
 
                   {/* Predefined Quick Chips */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px', marginBottom: '20px' }}>
-                    {[500, 1000, 2000, 5000, 10000, 25000].map((amt) => {
+                    {[100, 500, 1000, 2000, 5000, 10000].map((amt) => {
                       const isSelected = Number(amount) === amt;
                       return (
                         <button
@@ -874,8 +894,87 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                   </div>
                 )}
 
+                {/* Screenshot Upload Option */}
+                <div style={{ marginTop: '14px', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#f1f5f9' }}>
+                      📸 Upload Payment Screenshot (Receipt Proof):
+                    </label>
+                    {screenshotProof && (
+                      <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 800 }}>Slip Attached ✅</span>
+                    )}
+                  </div>
+
+                  <div
+                    style={{
+                      border: screenshotProof ? '1.5px solid #10b981' : '1.5px dashed rgba(245, 158, 11, 0.4)',
+                      borderRadius: '12px',
+                      padding: '10px 14px',
+                      backgroundColor: screenshotProof ? 'rgba(16, 185, 129, 0.08)' : 'rgba(20, 24, 41, 0.6)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      position: 'relative',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleScreenshotFileChange}
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        opacity: 0,
+                        cursor: 'pointer',
+                        width: '100%',
+                        height: '100%',
+                      }}
+                    />
+                    {screenshotProof ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
+                        <img
+                          src={screenshotProof}
+                          alt="Slip Preview"
+                          style={{ width: '38px', height: '38px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #10b981' }}
+                        />
+                        <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                          <div style={{ fontSize: '12px', color: '#10b981', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {screenshotFileName || 'screenshot_receipt.png'}
+                          </div>
+                          <div style={{ fontSize: '10px', color: '#94a3b8' }}>Tap to replace slip</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setScreenshotProof('');
+                            setScreenshotFileName('');
+                          }}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.2)',
+                            border: 'none',
+                            color: '#ef4444',
+                            borderRadius: '6px',
+                            padding: '4px 8px',
+                            fontSize: '11px',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f59e0b', fontSize: '12px', fontWeight: 700 }}>
+                        <span>📁</span>
+                        <span>Click to choose payment receipt / screenshot</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '6px', lineHeight: '1.4' }}>
-                  💡 <strong>Tip:</strong> After paying on PhonePe/Paytm/GPay, copy the 12-digit <em>UPI Ref No</em> or <em>Transaction ID</em> and paste above.
+                  💡 <strong>Tip:</strong> After paying on PhonePe/Paytm/GPay, copy the 12-digit <em>UPI Ref No</em> and attach your payment receipt screenshot.
                 </div>
 
                 <button

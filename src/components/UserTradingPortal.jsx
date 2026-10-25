@@ -46,8 +46,8 @@ const TIMEFRAMES = [
   { label: '2m Pro', seconds: 120 },
 ];
 
-const BET_PRESETS = [500, 1000, 2500, 5000, 10000];
-const ADMIN_RETURN_TIERS = [15, 20, 25, 30, 40, 50, 75, 100];
+const BET_PRESETS = [100, 500, 1000, 2500, 5000, 10000];
+const ADMIN_RETURN_TIERS = [2, 4, 6, 8, 10, 12];
 
 const UserTradingPortal = ({
   user,
@@ -63,7 +63,7 @@ const UserTradingPortal = ({
   const ASSETS = assetsMap;
   const [selectedAsset, setSelectedAsset] = useState('BTC/USDT');
   const [selectedTimeframe, setSelectedTimeframe] = useState(TIMEFRAMES[1]);
-  const [betAmount, setBetAmount] = useState(5000); // Default 5000 as requested by user
+  const [betAmount, setBetAmount] = useState(100); // Default ₹100 min
   const [currentPrice, setCurrentPrice] = useState(() => {
     const initial = resolveAsset(DEFAULT_ASSETS, 'BTC/USDT');
     return initial?.basePrice ?? 5524321;
@@ -76,19 +76,26 @@ const UserTradingPortal = ({
   const [marketSearch, setMarketSearch] = useState('');
   const [marketFilter, setMarketFilter] = useState('All');
 
-  // Admin-Defined Profit Percentage (Platform Default fallback)
+  // Admin-Defined Profit Percentage (Platform Default fallback clamped strictly 2% - 12%)
   const [adminProfitPercent, setAdminProfitPercent] = useState(() => {
     try {
       const saved = localStorage.getItem('paynex_admin_percent');
-      return saved ? Number(saved) : 30; // Default 30%
+      return saved ? Math.min(12, Math.max(2, Number(saved))) : 5; // Default 5%
     } catch {
-      return 30;
+      return 5;
     }
   });
 
-  // Dynamic asset-specific return rate (e.g. Tata Motors 40%, BTC 30%, Reliance 22%)
+  // Dynamic asset-specific return rate (strictly between 2% and 12%)
   const currentAsset = resolveAsset(assetsMap, selectedAsset);
-  const currentAssetRate = currentAsset?.returnPercent ?? adminProfitPercent;
+  const rawAssetRate = currentAsset?.returnPercent ?? adminProfitPercent;
+  const currentAssetRate = Math.min(12, Math.max(2, rawAssetRate));
+
+  // Auto-adjust bet amount when asset changes if below min limit
+  useEffect(() => {
+    const minReq = Number(currentAsset?.minStake) || 100;
+    setBetAmount((prev) => (prev < minReq ? minReq : prev));
+  }, [selectedAsset, currentAsset]);
 
   // Fetch live assets and interest rates from backend
   useEffect(() => {
@@ -385,14 +392,16 @@ const UserTradingPortal = ({
     return () => clearInterval(timer);
   }, [activeTrade, setRealBalance]);
 
-  // Canvas Drawing Engine: Accelerated Staking Yield Trajectory
+  // Canvas Drawing Engine: Live Interactive Market Chart with Bullish Glow
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
     const dpr = window.devicePixelRatio || 1;
-    const clientW = canvas.parentElement.clientWidth;
-    const clientH = chartHeight;
+    const clientW = canvas.parentElement ? canvas.parentElement.clientWidth : 600;
+    const clientH = chartHeight || 300;
 
     canvas.width = clientW * dpr;
     canvas.height = clientH * dpr;
@@ -403,187 +412,175 @@ const UserTradingPortal = ({
     const width = clientW;
     const height = clientH;
 
-    // Dark cyber backdrop
-    ctx.fillStyle = '#060714';
+    // 1. Luxury Dark Theme Background
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
+    bgGrad.addColorStop(0, '#0a0d1a');
+    bgGrad.addColorStop(1, '#05070e');
+    ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, width, height);
 
-    // Glowing grid lines
-    ctx.strokeStyle = 'rgba(245, 158, 11, 0.08)';
+    // Prepare Prices Array from priceHistory & currentPrice
+    const rawPrices = priceHistory && priceHistory.length > 0
+      ? priceHistory.map((p) => Number(p.close || p.open || currentPrice))
+      : [currentPrice * 0.992, currentPrice * 0.996, currentPrice * 1.002, currentPrice];
+
+    const prices = [...rawPrices, currentPrice];
+
+    let minP = Math.min(...prices);
+    let maxP = Math.max(...prices);
+    if (minP === maxP) {
+      minP = currentPrice * 0.99;
+      maxP = currentPrice * 1.01;
+    }
+    const pad = (maxP - minP) * 0.15;
+    minP = Math.max(0, minP - pad);
+    maxP = maxP + pad;
+    const pRange = maxP - minP || 1;
+
+    const topPad = 25;
+    const bottomPad = 25;
+    const rightMargin = width < 480 ? 65 : 85;
+    const chartW = width - rightMargin;
+    const chartH = height - topPad - bottomPad;
+
+    // 2. Subtle Grid Lines & Right Price Scale
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
     ctx.lineWidth = 1;
-    for (let y = 35; y < height; y += 45) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
-      ctx.stroke();
-    }
-    for (let x = 60; x < width; x += 70) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
-      ctx.stroke();
-    }
-
-    const baselineY = height - 50;
-    const targetY = 50;
-
-    // Baseline (Initial Stake)
     ctx.setLineDash([4, 4]);
-    ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
-    ctx.beginPath();
-    ctx.moveTo(15, baselineY);
-    ctx.lineTo(width - 15, baselineY);
-    ctx.stroke();
 
-    // Target Line (Admin Return Rate)
-    ctx.strokeStyle = 'rgba(16, 185, 129, 0.5)';
+    const gridSteps = 4;
+    for (let i = 0; i <= gridSteps; i++) {
+      const y = topPad + (chartH / gridSteps) * i;
+      ctx.beginPath();
+      ctx.moveTo(15, y);
+      ctx.lineTo(chartW, y);
+      ctx.stroke();
+
+      const priceVal = maxP - (pRange / gridSteps) * i;
+      ctx.fillStyle = '#64748b';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'right';
+      const formatted = `₹${priceVal >= 100000 ? (priceVal / 100000).toFixed(2) + 'L' : priceVal.toLocaleString('en-IN', { maximumFractionDigits: 1 })}`;
+      ctx.fillText(formatted, width - 8, y + 3);
+    }
+    ctx.setLineDash([]);
+
+    // Coordinate helpers
+    const getX = (idx) => 15 + (idx / Math.max(1, prices.length - 1)) * (chartW - 20);
+    const getY = (val) => topPad + chartH - ((val - minP) / pRange) * chartH;
+
+    // 3. Glowing Emerald Gradient Fill under Price Curve
     ctx.beginPath();
-    ctx.moveTo(15, targetY);
-    ctx.lineTo(width - 15, targetY);
+    ctx.moveTo(getX(0), topPad + chartH);
+    for (let i = 0; i < prices.length; i++) {
+      const x = getX(i);
+      const y = getY(prices[i]);
+      if (i === 0) {
+        ctx.lineTo(x, y);
+      } else {
+        const prevX = getX(i - 1);
+        const prevY = getY(prices[i - 1]);
+        const cpX = (prevX + x) / 2;
+        ctx.bezierCurveTo(cpX, prevY, cpX, y, x, y);
+      }
+    }
+    ctx.lineTo(getX(prices.length - 1), topPad + chartH);
+    ctx.closePath();
+
+    const areaGrad = ctx.createLinearGradient(0, topPad, 0, topPad + chartH);
+    areaGrad.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
+    areaGrad.addColorStop(0.5, 'rgba(16, 185, 129, 0.12)');
+    areaGrad.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+    ctx.fillStyle = areaGrad;
+    ctx.fill();
+
+    // 4. Vibrant Neon Price Line
+    ctx.beginPath();
+    for (let i = 0; i < prices.length; i++) {
+      const x = getX(i);
+      const y = getY(prices[i]);
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        const prevX = getX(i - 1);
+        const prevY = getY(prices[i - 1]);
+        const cpX = (prevX + x) / 2;
+        ctx.bezierCurveTo(cpX, prevY, cpX, y, x, y);
+      }
+    }
+    ctx.strokeStyle = '#10b981';
+    ctx.lineWidth = 3;
+    ctx.shadowColor = '#10b981';
+    ctx.shadowBlur = 12;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // 5. Current Live Price Point & Tracking Line
+    const lastX = getX(prices.length - 1);
+    const lastY = getY(currentPrice);
+
+    // Dashed Horizontal Tracking Line
+    ctx.strokeStyle = 'rgba(16, 185, 129, 0.4)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(15, lastY);
+    ctx.lineTo(chartW, lastY);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    const isMobileCanvas = width < 480;
-
-    // Baseline Badge (Adaptive on mobile so it never collides with target return)
-    const baseBadgeW = isMobileCanvas ? 110 : 155;
-    ctx.fillStyle = 'rgba(30, 41, 59, 0.9)';
-    ctx.fillRect(15, baselineY - 14, baseBadgeW, 22);
-    ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(15, baselineY - 14, baseBadgeW, 22);
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = isMobileCanvas ? 'bold 10px Outfit, sans-serif' : 'bold 11px Outfit, sans-serif';
-    ctx.fillText(
-      isMobileCanvas ? `Base: ₹${betAmount.toLocaleString('en-IN')}` : `Base Stake: ₹${betAmount.toLocaleString('en-IN')}`,
-      20,
-      baselineY + 1
-    );
-
-    // Target Badge (Adaptive on mobile)
-    const calcProfit = Math.round((betAmount * currentAssetRate) / 100);
-    const calcPayout = betAmount + calcProfit;
-    const targetBadgeW = isMobileCanvas ? 135 : 205;
-    const targetBadgeX = width - targetBadgeW - 15;
-    ctx.fillStyle = 'rgba(16, 185, 129, 0.18)';
-    ctx.fillRect(targetBadgeX, targetY - 16, targetBadgeW, 24);
-    ctx.strokeStyle = '#10b981';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(targetBadgeX, targetY - 16, targetBadgeW, 24);
-    ctx.fillStyle = '#34d399';
-    ctx.font = isMobileCanvas ? 'bold 10px monospace' : 'bold 11.5px monospace';
-    ctx.fillText(
-      isMobileCanvas
-        ? `Target: ₹${calcPayout.toLocaleString('en-IN')}`
-        : `Target Return (+${currentAssetRate}%): ₹${calcPayout.toLocaleString('en-IN')}`,
-      targetBadgeX + 6,
-      targetY
-    );
-
-    // Yield Curve
-    const curveStartX = isMobileCanvas ? 20 : 30;
-    const curveEndX = width - (isMobileCanvas ? 25 : 40);
-    const totalCurveWidth = curveEndX - curveStartX;
-
-    // Draw base yield curve trajectory
+    // Pulsing Outer Glow Ring
     ctx.beginPath();
-    for (let i = 0; i <= 60; i++) {
-      const t = i / 60;
-      const x = curveStartX + t * totalCurveWidth;
-      const sigmoid = 1 / (1 + Math.exp(-6 * (t - 0.45)));
-      const normSigmoid = (sigmoid - 0.067) / (0.964 - 0.067);
-      const y = baselineY - normSigmoid * (baselineY - targetY);
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.strokeStyle = 'rgba(251, 191, 36, 0.35)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    ctx.arc(lastX, lastY, 9, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(16, 185, 129, 0.28)';
+    ctx.fill();
 
-    // If active contract, draw filled progress portion & glowing orb
+    // Core Glowing Price Dot
+    ctx.beginPath();
+    ctx.arc(lastX, lastY, 4.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = '#34d399';
+    ctx.shadowBlur = 15;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Live Price Pill on Right Axis
+    const badgeW = rightMargin - 10;
+    const badgeH = 22;
+    const badgeX = chartW + 4;
+    const badgeY = Math.max(topPad - 2, Math.min(height - bottomPad - badgeH, lastY - badgeH / 2));
+
+    ctx.fillStyle = '#10b981';
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 4) : ctx.rect(badgeX, badgeY, badgeW, badgeH);
+    ctx.fill();
+
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold 10.5px monospace';
+    ctx.textAlign = 'center';
+    const liveText = currentPrice >= 100000
+      ? `₹${(currentPrice / 100000).toFixed(2)}L`
+      : `₹${currentPrice.toLocaleString('en-IN', { maximumFractionDigits: 1 })}`;
+    ctx.fillText(liveText, badgeX + badgeW / 2, badgeY + 15);
+
+    // 6. Active Staking Overlay Line (if contract is running)
     if (activeTrade) {
-      const progress = Math.max(0, Math.min(1, (activeTrade.timeTotal - activeTrade.timeLeft) / activeTrade.timeTotal));
-      const currentX = curveStartX + progress * totalCurveWidth;
-
-      // Area gradient
+      const activeEntryY = Math.min(height - 40, Math.max(topPad + 10, lastY + 25));
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 2]);
       ctx.beginPath();
-      ctx.moveTo(curveStartX, baselineY);
-      const steps = Math.max(1, Math.round(progress * 60));
-      for (let i = 0; i <= steps; i++) {
-        const t = (i / 60) * (steps / 60 <= 0 ? 0 : 1);
-        const curT = (i / steps) * progress;
-        const x = curveStartX + curT * totalCurveWidth;
-        const sigmoid = 1 / (1 + Math.exp(-6 * (curT - 0.45)));
-        const normSigmoid = (sigmoid - 0.067) / (0.964 - 0.067);
-        const y = baselineY - normSigmoid * (baselineY - targetY);
-        ctx.lineTo(x, y);
-      }
-      ctx.lineTo(currentX, baselineY);
-      ctx.closePath();
-
-      const fillGrad = ctx.createLinearGradient(0, targetY, 0, baselineY);
-      fillGrad.addColorStop(0, 'rgba(16, 185, 129, 0.45)');
-      fillGrad.addColorStop(0.5, 'rgba(245, 158, 11, 0.25)');
-      fillGrad.addColorStop(1, 'rgba(245, 158, 11, 0.02)');
-      ctx.fillStyle = fillGrad;
-      ctx.fill();
-
-      // Active glowing curve
-      ctx.beginPath();
-      for (let i = 0; i <= steps; i++) {
-        const curT = (i / steps) * progress;
-        const x = curveStartX + curT * totalCurveWidth;
-        const sigmoid = 1 / (1 + Math.exp(-6 * (curT - 0.45)));
-        const normSigmoid = (sigmoid - 0.067) / (0.964 - 0.067);
-        const y = baselineY - normSigmoid * (baselineY - targetY);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.strokeStyle = '#34d399';
-      ctx.lineWidth = 3.5;
-      ctx.shadowColor = '#10b981';
-      ctx.shadowBlur = 18;
+      ctx.moveTo(15, activeEntryY);
+      ctx.lineTo(chartW, activeEntryY);
       ctx.stroke();
-      ctx.shadowBlur = 0;
+      ctx.setLineDash([]);
 
-      // Current Point Calculation
-      const curSigmoid = 1 / (1 + Math.exp(-6 * (progress - 0.45)));
-      const curNormSigmoid = (curSigmoid - 0.067) / (0.964 - 0.067);
-      const currentY = baselineY - curNormSigmoid * (baselineY - targetY);
-
-      // Glowing Orb
-      ctx.beginPath();
-      ctx.arc(currentX, currentY, 8, 0, Math.PI * 2);
-      ctx.fillStyle = '#fff';
-      ctx.shadowColor = '#34d399';
-      ctx.shadowBlur = 20;
-      ctx.fill();
-      ctx.shadowBlur = 0;
-
-      // Current Value Tooltip
-      const currentVal = Math.round(activeTrade.amount + activeTrade.profit * progress);
-      ctx.fillStyle = '#10b981';
-      ctx.fillRect(Math.max(10, currentX - 55), Math.max(10, currentY - 34), 110, 22);
-      ctx.fillStyle = '#000';
-      ctx.font = 'bold 11px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(`₹${currentVal.toLocaleString('en-IN')}`, Math.max(65, currentX), Math.max(26, currentY - 19));
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = 'bold 10px sans-serif';
       ctx.textAlign = 'left';
-    } else {
-      // Idle indicator dot
-      const pulseX = curveStartX + 0.65 * totalCurveWidth;
-      const pulseSig = 1 / (1 + Math.exp(-6 * (0.65 - 0.45)));
-      const pulseNorm = (pulseSig - 0.067) / (0.964 - 0.067);
-      const pulseY = baselineY - pulseNorm * (baselineY - targetY);
-
-      ctx.beginPath();
-      ctx.arc(pulseX, pulseY, 5, 0, Math.PI * 2);
-      ctx.fillStyle = '#fbbf24';
-      ctx.shadowColor = '#fbbf24';
-      ctx.shadowBlur = 15;
-      ctx.fill();
-      ctx.shadowBlur = 0;
+      ctx.fillText(`⚡ Active Holding: ₹${activeTrade.amount.toLocaleString('en-IN')} (+${activeTrade.adminPercent}% in ${activeTrade.timeLeft}s)`, 20, activeEntryY - 5);
     }
-  }, [chartHeight, betAmount, currentAssetRate, activeTrade, windowWidth]);
+  }, [chartHeight, currentPrice, priceHistory, activeTrade, windowWidth]);
 
   const handleStakeGrowth = async () => {
     if (realBalance < betAmount) {
@@ -647,11 +644,14 @@ const UserTradingPortal = ({
   const [purchaseCopied, setPurchaseCopied] = useState(false);
   const [isSubmittingPurchase, setIsSubmittingPurchase] = useState(false);
 
-  const handleOpenPurchaseModal = (targetAsset = null, preferredMode = 'qr') => {
+  const handleOpenPurchaseModal = (targetAsset = null, preferredMode = null) => {
     const assetToBuy = targetAsset || currentAsset || resolveAsset(DEFAULT_ASSETS, selectedAsset);
+    const minVal = Number(assetToBuy?.minStake) || 100;
     setPurchaseModalAsset(assetToBuy);
-    setPurchaseAmount(betAmount || 5000);
-    setPurchaseMode(preferredMode);
+    setPurchaseAmount(minVal);
+    // If user has balance >= minVal, default to wallet for 1-click purchase! Otherwise QR
+    const mode = preferredMode || (realBalance >= minVal ? 'wallet' : 'qr');
+    setPurchaseMode(mode);
     setPurchaseUtr('');
   };
 
@@ -665,8 +665,9 @@ const UserTradingPortal = ({
     }
 
     const buyAmt = Number(purchaseAmount);
-    if (!buyAmt || buyAmt < 100) {
-      showUserWarning('Invalid Amount', 'Minimum investment amount is ₹100.');
+    const minRequired = Number(purchaseModalAsset.minStake) || 100;
+    if (!buyAmt || buyAmt < minRequired) {
+      showUserWarning('Minimum Investment Required', `Minimum investment for ${purchaseModalAsset.name} is ₹${minRequired.toLocaleString('en-IN')}.`);
       return;
     }
 
@@ -1078,59 +1079,81 @@ const UserTradingPortal = ({
               </div>
             </div>
 
-            {/* Trading Desk: Chart Card + Bet Control Card */}
+            {/* Trading Desk: Chart Card + Stock Investment Desk */}
             <div className="trading-grid-wrap">
               {/* Chart Card */}
               <div
                 className="cyber-card"
                 style={{
                   borderRadius: '20px',
-                  padding: 'clamp(12px, 2.5vw, 18px)',
-                  background: 'linear-gradient(150deg, rgba(14, 15, 24, 0.96), rgba(8, 9, 14, 0.98))',
+                  padding: 'clamp(14px, 2.5vw, 18px)',
+                  background: 'linear-gradient(150deg, rgba(14, 15, 24, 0.98), rgba(8, 9, 14, 0.99))',
                   border: '1.2px solid rgba(245, 158, 11, 0.3)',
+                  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
                 }}
               >
                 {/* Chart Header */}
-                <div style={{ marginBottom: '12px' }}>
+                <div style={{ marginBottom: '14px' }}>
                   {/* Top Row: Asset Symbol + Live Badge (Left) & QR Pay + Guaranteed Return (Right) */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                      <span style={{ fontSize: 'clamp(16px, 4.2vw, 20px)', fontWeight: 900, color: '#fff', letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>
-                        {selectedAsset}
-                      </span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', gap: '8px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                       <span
                         style={{
-                          fontSize: '10px',
-                          fontWeight: 800,
-                          background: 'rgba(16, 185, 129, 0.16)',
-                          border: '1px solid rgba(16, 185, 129, 0.4)',
-                          color: '#10b981',
-                          padding: '2px 7px',
-                          borderRadius: '6px',
-                          whiteSpace: 'nowrap',
+                          width: '34px',
+                          height: '34px',
+                          borderRadius: '10px',
+                          background: assetInfo.color || '#3b82f6',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '17px',
+                          color: '#fff',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
                         }}
                       >
-                        ⚡ LIVE
+                        {assetInfo.icon || '📈'}
                       </span>
+                      <div>
+                        <div style={{ fontSize: 'clamp(16px, 4.2vw, 19px)', fontWeight: 900, color: '#fff', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span>{assetInfo.name || selectedAsset}</span>
+                          <span
+                            style={{
+                              fontSize: '9.5px',
+                              fontWeight: 800,
+                              background: 'rgba(16, 185, 129, 0.16)',
+                              border: '1px solid rgba(16, 185, 129, 0.4)',
+                              color: '#10b981',
+                              padding: '2px 7px',
+                              borderRadius: '6px',
+                              letterSpacing: '0.5px',
+                            }}
+                          >
+                            ● LIVE
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace' }}>
+                          {selectedAsset} • {assetInfo.category || 'Asset'}
+                        </div>
+                      </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                       <button
                         onClick={() => handleOpenPurchaseModal(assetInfo, 'qr')}
                         style={{
                           background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(16, 185, 129, 0.22))',
                           border: '1.2px solid #10b981',
                           color: '#34d399',
-                          padding: '4px 9px',
+                          padding: '5px 12px',
                           borderRadius: '8px',
-                          fontSize: '11px',
+                          fontSize: '11.5px',
                           fontWeight: 800,
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '4px',
-                          whiteSpace: 'nowrap',
+                          gap: '6px',
                           boxShadow: '0 0 12px rgba(16, 185, 129, 0.25)',
+                          transition: 'all 0.2s ease',
                         }}
                         title={`Scan QR code to pay & invest in ${assetInfo.name || selectedAsset}`}
                       >
@@ -1142,9 +1165,9 @@ const UserTradingPortal = ({
                           background: 'rgba(245, 158, 11, 0.15)',
                           border: '1px solid rgba(245, 158, 11, 0.4)',
                           color: '#fbbf24',
-                          padding: '4px 9px',
+                          padding: '5px 10px',
                           borderRadius: '8px',
-                          fontSize: '11px',
+                          fontSize: '11.5px',
                           fontWeight: 800,
                           whiteSpace: 'nowrap',
                         }}
@@ -1154,18 +1177,26 @@ const UserTradingPortal = ({
                     </div>
                   </div>
 
-                  {/* Bottom Row: Large Real-Time Price */}
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                    <span style={{ fontSize: 'clamp(20px, 5.5vw, 25px)', fontWeight: 900, color: '#fbbf24', fontFamily: 'monospace', letterSpacing: '-0.5px' }}>
-                      ₹{currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </span>
-                    <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 700 }}>
-                      ▲ +{currentAssetRate}% Fixed Return
-                    </span>
+                  {/* Middle Row: Price Display & Key Stats */}
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+                      <span style={{ fontSize: 'clamp(22px, 5.5vw, 27px)', fontWeight: 900, color: '#fbbf24', fontFamily: 'monospace', letterSpacing: '-0.5px' }}>
+                        ₹{currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </span>
+                      <span style={{ fontSize: '11.5px', color: '#10b981', fontWeight: 800, background: 'rgba(16, 185, 129, 0.12)', padding: '2px 8px', borderRadius: '6px' }}>
+                        ▲ +{currentAssetRate}% Fixed Return
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#94a3b8' }}>
+                      <span>Min Buy: <strong style={{ color: '#fff' }}>₹{(assetInfo.minStake || 100).toLocaleString('en-IN')}</strong></span>
+                      <span>•</span>
+                      <span>Vol: <strong style={{ color: '#fff' }}>₹14.8M</strong></span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Canvas Area */}
+                {/* Live Canvas Interactive Area */}
                 <div
                   style={{
                     position: 'relative',
@@ -1173,40 +1204,42 @@ const UserTradingPortal = ({
                     height: `${chartHeight}px`,
                     borderRadius: '14px',
                     overflow: 'hidden',
+                    background: '#070a14',
+                    border: '1px solid rgba(255, 255, 255, 0.06)',
                   }}
                 >
                   <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
 
-                  {/* Active Staking Live HUD */}
+                  {/* Active Investment HUD Overlay */}
                   {activeTrade && (
                     <div
                       style={{
                         position: 'absolute',
-                        top: '10px',
-                        left: '10px',
-                        maxWidth: 'calc(100% - 20px)',
+                        top: '12px',
+                        left: '12px',
+                        maxWidth: 'calc(100% - 24px)',
                         background: 'rgba(5, 7, 20, 0.94)',
                         border: '1.5px solid #10b981',
                         borderRadius: '12px',
-                        padding: '8px 12px',
+                        padding: '10px 14px',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '10px',
+                        gap: '12px',
                         boxShadow: '0 8px 30px rgba(0, 0, 0, 0.85)',
                         backdropFilter: 'blur(8px)',
                       }}
                     >
                       <div
                         style={{
-                          width: '32px',
-                          height: '32px',
+                          width: '34px',
+                          height: '34px',
                           borderRadius: '50%',
                           background: '#10b981',
                           color: '#000',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '16px',
+                          fontSize: '17px',
                           fontWeight: 900,
                           flexShrink: 0,
                         }}
@@ -1214,21 +1247,21 @@ const UserTradingPortal = ({
                         ⚡
                       </div>
                       <div style={{ minWidth: 0, overflow: 'hidden' }}>
-                        <div style={{ fontSize: '10.5px', color: '#94a3b8', fontWeight: 600, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                          Staked: ₹{activeTrade.amount.toLocaleString('en-IN')} • Return Rate: +{activeTrade.adminPercent}%
+                        <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                          Invested: ₹{activeTrade.amount.toLocaleString('en-IN')} • Return Rate: +{activeTrade.adminPercent}%
                         </div>
-                        <div style={{ fontSize: '12px', fontWeight: 800 }}>
-                          Maturity Return: <span style={{ color: '#34d399' }}>₹{activeTrade.payout.toLocaleString('en-IN')}</span>
+                        <div style={{ fontSize: '13px', fontWeight: 800 }}>
+                          Total Return: <span style={{ color: '#34d399' }}>₹{activeTrade.payout.toLocaleString('en-IN')}</span>
                         </div>
                       </div>
                       <div
                         style={{
-                          fontSize: '16px',
+                          fontSize: '17px',
                           fontWeight: 900,
                           color: '#fbbf24',
                           fontFamily: 'monospace',
                           borderLeft: '1px solid rgba(255, 255, 255, 0.1)',
-                          paddingLeft: '8px',
+                          paddingLeft: '10px',
                           flexShrink: 0,
                         }}
                       >
@@ -1237,137 +1270,205 @@ const UserTradingPortal = ({
                     </div>
                   )}
                 </div>
+
+                {/* 24H Market Stats Strip under Chart */}
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginTop: '12px',
+                    padding: '8px 12px',
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    flexWrap: 'wrap',
+                    gap: '8px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {['1S', '1M', '5M', '15M', '1H', '1D'].map((tf, i) => (
+                      <span
+                        key={tf}
+                        style={{
+                          fontSize: '10px',
+                          fontWeight: 800,
+                          padding: '2px 7px',
+                          borderRadius: '5px',
+                          background: i === 0 ? 'rgba(245, 158, 11, 0.25)' : 'transparent',
+                          color: i === 0 ? '#fbbf24' : '#94a3b8',
+                          border: i === 0 ? '1px solid rgba(245, 158, 11, 0.45)' : '1px solid transparent',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {tf}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '10.5px' }}>
+                    <span style={{ color: '#94a3b8' }}>
+                      24h High: <strong style={{ color: '#34d399' }}>₹{(currentPrice * 1.025).toLocaleString('en-IN', { maximumFractionDigits: 1 })}</strong>
+                    </span>
+                    <span style={{ color: '#94a3b8' }}>
+                      24h Low: <strong style={{ color: '#ef4444' }}>₹{(currentPrice * 0.978).toLocaleString('en-IN', { maximumFractionDigits: 1 })}</strong>
+                    </span>
+                    <span style={{ color: '#94a3b8' }}>
+                      Trend: <strong style={{ color: '#10b981' }}>▲ Bullish (+{currentAssetRate}%)</strong>
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              {/* Bet Controls Card */}
+              {/* Buy / Invest in Stock Card (Simple, Clean, Proper) */}
               <div
                 className="cyber-card"
                 style={{
                   borderRadius: '20px',
-                  padding: '14px 16px',
-                  background: 'linear-gradient(150deg, rgba(14, 15, 25, 0.96), rgba(8, 9, 15, 0.98))',
+                  padding: '16px 18px',
+                  background: 'linear-gradient(150deg, rgba(14, 16, 28, 0.96), rgba(8, 10, 18, 0.98))',
                   border: '1.2px solid rgba(245, 158, 11, 0.35)',
+                  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.6)',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    ⚡ Fixed Growth Staking
-                  </h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>⚡</span> Buy {assetInfo.name || selectedAsset}
+                    </h3>
+                    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
+                      Fixed Guaranteed Return on Maturity
+                    </div>
+                  </div>
                   <span
                     style={{
-                      background: 'rgba(16, 185, 129, 0.15)',
-                      border: '1px solid rgba(16, 185, 129, 0.4)',
+                      background: 'rgba(16, 185, 129, 0.16)',
+                      border: '1.2px solid #10b981',
                       color: '#34d399',
-                      padding: '3px 8px',
+                      padding: '3px 9px',
                       borderRadius: '8px',
                       fontSize: '11px',
                       fontWeight: 800,
                     }}
                   >
-                    +{currentAssetRate}% Guaranteed
+                    +{currentAssetRate}% Return
                   </span>
                 </div>
 
-                {/* Staking Duration */}
-                <div style={{ marginBottom: '10px' }}>
-                  <label style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
-                    STAKING DURATION
-                  </label>
-                  <div className="timeframes-grid">
-                    {TIMEFRAMES.map((tf) => (
-                      <button
-                        key={tf.label}
-                        onClick={() => setSelectedTimeframe(tf)}
-                        style={{
-                          background: selectedTimeframe.label === tf.label ? 'rgba(245, 158, 11, 0.25)' : 'rgba(255, 255, 255, 0.04)',
-                          border: `1px solid ${selectedTimeframe.label === tf.label ? '#fbbf24' : 'rgba(255, 255, 255, 0.1)'}`,
-                          color: selectedTimeframe.label === tf.label ? '#fbbf24' : '#cbd5e1',
-                          padding: '6px 2px',
-                          borderRadius: '8px',
-                          fontSize: 'clamp(9.5px, 2.5vw, 11px)',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {tf.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Stake Amount */}
-                <div style={{ marginBottom: '10px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <label style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600 }}>STAKE (₹)</label>
-                    <span style={{ fontSize: '10px', color: '#10b981', fontWeight: 700 }}>
-                      Available: ₹{realBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                  <input
-                    type="number"
-                    min="100"
-                    step="100"
-                    value={betAmount}
-                    onChange={(e) => setBetAmount(Number(e.target.value))}
-                    style={{
-                      width: '100%',
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      border: '1.5px solid rgba(245, 158, 11, 0.4)',
-                      borderRadius: '8px',
-                      padding: '8px 10px',
-                      color: '#fff',
-                      fontSize: '15px',
-                      fontWeight: 800,
-                      outline: 'none',
-                      fontFamily: 'monospace',
-                    }}
-                  />
-
-                  {/* Preset Chips */}
-                  <div className="bet-presets-grid">
-                    {BET_PRESETS.map((amt) => (
-                      <button
-                        key={amt}
-                        onClick={() => setBetAmount(amt)}
-                        style={{
-                          background: betAmount === amt ? 'rgba(245, 158, 11, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-                          border: `1px solid ${betAmount === amt ? '#fbbf24' : 'rgba(255, 255, 255, 0.1)'}`,
-                          borderRadius: '6px',
-                          color: betAmount === amt ? '#fbbf24' : '#cbd5e1',
-                          fontSize: 'clamp(10px, 2.5vw, 11px)',
-                          fontWeight: 700,
-                          padding: '4px 4px',
-                          cursor: 'pointer',
-                          textAlign: 'center',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        ₹{amt.toLocaleString('en-IN')}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Return Breakdown Box */}
+                {/* Available Wallet Balance Bar */}
                 <div
                   style={{
-                    background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(245, 158, 11, 0.08))',
-                    border: '1.2px solid rgba(16, 185, 129, 0.35)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '8px 12px',
+                    background: 'rgba(255, 255, 255, 0.04)',
                     borderRadius: '10px',
-                    padding: '10px 12px',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
                     marginBottom: '12px',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8', marginBottom: '4px' }}>
-                    <span>Amount Staked:</span>
+                  <span style={{ fontSize: '11px', color: '#94a3b8' }}>Available Wallet Balance:</span>
+                  <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#10b981', fontFamily: 'monospace' }}>
+                    ₹{realBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                {/* Investment Amount Input */}
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <label style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 700 }}>
+                      INVESTMENT AMOUNT (₹)
+                    </label>
+                    <span style={{ fontSize: '10.5px', color: '#fbbf24', fontWeight: 700 }}>
+                      Min Limit: ₹{(assetInfo.minStake || 100).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  <div style={{ position: 'relative' }}>
+                    <span
+                      style={{
+                        position: 'absolute',
+                        left: '12px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: '#fbbf24',
+                        fontSize: '17px',
+                        fontWeight: 800,
+                      }}
+                    >
+                      ₹
+                    </span>
+                    <input
+                      type="number"
+                      min={assetInfo.minStake || 100}
+                      step="100"
+                      value={betAmount}
+                      onChange={(e) => setBetAmount(Math.max(1, Number(e.target.value)))}
+                      style={{
+                        width: '100%',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1.5px solid rgba(245, 158, 11, 0.45)',
+                        borderRadius: '10px',
+                        padding: '10px 12px 10px 28px',
+                        color: '#fff',
+                        fontSize: '17px',
+                        fontWeight: 800,
+                        outline: 'none',
+                        fontFamily: 'monospace',
+                      }}
+                    />
+                  </div>
+
+                  {/* Quick Preset Chips */}
+                  <div className="bet-presets-grid" style={{ marginTop: '8px' }}>
+                    {(() => {
+                      const minReq = Number(assetInfo.minStake) || 100;
+                      const dynamicPresets = minReq >= 500
+                        ? [minReq, minReq * 2, minReq * 5, 5000, 10000, 25000]
+                        : [100, 500, 1000, 2500, 5000, 10000];
+                      return dynamicPresets.map((amt) => (
+                        <button
+                          key={amt}
+                          onClick={() => setBetAmount(amt)}
+                          style={{
+                            background: betAmount === amt ? 'rgba(245, 158, 11, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                            border: `1px solid ${betAmount === amt ? '#fbbf24' : 'rgba(255, 255, 255, 0.1)'}`,
+                            borderRadius: '6px',
+                            color: betAmount === amt ? '#fbbf24' : '#cbd5e1',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            padding: '5px 4px',
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          ₹{amt.toLocaleString('en-IN')}
+                        </button>
+                      ));
+                    })()}
+                  </div>
+                </div>
+
+                {/* Return Calculation Box */}
+                <div
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.09), rgba(245, 158, 11, 0.09))',
+                    border: '1.2px solid rgba(16, 185, 129, 0.35)',
+                    borderRadius: '12px',
+                    padding: '12px 14px',
+                    marginBottom: '14px',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', color: '#94a3b8', marginBottom: '5px' }}>
+                    <span>Amount Invested:</span>
                     <span style={{ color: '#fff', fontWeight: 700 }}>₹{betAmount.toLocaleString('en-IN')}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8', marginBottom: '4px' }}>
-                    <span>Growth Rate:</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', color: '#94a3b8', marginBottom: '5px' }}>
+                    <span>Guaranteed Return Rate:</span>
                     <span style={{ color: '#fbbf24', fontWeight: 800 }}>+{currentAssetRate}%</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8', marginBottom: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', color: '#94a3b8', marginBottom: '8px' }}>
                     <span>Estimated Net Profit:</span>
                     <span style={{ color: '#10b981', fontWeight: 800 }}>
                       +₹{Math.round((betAmount * currentAssetRate) / 100).toLocaleString('en-IN')}
@@ -1377,85 +1478,93 @@ const UserTradingPortal = ({
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
-                      fontSize: '13px',
+                      alignItems: 'center',
+                      fontSize: '13.5px',
                       fontWeight: 900,
                       color: '#fff',
                       borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-                      paddingTop: '6px',
+                      paddingTop: '8px',
                     }}
                   >
-                    <span>Total Maturity Return:</span>
-                    <span style={{ color: '#34d399', fontSize: '16px', fontFamily: 'monospace' }}>
+                    <span>Total Return on Maturity:</span>
+                    <span style={{ color: '#34d399', fontSize: '18px', fontFamily: 'monospace', fontWeight: 900 }}>
                       ₹{Math.round(betAmount + (betAmount * currentAssetRate) / 100).toLocaleString('en-IN')}
                     </span>
                   </div>
                 </div>
 
-                {/* Single Powerful CTA Button */}
-                <button
-                  disabled={!!activeTrade}
-                  onClick={() => {
-                    if (realBalance >= betAmount) {
-                      handleStakeGrowth();
-                    } else {
-                      handleOpenPurchaseModal(assetInfo, 'qr');
-                    }
-                  }}
-                  style={{
-                    width: '100%',
-                    background: activeTrade
-                      ? 'rgba(255, 255, 255, 0.08)'
-                      : 'linear-gradient(135deg, #f59e0b, #10b981)',
-                    border: 'none',
-                    borderRadius: '12px',
-                    padding: '12px',
-                    color: activeTrade ? '#94a3b8' : '#000',
-                    cursor: activeTrade ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    boxShadow: activeTrade ? 'none' : '0 8px 25px rgba(245, 158, 11, 0.45)',
-                    transition: 'all 0.3s ease',
-                  }}
-                >
-                  <span style={{ fontSize: '14.5px', fontWeight: 900 }}>
-                    {activeTrade
-                      ? `⏳ Plan Active • Maturity in ${activeTrade.timeLeft}s`
-                      : `⚡ Stake ₹${betAmount.toLocaleString('en-IN')} & Earn ₹${Math.round(betAmount + (betAmount * currentAssetRate) / 100).toLocaleString('en-IN')}`}
-                  </span>
-                  <span style={{ fontSize: '10px', fontWeight: 700, opacity: 0.9, marginTop: '2px' }}>
-                    {activeTrade
-                      ? `Accruing +${activeTrade.adminPercent || currentAssetRate}% Profit...`
-                      : `Guaranteed +${currentAssetRate}% Return on Maturity`}
-                  </span>
-                </button>
+                {/* Action Buttons: 1-Click Wallet Buy OR Scan & Pay QR */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <button
+                    disabled={!!activeTrade}
+                    onClick={() => {
+                      if (realBalance >= betAmount) {
+                        handleStakeGrowth();
+                      } else {
+                        handleOpenPurchaseModal(assetInfo, 'wallet');
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      background: activeTrade
+                        ? 'rgba(255, 255, 255, 0.08)'
+                        : realBalance >= betAmount
+                        ? 'linear-gradient(135deg, #10b981, #059669)'
+                        : 'linear-gradient(135deg, #f59e0b, #d97706)',
+                      border: 'none',
+                      borderRadius: '12px',
+                      padding: '12px 14px',
+                      color: activeTrade ? '#94a3b8' : '#ffffff',
+                      cursor: activeTrade ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      boxShadow: activeTrade ? 'none' : '0 6px 20px rgba(16, 185, 129, 0.35)',
+                      transition: 'all 0.25s ease',
+                    }}
+                  >
+                    <span style={{ fontSize: '14.5px', fontWeight: 900 }}>
+                      {activeTrade
+                        ? `⏳ Plan Active • Maturing in ${activeTrade.timeLeft}s`
+                        : realBalance >= betAmount
+                        ? `⚡ 1-Click Buy via Wallet (₹${betAmount.toLocaleString('en-IN')})`
+                        : `⚡ Buy via Wallet (₹${betAmount.toLocaleString('en-IN')})`}
+                    </span>
+                    <span style={{ fontSize: '10.5px', fontWeight: 700, opacity: 0.9, marginTop: '2px' }}>
+                      {activeTrade
+                        ? `Earning +${activeTrade.adminPercent || currentAssetRate}% Guaranteed Profit...`
+                        : realBalance >= betAmount
+                        ? `Maturity Return: ₹${Math.round(betAmount + (betAmount * currentAssetRate) / 100).toLocaleString('en-IN')}`
+                        : `Wallet balance low (₹${realBalance.toLocaleString('en-IN')}) • Click to top up`}
+                    </span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => handleOpenPurchaseModal(assetInfo, 'qr')}
-                  style={{
-                    width: '100%',
-                    marginTop: '8px',
-                    background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(16, 185, 129, 0.2))',
-                    border: '1.2px solid #fbbf24',
-                    color: '#fbbf24',
-                    borderRadius: '10px',
-                    padding: '10px 12px',
-                    fontSize: '12.5px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    boxShadow: '0 0 15px rgba(245, 158, 11, 0.25)',
-                    transition: 'all 0.2s ease',
-                  }}
-                  title={`Scan company QR and pay directly for ${assetInfo.name}`}
-                >
-                  <span>📱</span>
-                  <span>Pay via {assetInfo.name || selectedAsset} QR Code</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenPurchaseModal(assetInfo, 'qr')}
+                    style={{
+                      width: '100%',
+                      background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(16, 185, 129, 0.18))',
+                      border: '1.2px solid #fbbf24',
+                      color: '#fbbf24',
+                      borderRadius: '12px',
+                      padding: '11px 14px',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      boxShadow: '0 0 15px rgba(245, 158, 11, 0.2)',
+                      transition: 'all 0.2s ease',
+                    }}
+                    title={`Scan company QR and pay directly for ${assetInfo.name}`}
+                  >
+                    <span style={{ fontSize: '15px' }}>📱</span>
+                    <span>Scan & Pay via {assetInfo.name || selectedAsset} QR Code</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -2275,16 +2384,32 @@ const UserTradingPortal = ({
                 marginBottom: '20px',
               }}
             >
-              <div style={{ fontSize: '14px', fontWeight: 800, color: '#fbbf24', marginBottom: '4px' }}>
-                🎁 Your Referral Code: PAYNEX12345
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div style={{ fontSize: '14px', fontWeight: 800, color: '#fbbf24' }}>
+                  🎁 Referral Code: <span style={{ fontFamily: 'monospace', letterSpacing: '1px', color: '#fff', background: 'rgba(251, 191, 36, 0.2)', padding: '2px 8px', borderRadius: '6px' }}>{user?.uid || 'TRD-782910'}</span>
+                </div>
+                <div style={{ fontSize: '11px', color: '#10b981', fontWeight: 700 }}>
+                  5% 1st Deposit Bonus
+                </div>
               </div>
-              <p style={{ fontSize: '12px', color: '#cbd5e1', margin: '0 0 10px' }}>
-                Earn ₹500 directly into your Real Wallet for every invited friend!
+              <p style={{ fontSize: '12px', color: '#cbd5e1', margin: '0 0 10px', lineHeight: 1.5 }}>
+                Share your code with friends! When they register & make their <strong>1st deposit</strong>, you instantly earn <strong style={{ color: '#fbbf24' }}>5%</strong> of their deposit amount directly to your wallet.
               </p>
+              <div style={{ display: 'flex', gap: '14px', marginBottom: '12px', fontSize: '12px' }}>
+                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <span style={{ color: '#94a3b8' }}>Total Referred: </span>
+                  <strong style={{ color: '#fff' }}>{user?.referralCount || 0} Traders</strong>
+                </div>
+                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <span style={{ color: '#94a3b8' }}>Earned Bonus: </span>
+                  <strong style={{ color: '#10b981' }}>₹{Number(user?.referralEarnings || 0).toLocaleString('en-IN')}</strong>
+                </div>
+              </div>
               <button
                 onClick={() => {
-                  navigator.clipboard?.writeText('https://paynex.com/ref/PAYNEX12345');
-                  alert('Referral link copied to clipboard!');
+                  const link = `${window.location.origin}/?ref=${encodeURIComponent(user?.uid || '')}`;
+                  navigator.clipboard?.writeText(link);
+                  alert(`Referral link copied to clipboard!\n${link}`);
                 }}
                 className="btn-cyber-primary"
                 style={{ padding: '8px 16px', fontSize: '12px' }}
@@ -2978,9 +3103,9 @@ const UserTradingPortal = ({
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }} className="custom-scroll">
                     {[
                       { id: 'tx_st_1', type: 'Deposit', amount: '+₹10,000', time: 'Today, 02:15 PM', status: 'Success', mode: 'UPI' },
-                      { id: 'tx_st_2', type: 'Staking Return (+30%)', amount: '+₹6,500', time: 'Today, 11:40 AM', status: 'Credited', mode: 'BTC/USDT' },
+                      { id: 'tx_st_2', type: 'Staking Return (+12%)', amount: '+₹6,500', time: 'Today, 11:40 AM', status: 'Credited', mode: 'BTC/USDT' },
                       { id: 'tx_st_3', type: 'Withdrawal', amount: '-₹5,000', time: 'Yesterday, 06:10 PM', status: 'Completed', mode: 'IMPS' },
-                      { id: 'tx_st_4', type: 'Staking Return (+30%)', amount: '+₹3,250', time: 'Yesterday, 02:30 PM', status: 'Credited', mode: 'ETH/USDT' },
+                      { id: 'tx_st_4', type: 'Staking Return (+10%)', amount: '+₹3,250', time: 'Yesterday, 02:30 PM', status: 'Credited', mode: 'ETH/USDT' },
                       { id: 'tx_st_5', type: 'Deposit', amount: '+₹15,000', time: '22 Oct, 10:15 AM', status: 'Success', mode: 'NetBanking' },
                     ].map((tx) => (
                       <div
@@ -3070,7 +3195,7 @@ const UserTradingPortal = ({
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {[
                       { q: 'How fast are withdrawals processed?', a: 'Withdrawals are processed instantly through IMPS/UPI rails within 2 to 15 minutes.' },
-                      { q: 'How is the fixed 30% return credited?', a: 'Upon maturity of your active round duration (e.g. 30s or 60s), your stake plus 30% profit is directly added to your real balance.' },
+                      { q: 'How is the fixed 2% - 12% return credited?', a: 'Upon maturity of your active round duration (e.g. 15s or 30s), your stake plus fixed profit (2% to 12%) is directly added to your real balance.' },
                       { q: 'Is my account identity & bank data safe?', a: 'Yes, all sensitive credentials and banking info are encrypted with 256-bit bank-grade SSL.' },
                     ].map((faq, i) => (
                       <div
@@ -3350,15 +3475,17 @@ const UserTradingPortal = ({
             {/* Investment Amount Input & Chips */}
             <div style={{ marginBottom: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <label style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>INVESTMENT AMOUNT (₹)</label>
+                <label style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>
+                  INVESTMENT AMOUNT (Min ₹{purchaseModalAsset.minStake || 100})
+                </label>
                 <span style={{ fontSize: '10.5px', color: '#10b981', fontWeight: 700 }}>
                   Wallet Balance: ₹{realBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <input
                 type="number"
-                min="100"
-                step="100"
+                min={purchaseModalAsset.minStake || 100}
+                step="50"
                 value={purchaseAmount}
                 onChange={(e) => setPurchaseAmount(Number(e.target.value))}
                 style={{
@@ -3376,7 +3503,13 @@ const UserTradingPortal = ({
                 }}
               />
               <div style={{ display: 'flex', gap: '5px', marginTop: '6px', flexWrap: 'wrap' }}>
-                {[500, 1000, 2500, 5000, 10000, 25000].map((amt) => (
+                {[
+                  Number(purchaseModalAsset.minStake) || 100,
+                  (Number(purchaseModalAsset.minStake) || 100) * 2,
+                  (Number(purchaseModalAsset.minStake) || 100) * 5,
+                  5000,
+                  10000,
+                ].filter((v, i, a) => a.indexOf(v) === i).map((amt) => (
                   <button
                     key={amt}
                     type="button"
@@ -3489,7 +3622,7 @@ const UserTradingPortal = ({
                   }}
                 >
                   <img
-                    src={getCompanyQrUrl(purchaseModalAsset)}
+                    src={getCompanyQrUrl(purchaseModalAsset, purchaseAmount)}
                     alt={`${purchaseModalAsset.name} Payment QR`}
                     style={{ width: '150px', height: '150px', objectFit: 'contain', display: 'block', margin: '0 auto' }}
                   />
