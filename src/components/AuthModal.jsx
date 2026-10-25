@@ -208,30 +208,6 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login', onLoginSuccess }) =>
           </button>
         </div>
 
-        {/* 1-Click Quick Demo Login */}
-        <button
-          type="button"
-          onClick={() => {
-            setEmail('sachin@gmail.com');
-            handleSubmit({ preventDefault: () => {} });
-          }}
-          className="btn-cyber-primary"
-          style={{
-            width: '100%',
-            padding: '11px 0',
-            fontSize: '13.5px',
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            borderRadius: '12px',
-          }}
-        >
-          <span>⚡</span>
-          <span>1-Click Login as Sachin Kumar (Instant App Access)</span>
-        </button>
-
         {/* Form */}
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
@@ -312,35 +288,6 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login', onLoginSuccess }) =>
               {isLoading ? 'Verifying...' : tab === 'login' ? 'Sign In to Trade' : 'Create Free Account'}
             </button>
           )}
-
-          {/* Social Web3 1-Click login */}
-          <div style={{ textAlign: 'center', marginTop: '6px' }}>
-            <span style={{ fontSize: '11px', color: '#64748b' }}>Or continue with Web3 & Social</span>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px' }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('google.user@gmail.com');
-                  handleSubmit({ preventDefault: () => {} });
-                }}
-                className="btn-cyber-outline"
-                style={{ padding: '8px 0', fontSize: '12px' }}
-              >
-                Google
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('telegram.trader');
-                  handleSubmit({ preventDefault: () => {} });
-                }}
-                className="btn-cyber-outline"
-                style={{ padding: '8px 0', fontSize: '12px' }}
-              >
-                Telegram
-              </button>
-            </div>
-          </div>
         </form>
       </div>
     </div>

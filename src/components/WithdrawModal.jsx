@@ -385,7 +385,7 @@ const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
               <label style={{ fontSize: '12.5px', color: '#fbbf24', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span>🔒</span>
-                <span>Enter Account Login Password (Required) *</span>
+                <span>Enter Withdrawal Password or Account Password (Required) *</span>
               </label>
             </div>
             <div
@@ -401,7 +401,7 @@ const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
-                placeholder="Enter password you use to log in"
+                placeholder="Enter withdrawal PIN or login password"
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);

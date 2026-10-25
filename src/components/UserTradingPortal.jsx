@@ -176,8 +176,18 @@ const UserTradingPortal = ({
   const [profileDob, setProfileDob] = useState('14/08/1998');
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [smsOtpEnabled, setSmsOtpEnabled] = useState(true);
-  const [biometricEnabled, setBiometricEnabled] = useState(true);
   const [passForm, setPassForm] = useState({ current: '', newPass: '', confirm: '' });
+  const [showPassCurrent, setShowPassCurrent] = useState(false);
+  const [showPassNew, setShowPassNew] = useState(false);
+  const [passSubmitting, setPassSubmitting] = useState(false);
+
+  const [hasWithdrawalPass, setHasWithdrawalPass] = useState(() => {
+    return Boolean(user?.hasWithdrawalPassword) || Boolean(localStorage.getItem('paynex_has_withdrawal_pin'));
+  });
+  const [withdrawPassForm, setWithdrawPassForm] = useState({ current: '', newPass: '', confirm: '' });
+  const [showWithdrawPassCurrent, setShowWithdrawPassCurrent] = useState(false);
+  const [showWithdrawPassNew, setShowWithdrawPassNew] = useState(false);
+  const [withdrawPassSubmitting, setWithdrawPassSubmitting] = useState(false);
   const [bankAccount, setBankAccount] = useState(() => ({
     bankName: user?.bankDetails?.bankName || 'HDFC Bank',
     holderName: user?.bankDetails?.holderName || user?.name || 'Trader',
@@ -3172,6 +3182,8 @@ const UserTradingPortal = ({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {[
                 { id: 'personal', title: 'Personal Information', icon: '👤', badge: null },
+                { id: 'withdrawalPassword', title: 'Withdrawal Password (Fund PIN)', icon: '🔐', badge: (user?.hasWithdrawalPassword || hasWithdrawalPass) ? 'Active' : 'Set PIN' },
+                { id: 'changePassword', title: 'Change Login Password', icon: '🔑', badge: 'Protected' },
                 { id: 'kyc', title: 'KYC Verification', icon: '🪪', badge: 'Under Review' },
                 { id: 'security', title: 'Security & 2FA Settings', icon: '🔒', badge: 'Active' },
                 { id: 'bank', title: 'Bank Account & UPI Details', icon: '🏦', badge: 'Verified' },
@@ -3294,6 +3306,8 @@ const UserTradingPortal = ({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '20px' }}>
                     {activeSettingModal === 'personal' && '👤'}
+                    {activeSettingModal === 'withdrawalPassword' && '🔐'}
+                    {activeSettingModal === 'changePassword' && '🔑'}
                     {activeSettingModal === 'kyc' && '🪪'}
                     {activeSettingModal === 'security' && '🔒'}
                     {activeSettingModal === 'bank' && '🏦'}
@@ -3302,6 +3316,8 @@ const UserTradingPortal = ({
                   </span>
                   <h3 style={{ fontSize: '17px', fontWeight: 900, color: '#fff', margin: 0 }}>
                     {activeSettingModal === 'personal' && 'Personal Information'}
+                    {activeSettingModal === 'withdrawalPassword' && 'Withdrawal Password (Fund PIN)'}
+                    {activeSettingModal === 'changePassword' && 'Change Account Login Password'}
                     {activeSettingModal === 'kyc' && 'KYC Identity Verification'}
                     {activeSettingModal === 'security' && 'Security & 2FA Settings'}
                     {activeSettingModal === 'bank' && 'Bank Account & UPI Details'}
@@ -3567,10 +3583,464 @@ const UserTradingPortal = ({
                 </div>
               )}
 
-              {/* 3. SECURITY & 2FA SETTINGS MODAL */}
+              {/* 3. WITHDRAWAL PASSWORD / FUND PIN MODAL */}
+              {activeSettingModal === 'withdrawalPassword' && (
+                <div>
+                  <div
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(16, 185, 129, 0.08))',
+                      border: '1px solid rgba(251, 191, 36, 0.3)',
+                      borderRadius: '14px',
+                      padding: '14px 16px',
+                      marginBottom: '16px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 800, color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>🛡️</span> Fund Protection PIN
+                      </span>
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          background: (user?.hasWithdrawalPassword || hasWithdrawalPass) ? 'rgba(16, 185, 129, 0.2)' : 'rgba(251, 191, 36, 0.2)',
+                          color: (user?.hasWithdrawalPassword || hasWithdrawalPass) ? '#10b981' : '#fbbf24',
+                          border: `1px solid ${(user?.hasWithdrawalPassword || hasWithdrawalPass) ? '#10b981' : '#fbbf24'}`,
+                        }}
+                      >
+                        {(user?.hasWithdrawalPassword || hasWithdrawalPass) ? '● ACTIVE (CONFIGURED)' : '○ NOT CONFIGURED'}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '11.5px', color: '#cbd5e1', margin: 0, lineHeight: 1.5 }}>
+                      {(user?.hasWithdrawalPassword || hasWithdrawalPass)
+                        ? 'Your withdrawal password is required whenever you request a payout. You can update your fund PIN below.'
+                        : 'Create a secret 4 to 12 digit Fund Password / PIN. This PIN will be required every time you withdraw funds to keep your balance 100% secure.'}
+                    </p>
+                  </div>
+
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (!withdrawPassForm.newPass || withdrawPassForm.newPass.length < 4) {
+                        showUserWarning('PIN Too Short', 'Withdrawal password / PIN must be at least 4 digits or characters.');
+                        return;
+                      }
+                      if (withdrawPassForm.newPass !== withdrawPassForm.confirm) {
+                        showUserWarning('Mismatch', 'New withdrawal password and confirmation do not match.');
+                        return;
+                      }
+                      setWithdrawPassSubmitting(true);
+                      try {
+                        await userApi.updateProfile({
+                          withdrawalPassword: withdrawPassForm.newPass,
+                          currentWithdrawalPassword: withdrawPassForm.current || undefined,
+                        });
+                        setHasWithdrawalPass(true);
+                        localStorage.setItem('paynex_has_withdrawal_pin', 'true');
+                        setWithdrawPassForm({ current: '', newPass: '', confirm: '' });
+                        showUserSuccess('Withdrawal Password Saved!', 'Your fund withdrawal password has been successfully saved & encrypted.');
+                        setActiveSettingModal(null);
+                      } catch (err) {
+                        showUserError('Update Failed', err.response?.data?.message || err.message || 'Failed to update withdrawal password.');
+                      } finally {
+                        setWithdrawPassSubmitting(false);
+                      }
+                    }}
+                    style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+                  >
+                    {(user?.hasWithdrawalPassword || hasWithdrawalPass) && (
+                      <div>
+                        <label style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '5px' }}>
+                          Current Withdrawal Password / PIN
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            type={showWithdrawPassCurrent ? 'text' : 'password'}
+                            placeholder="Enter current PIN"
+                            value={withdrawPassForm.current}
+                            onChange={(e) => setWithdrawPassForm({ ...withdrawPassForm, current: e.target.value })}
+                            style={{
+                              width: '100%',
+                              background: 'rgba(0, 0, 0, 0.45)',
+                              border: '1px solid rgba(255, 255, 255, 0.12)',
+                              borderRadius: '10px',
+                              padding: '10px 42px 10px 12px',
+                              color: '#fff',
+                              fontSize: '13px',
+                              boxSizing: 'border-box',
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowWithdrawPassCurrent(!showWithdrawPassCurrent)}
+                            style={{
+                              position: 'absolute',
+                              right: '10px',
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              background: 'none',
+                              border: 'none',
+                              color: '#94a3b8',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                            }}
+                          >
+                            {showWithdrawPassCurrent ? '🙈' : '👁️'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <label style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '5px' }}>
+                        {(user?.hasWithdrawalPassword || hasWithdrawalPass) ? 'New Withdrawal Password / PIN *' : 'Create Withdrawal Password / PIN *'}
+                      </label>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type={showWithdrawPassNew ? 'text' : 'password'}
+                          required
+                          placeholder="Enter 4 to 12 digits/characters"
+                          value={withdrawPassForm.newPass}
+                          onChange={(e) => setWithdrawPassForm({ ...withdrawPassForm, newPass: e.target.value })}
+                          style={{
+                            width: '100%',
+                            background: 'rgba(0, 0, 0, 0.45)',
+                            border: '1px solid rgba(251, 191, 36, 0.4)',
+                            borderRadius: '10px',
+                            padding: '10px 42px 10px 12px',
+                            color: '#fff',
+                            fontSize: '13px',
+                            boxSizing: 'border-box',
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowWithdrawPassNew(!showWithdrawPassNew)}
+                          style={{
+                            position: 'absolute',
+                            right: '10px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none',
+                            border: 'none',
+                            color: '#94a3b8',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                          }}
+                        >
+                          {showWithdrawPassNew ? '🙈' : '👁️'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '5px' }}>
+                        Confirm Withdrawal Password / PIN *
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        placeholder="Re-enter new withdrawal PIN"
+                        value={withdrawPassForm.confirm}
+                        onChange={(e) => setWithdrawPassForm({ ...withdrawPassForm, confirm: e.target.value })}
+                        style={{
+                          width: '100%',
+                          background: 'rgba(0, 0, 0, 0.45)',
+                          border: withdrawPassForm.confirm && withdrawPassForm.newPass !== withdrawPassForm.confirm
+                            ? '1px solid #ef4444'
+                            : '1px solid rgba(255, 255, 255, 0.12)',
+                          borderRadius: '10px',
+                          padding: '10px 12px',
+                          color: '#fff',
+                          fontSize: '13px',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                      {withdrawPassForm.confirm && withdrawPassForm.newPass !== withdrawPassForm.confirm && (
+                        <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px' }}>PIN does not match</div>
+                      )}
+                      {withdrawPassForm.confirm && withdrawPassForm.newPass === withdrawPassForm.confirm && (
+                        <div style={{ fontSize: '11px', color: '#10b981', marginTop: '4px' }}>✓ PIN matches perfectly</div>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveSettingModal(null)}
+                        style={{
+                          flex: 1,
+                          background: 'rgba(255, 255, 255, 0.08)',
+                          border: 'none',
+                          borderRadius: '10px',
+                          padding: '11px',
+                          color: '#94a3b8',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={withdrawPassSubmitting}
+                        className="btn-cyber-primary"
+                        style={{
+                          flex: 2,
+                          padding: '11px',
+                          fontSize: '12.5px',
+                          fontWeight: 800,
+                          cursor: withdrawPassSubmitting ? 'not-allowed' : 'pointer',
+                          opacity: withdrawPassSubmitting ? 0.7 : 1,
+                        }}
+                      >
+                        {withdrawPassSubmitting ? 'Saving PIN...' : (user?.hasWithdrawalPassword || hasWithdrawalPass ? 'Update Withdrawal PIN' : 'Save Withdrawal PIN')}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* 4. CHANGE LOGIN PASSWORD MODAL */}
+              {activeSettingModal === 'changePassword' && (
+                <div>
+                  <div
+                    style={{
+                      background: 'rgba(59, 130, 246, 0.08)',
+                      border: '1px solid rgba(59, 130, 246, 0.25)',
+                      borderRadius: '14px',
+                      padding: '14px 16px',
+                      marginBottom: '16px',
+                    }}
+                  >
+                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#60a5fa', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>🔐</span> Account Login Security
+                    </div>
+                    <p style={{ fontSize: '11.5px', color: '#cbd5e1', margin: 0, lineHeight: 1.5 }}>
+                      Change the password used to sign in to your PAYNEX trading account. Strong passwords should have at least 6 characters including letters and numbers.
+                    </p>
+                  </div>
+
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (!passForm.newPass || passForm.newPass.length < 6) {
+                        showUserWarning('Password Too Short', 'New password must be at least 6 characters long.');
+                        return;
+                      }
+                      if (passForm.newPass !== passForm.confirm) {
+                        showUserWarning('Mismatch', 'New password and confirmation do not match.');
+                        return;
+                      }
+                      setPassSubmitting(true);
+                      try {
+                        await userApi.updateProfile({
+                          password: passForm.newPass,
+                          currentPassword: passForm.current || undefined,
+                        });
+                        setPassForm({ current: '', newPass: '', confirm: '' });
+                        showUserSuccess('Login Password Changed!', 'Your login password has been updated successfully. Please use this new password next time you sign in.');
+                        setActiveSettingModal(null);
+                      } catch (err) {
+                        showUserError('Password Error', err.response?.data?.message || err.message || 'Failed to update login password.');
+                      } finally {
+                        setPassSubmitting(false);
+                      }
+                    }}
+                    style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+                  >
+                    <div>
+                      <label style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '5px' }}>
+                        Current Login Password *
+                      </label>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type={showPassCurrent ? 'text' : 'password'}
+                          required
+                          placeholder="Enter your current login password"
+                          value={passForm.current}
+                          onChange={(e) => setPassForm({ ...passForm, current: e.target.value })}
+                          style={{
+                            width: '100%',
+                            background: 'rgba(0, 0, 0, 0.45)',
+                            border: '1px solid rgba(255, 255, 255, 0.12)',
+                            borderRadius: '10px',
+                            padding: '10px 42px 10px 12px',
+                            color: '#fff',
+                            fontSize: '13px',
+                            boxSizing: 'border-box',
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassCurrent(!showPassCurrent)}
+                          style={{
+                            position: 'absolute',
+                            right: '10px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none',
+                            border: 'none',
+                            color: '#94a3b8',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                          }}
+                        >
+                          {showPassCurrent ? '🙈' : '👁️'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '5px' }}>
+                        New Login Password *
+                      </label>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type={showPassNew ? 'text' : 'password'}
+                          required
+                          placeholder="At least 6 characters"
+                          value={passForm.newPass}
+                          onChange={(e) => setPassForm({ ...passForm, newPass: e.target.value })}
+                          style={{
+                            width: '100%',
+                            background: 'rgba(0, 0, 0, 0.45)',
+                            border: '1px solid rgba(59, 130, 246, 0.4)',
+                            borderRadius: '10px',
+                            padding: '10px 42px 10px 12px',
+                            color: '#fff',
+                            fontSize: '13px',
+                            boxSizing: 'border-box',
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassNew(!showPassNew)}
+                          style={{
+                            position: 'absolute',
+                            right: '10px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none',
+                            border: 'none',
+                            color: '#94a3b8',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                          }}
+                        >
+                          {showPassNew ? '🙈' : '👁️'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '5px' }}>
+                        Confirm New Login Password *
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        placeholder="Re-enter new password"
+                        value={passForm.confirm}
+                        onChange={(e) => setPassForm({ ...passForm, confirm: e.target.value })}
+                        style={{
+                          width: '100%',
+                          background: 'rgba(0, 0, 0, 0.45)',
+                          border: passForm.confirm && passForm.newPass !== passForm.confirm
+                            ? '1px solid #ef4444'
+                            : '1px solid rgba(255, 255, 255, 0.12)',
+                          borderRadius: '10px',
+                          padding: '10px 12px',
+                          color: '#fff',
+                          fontSize: '13px',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                      {passForm.confirm && passForm.newPass !== passForm.confirm && (
+                        <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px' }}>Passwords do not match</div>
+                      )}
+                      {passForm.confirm && passForm.newPass === passForm.confirm && (
+                        <div style={{ fontSize: '11px', color: '#10b981', marginTop: '4px' }}>✓ Passwords match</div>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveSettingModal(null)}
+                        style={{
+                          flex: 1,
+                          background: 'rgba(255, 255, 255, 0.08)',
+                          border: 'none',
+                          borderRadius: '10px',
+                          padding: '11px',
+                          color: '#94a3b8',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={passSubmitting}
+                        className="btn-cyber-primary"
+                        style={{
+                          flex: 2,
+                          padding: '11px',
+                          fontSize: '12.5px',
+                          fontWeight: 800,
+                          cursor: passSubmitting ? 'not-allowed' : 'pointer',
+                          opacity: passSubmitting ? 0.7 : 1,
+                        }}
+                      >
+                        {passSubmitting ? 'Updating Password...' : 'Save New Password'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* 5. SECURITY & 2FA SETTINGS MODAL */}
               {activeSettingModal === 'security' && (
                 <div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+                    {/* Quick Access to Passwords */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <div
+                        onClick={() => setActiveSettingModal('withdrawalPassword')}
+                        style={{
+                          background: 'rgba(251, 191, 36, 0.08)',
+                          border: '1px solid rgba(251, 191, 36, 0.3)',
+                          borderRadius: '10px',
+                          padding: '10px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <div style={{ fontSize: '16px', marginBottom: '4px' }}>🔐</div>
+                        <div style={{ fontSize: '12px', fontWeight: 800, color: '#fbbf24' }}>Withdrawal PIN</div>
+                        <div style={{ fontSize: '10px', color: '#94a3b8' }}>Create/change fund PIN</div>
+                      </div>
+                      <div
+                        onClick={() => setActiveSettingModal('changePassword')}
+                        style={{
+                          background: 'rgba(59, 130, 246, 0.08)',
+                          border: '1px solid rgba(59, 130, 246, 0.3)',
+                          borderRadius: '10px',
+                          padding: '10px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <div style={{ fontSize: '16px', marginBottom: '4px' }}>🔑</div>
+                        <div style={{ fontSize: '12px', fontWeight: 800, color: '#60a5fa' }}>Login Password</div>
+                        <div style={{ fontSize: '10px', color: '#94a3b8' }}>Change account password</div>
+                      </div>
+                    </div>
+
                     <div style={{ background: 'rgba(255, 255, 255, 0.04)', borderRadius: '12px', padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
                         <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>Two-Factor Auth (Google Authenticator)</div>
@@ -3643,55 +4113,6 @@ const UserTradingPortal = ({
                         }}
                       >
                         {biometricEnabled ? 'ACTIVE' : 'OFF'}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Change Password Form */}
-                  <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '14px', padding: '14px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#fbbf24', marginBottom: '10px' }}>
-                      🔑 Change Account Password
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <input
-                        type="password"
-                        placeholder="Current Password"
-                        value={passForm.current}
-                        onChange={(e) => setPassForm({ ...passForm, current: e.target.value })}
-                        style={{ width: '100%', background: 'rgba(0, 0, 0, 0.4)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '8px', padding: '8px 10px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
-                      />
-                      <input
-                        type="password"
-                        placeholder="New Password (min 8 characters)"
-                        value={passForm.newPass}
-                        onChange={(e) => setPassForm({ ...passForm, newPass: e.target.value })}
-                        style={{ width: '100%', background: 'rgba(0, 0, 0, 0.4)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '8px', padding: '8px 10px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
-                      />
-                      <input
-                        type="password"
-                        placeholder="Confirm New Password"
-                        value={passForm.confirm}
-                        onChange={(e) => setPassForm({ ...passForm, confirm: e.target.value })}
-                        style={{ width: '100%', background: 'rgba(0, 0, 0, 0.4)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '8px', padding: '8px 10px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
-                      />
-                      <button
-                        onClick={async () => {
-                          if (!passForm.newPass || passForm.newPass !== passForm.confirm) {
-                            showUserWarning('Password Mismatch', 'New passwords do not match or field is empty.');
-                            return;
-                          }
-                          try {
-                            await userApi.updateProfile({ password: passForm.newPass });
-                            showUserSuccess('Password Changed', 'Your account password has been updated on MongoDB Atlas.');
-                            setPassForm({ current: '', newPass: '', confirm: '' });
-                          } catch (err) {
-                            showUserError('Password Error', err.message);
-                          }
-                        }}
-                        className="btn-cyber-outline"
-                        style={{ padding: '9px', fontSize: '12px', fontWeight: 800, marginTop: '4px', cursor: 'pointer' }}
-                      >
-                        Update Password
                       </button>
                     </div>
                   </div>

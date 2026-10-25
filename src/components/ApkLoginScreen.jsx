@@ -348,77 +348,9 @@ export default function ApkLoginScreen({ onLoginSuccess, onSwitchToRegister, onS
           </button>
         </form>
 
-        {/* Divider "OR Continue with" */}
-        <div style={{ width: '100%', marginTop: '26px', marginBottom: '18px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-            <div style={{ flex: 1, height: '1px', backgroundColor: 'rgba(255, 255, 255, 0.14)' }} />
-            <span
-              style={{
-                padding: '0 14px',
-                fontSize: '11px',
-                fontWeight: 700,
-                color: '#64748B',
-                letterSpacing: '1px',
-              }}
-            >
-              OR
-            </span>
-            <div style={{ flex: 1, height: '1px', backgroundColor: 'rgba(255, 255, 255, 0.14)' }} />
-          </div>
-          <div style={{ textAlign: 'center', marginTop: '6px' }}>
-            <span style={{ fontSize: '11px', color: '#64748B' }}>Continue with</span>
-          </div>
-        </div>
+        <div style={{ height: '24px' }} />
 
-        {/* Social Icons (Google, Apple) */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '18px', marginBottom: '32px' }}>
-          {/* Google */}
-          <button
-            type="button"
-            onClick={handleSubmit}
-            title="Sign in with Google"
-            style={{
-              width: '52px',
-              height: '52px',
-              backgroundColor: '#14151B',
-              border: '1px solid rgba(255, 255, 255, 0.18)',
-              borderRadius: '14px',
-              color: '#FFFFFF',
-              fontSize: '22px',
-              fontWeight: 900,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              transition: 'border-color 0.2s',
-            }}
-          >
-            G
-          </button>
-
-          {/* Apple */}
-          <button
-            type="button"
-            onClick={handleSubmit}
-            title="Sign in with Apple"
-            style={{
-              width: '52px',
-              height: '52px',
-              backgroundColor: '#14151B',
-              border: '1px solid rgba(255, 255, 255, 0.18)',
-              borderRadius: '14px',
-              color: '#FFFFFF',
-              fontSize: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              transition: 'border-color 0.2s',
-            }}
-          >
-            
-          </button>
-        </div>
+        {/* Sign Up Link */}
 
         {/* Sign Up Link */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '16px' }}>
