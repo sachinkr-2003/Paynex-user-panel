@@ -711,7 +711,121 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                   />
                 </div>
                 <div style={{ fontSize: '11px', color: '#f59e0b', fontWeight: 800, marginTop: '8px' }}>
-                  Scan with PhonePe, Paytm, Google Pay, BHIM, or any UPI App
+                  Scan QR or Pay directly with your UPI App below:
+                </div>
+              </div>
+
+              {/* Official UPI ID Bar with 1-Tap Copy */}
+              <div
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(245, 158, 11, 0.35)',
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '14px',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '9.5px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 700 }}>
+                    OFFICIAL UPI ID
+                  </div>
+                  <div style={{ fontFamily: 'monospace', fontSize: '13px', fontWeight: 800, color: '#f59e0b' }}>
+                    {order.adminUpiId}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCopyUpi}
+                  style={{
+                    backgroundColor: copiedUpi ? '#10b981' : '#f59e0b',
+                    color: '#000',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '6px 12px',
+                    fontSize: '11.5px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  {copiedUpi ? 'Copied! ✅' : '📋 Copy UPI'}
+                </button>
+              </div>
+
+              {/* 1-Tap Direct UPI Payment App Launch Buttons */}
+              <div style={{ marginBottom: '14px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 800, color: '#fff', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>⚡</span> Pay Directly via Any UPI App (1-Tap):
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                  <a
+                    href={order.phonepeUri || order.upiUri}
+                    style={{
+                      textDecoration: 'none',
+                      backgroundColor: 'rgba(95, 37, 159, 0.25)',
+                      border: '1px solid rgba(95, 37, 159, 0.7)',
+                      borderRadius: '10px',
+                      padding: '8px 4px',
+                      textAlign: 'center',
+                      display: 'block',
+                    }}
+                  >
+                    <div style={{ fontSize: '16px' }}>🟣</div>
+                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#fff', marginTop: '2px' }}>PhonePe</div>
+                  </a>
+
+                  <a
+                    href={order.gpayUri || order.upiUri}
+                    style={{
+                      textDecoration: 'none',
+                      backgroundColor: 'rgba(26, 115, 232, 0.25)',
+                      border: '1px solid rgba(26, 115, 232, 0.7)',
+                      borderRadius: '10px',
+                      padding: '8px 4px',
+                      textAlign: 'center',
+                      display: 'block',
+                    }}
+                  >
+                    <div style={{ fontSize: '16px' }}>🔵</div>
+                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#fff', marginTop: '2px' }}>GPay</div>
+                  </a>
+
+                  <a
+                    href={order.paytmUri || order.upiUri}
+                    style={{
+                      textDecoration: 'none',
+                      backgroundColor: 'rgba(0, 185, 241, 0.25)',
+                      border: '1px solid rgba(0, 185, 241, 0.7)',
+                      borderRadius: '10px',
+                      padding: '8px 4px',
+                      textAlign: 'center',
+                      display: 'block',
+                    }}
+                  >
+                    <div style={{ fontSize: '16px' }}>🟦</div>
+                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#fff', marginTop: '2px' }}>Paytm</div>
+                  </a>
+
+                  <a
+                    href={order.upiUri}
+                    style={{
+                      textDecoration: 'none',
+                      backgroundColor: 'rgba(245, 158, 11, 0.25)',
+                      border: '1px solid rgba(245, 158, 11, 0.7)',
+                      borderRadius: '10px',
+                      padding: '8px 4px',
+                      textAlign: 'center',
+                      display: 'block',
+                    }}
+                  >
+                    <div style={{ fontSize: '16px' }}>⚡</div>
+                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#f59e0b', marginTop: '2px' }}>Any UPI</div>
+                  </a>
                 </div>
               </div>
 
@@ -728,9 +842,9 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                   marginBottom: '16px',
                 }}
               >
-                <span style={{ fontSize: '18px' }}>🔒</span>
+                <span style={{ fontSize: '18px' }}>💡</span>
                 <div style={{ fontSize: '11.5px', color: '#cbd5e1', lineHeight: '1.4' }}>
-                  <strong style={{ color: '#f59e0b' }}>Direct QR Scanner:</strong> Please scan the QR code above with any UPI app to complete payment securely. Then enter the 12-digit UTR number below.
+                  <strong>How to complete:</strong> 1. Pay via PhonePe, GPay, Paytm or scan QR. 2. Enter 12-digit UTR below. 3. Attach payment screenshot and submit.
                 </div>
               </div>
 
