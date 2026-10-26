@@ -119,11 +119,14 @@ const MarketsTable3D = ({ onSelectAsset }) => {
         style={{
           borderRadius: '20px',
           overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
           background: 'rgba(9, 12, 30, 0.85)',
           border: '1px solid rgba(245, 158, 11, 0.25)',
+          width: '100%',
+          boxSizing: 'border-box',
         }}
       >
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '540px' }}>
           <thead>
             <tr
               style={{
@@ -131,14 +134,14 @@ const MarketsTable3D = ({ onSelectAsset }) => {
                 background: 'rgba(245, 158, 11, 0.06)',
               }}
             >
-              <th style={{ padding: '16px 20px', fontSize: '12px', color: '#fbbf24', fontWeight: 700 }}>#</th>
-              <th style={{ padding: '16px 20px', fontSize: '12px', color: '#fbbf24', fontWeight: 700 }}>ASSET</th>
-              <th style={{ padding: '16px 20px', fontSize: '12px', color: '#fbbf24', fontWeight: 700 }}>PRICE</th>
-              <th style={{ padding: '16px 20px', fontSize: '12px', color: '#fbbf24', fontWeight: 700 }}>24H CHANGE</th>
-              <th style={{ padding: '16px 20px', fontSize: '12px', color: '#fbbf24', fontWeight: 700 }} className="hidden sm:table-cell">24H HIGH / LOW</th>
-              <th style={{ padding: '16px 20px', fontSize: '12px', color: '#fbbf24', fontWeight: 700 }} className="hidden md:table-cell">24H VOLUME</th>
-              <th style={{ padding: '16px 20px', fontSize: '12px', color: '#fbbf24', fontWeight: 700 }} className="hidden lg:table-cell">TREND</th>
-              <th style={{ padding: '16px 20px', fontSize: '12px', color: '#fbbf24', fontWeight: 700, textAlign: 'right' }}>ACTION</th>
+              <th style={{ padding: '14px clamp(8px, 1.8vw, 18px)', fontSize: '11.5px', color: '#fbbf24', fontWeight: 700 }}>#</th>
+              <th style={{ padding: '14px clamp(8px, 1.8vw, 18px)', fontSize: '11.5px', color: '#fbbf24', fontWeight: 700 }}>ASSET</th>
+              <th style={{ padding: '14px clamp(8px, 1.8vw, 18px)', fontSize: '11.5px', color: '#fbbf24', fontWeight: 700 }}>PRICE</th>
+              <th style={{ padding: '14px clamp(8px, 1.8vw, 18px)', fontSize: '11.5px', color: '#fbbf24', fontWeight: 700 }}>24H CHANGE</th>
+              <th style={{ padding: '14px clamp(8px, 1.8vw, 18px)', fontSize: '11.5px', color: '#fbbf24', fontWeight: 700 }} className="hidden sm:table-cell">24H HIGH / LOW</th>
+              <th style={{ padding: '14px clamp(8px, 1.8vw, 18px)', fontSize: '11.5px', color: '#fbbf24', fontWeight: 700 }} className="hidden md:table-cell">24H VOLUME</th>
+              <th style={{ padding: '14px clamp(8px, 1.8vw, 18px)', fontSize: '11.5px', color: '#fbbf24', fontWeight: 700 }} className="hidden lg:table-cell">TREND</th>
+              <th style={{ padding: '14px clamp(8px, 1.8vw, 18px)', fontSize: '11.5px', color: '#fbbf24', fontWeight: 700, textAlign: 'right' }}>ACTION</th>
             </tr>
           </thead>
           <tbody>
@@ -154,15 +157,15 @@ const MarketsTable3D = ({ onSelectAsset }) => {
                   onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(245, 158, 11, 0.08)')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <td style={{ padding: '16px 20px', fontSize: '12px', color: '#64748b' }}>{coin.rank}</td>
+                  <td style={{ padding: '12px clamp(8px, 1.8vw, 18px)', fontSize: '12px', color: '#64748b' }}>{coin.rank}</td>
 
                   {/* Asset Icon & Name */}
-                  <td style={{ padding: '16px 20px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <td style={{ padding: '12px clamp(8px, 1.8vw, 18px)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <div
                         style={{
-                          width: '32px',
-                          height: '32px',
+                          width: '30px',
+                          height: '30px',
                           borderRadius: '50%',
                           background: 'rgba(255, 255, 255, 0.08)',
                           display: 'flex',
@@ -170,37 +173,39 @@ const MarketsTable3D = ({ onSelectAsset }) => {
                           justifyContent: 'center',
                           color: coin.color,
                           fontWeight: 900,
-                          fontSize: '14px',
+                          fontSize: '13px',
                           boxShadow: `0 0 10px ${coin.color}35`,
+                          flexShrink: 0,
                         }}
                       >
                         {coin.icon}
                       </div>
                       <div>
-                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>{coin.name}</div>
-                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>{coin.symbol}</div>
+                        <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' }}>{coin.name}</div>
+                        <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>{coin.symbol}</div>
                       </div>
                     </div>
                   </td>
 
                   {/* Price */}
-                  <td style={{ padding: '16px 20px' }}>
-                    <div className="font-mono" style={{ fontSize: '14px', fontWeight: 800, color: '#fff' }}>
+                  <td style={{ padding: '12px clamp(8px, 1.8vw, 18px)' }}>
+                    <div className="font-mono" style={{ fontSize: '13.5px', fontWeight: 800, color: '#fff', whiteSpace: 'nowrap' }}>
                       ${coin.price > 1 ? coin.price.toLocaleString(undefined, { minimumFractionDigits: 2 }) : coin.price.toFixed(8)}
                     </div>
                   </td>
 
                   {/* 24h Change */}
-                  <td style={{ padding: '16px 20px' }}>
+                  <td style={{ padding: '12px clamp(8px, 1.8vw, 18px)' }}>
                     <span
                       style={{
-                        fontSize: '12px',
+                        fontSize: '11.5px',
                         fontWeight: 700,
                         color: isPositive ? '#10b981' : '#ef4444',
                         background: isPositive ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-                        padding: '4px 8px',
+                        padding: '3px 7px',
                         borderRadius: '6px',
                         display: 'inline-block',
+                        whiteSpace: 'nowrap',
                       }}
                     >
                       {isPositive ? '+' : ''}{coin.change}%
@@ -208,26 +213,26 @@ const MarketsTable3D = ({ onSelectAsset }) => {
                   </td>
 
                   {/* High/Low */}
-                  <td style={{ padding: '16px 20px' }} className="hidden sm:table-cell">
-                    <div className="font-mono" style={{ fontSize: '12px', color: '#94a3b8' }}>
+                  <td style={{ padding: '12px clamp(8px, 1.8vw, 18px)' }} className="hidden sm:table-cell">
+                    <div className="font-mono" style={{ fontSize: '11.5px', color: '#94a3b8', whiteSpace: 'nowrap' }}>
                       ${coin.high} / ${coin.low}
                     </div>
                   </td>
 
                   {/* Volume */}
-                  <td style={{ padding: '16px 20px' }} className="hidden md:table-cell">
-                    <div className="font-mono" style={{ fontSize: '12px', color: '#cbd5e1' }}>
+                  <td style={{ padding: '12px clamp(8px, 1.8vw, 18px)' }} className="hidden md:table-cell">
+                    <div className="font-mono" style={{ fontSize: '11.5px', color: '#cbd5e1', whiteSpace: 'nowrap' }}>
                       ${coin.volume}
                     </div>
                   </td>
 
                   {/* Sparkline Trend */}
-                  <td style={{ padding: '16px 20px' }} className="hidden lg:table-cell">
+                  <td style={{ padding: '12px clamp(8px, 1.8vw, 18px)' }} className="hidden lg:table-cell">
                     <MiniSparkline isPositive={isPositive} />
                   </td>
 
                   {/* Action */}
-                  <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                  <td style={{ padding: '12px clamp(8px, 1.8vw, 18px)', textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <button
                       onClick={() => {
                         if (onSelectAsset) onSelectAsset(`${coin.symbol}/USDT`);

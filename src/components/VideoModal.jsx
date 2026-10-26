@@ -50,7 +50,7 @@ const VideoModal = ({ isOpen, onClose }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '24px',
+        padding: 'clamp(10px, 3vw, 24px)',
       }}
       onClick={onClose}
     >
@@ -59,12 +59,14 @@ const VideoModal = ({ isOpen, onClose }) => {
         style={{
           width: '100%',
           maxWidth: '720px',
-          borderRadius: '26px',
+          maxHeight: '92vh',
+          overflowY: 'auto',
+          borderRadius: '24px',
           background: 'radial-gradient(ellipse at center, #0e122b 0%, #05060e 100%)',
           border: '1.5px solid rgba(245, 158, 11, 0.45)',
-          overflow: 'hidden',
           boxShadow: '0 30px 90px rgba(0, 0, 0, 0.9), 0 0 60px rgba(245, 158, 11, 0.25)',
           position: 'relative',
+          boxSizing: 'border-box',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -74,7 +76,7 @@ const VideoModal = ({ isOpen, onClose }) => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '16px 24px',
+            padding: '12px clamp(14px, 3vw, 24px)',
             borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
             background: 'rgba(5, 5, 20, 0.6)',
           }}
@@ -118,12 +120,13 @@ const VideoModal = ({ isOpen, onClose }) => {
         <div
           style={{
             position: 'relative',
-            height: '340px',
+            minHeight: '260px',
+            height: 'clamp(260px, 45vh, 340px)',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            padding: '28px',
+            padding: 'clamp(14px, 3.5vw, 28px)',
             background: 'linear-gradient(135deg, rgba(12, 14, 45, 0.95), rgba(6, 7, 24, 0.95))',
           }}
         >

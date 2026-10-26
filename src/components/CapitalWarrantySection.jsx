@@ -220,7 +220,7 @@ const CapitalWarrantySection = ({ onOpenAuth }) => {
             </p>
 
             {/* Checklist */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '10px' }}>
               {[
                 { icon: '✓', text: 'Estd. 2018 (8+ Years Active)' },
                 { icon: '✓', text: '100% Principal Protection' },
@@ -415,9 +415,9 @@ const CapitalWarrantySection = ({ onOpenAuth }) => {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))',
           gap: '16px',
-          padding: '24px clamp(16px, 3vw, 32px)',
+          padding: '24px clamp(12px, 3vw, 32px)',
           background: 'linear-gradient(90deg, rgba(15, 23, 42, 0.7) 0%, rgba(10, 14, 30, 0.9) 100%)',
           border: '1px solid rgba(245, 158, 11, 0.25)',
           borderRadius: '18px',

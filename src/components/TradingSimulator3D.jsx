@@ -491,7 +491,7 @@ const TradingSimulator3D = ({ demoBalance, setDemoBalance }) => {
           {/* Main Chart Canvas Viewport */}
           <div
             className="chart-viewport"
-            style={{ minHeight: '360px', position: 'relative' }}
+            style={{ minHeight: '360px', position: 'relative', minWidth: 0, overflow: 'hidden' }}
           >
             <canvas ref={canvasRef} style={{ width: '100%', height: '360px', display: 'block' }} />
 
@@ -609,11 +609,13 @@ const TradingSimulator3D = ({ demoBalance, setDemoBalance }) => {
               background: 'rgba(12, 16, 38, 0.75)',
               border: '1px solid rgba(245, 158, 11, 0.25)',
               borderRadius: '18px',
-              padding: '20px',
+              padding: 'clamp(14px, 3vw, 20px)',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
               gap: '16px',
+              minWidth: 0,
+              boxSizing: 'border-box',
             }}
           >
             <div>

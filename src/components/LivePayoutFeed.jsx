@@ -41,8 +41,8 @@ const LivePayoutFeed = () => {
     <div
       style={{
         maxWidth: '1360px',
-        margin: '0 auto 60px',
-        padding: '0 24px',
+        margin: '0 auto clamp(30px, 5vw, 60px)',
+        padding: '0 clamp(10px, 3vw, 24px)',
         position: 'relative',
         zIndex: 20,
       }}
@@ -51,16 +51,16 @@ const LivePayoutFeed = () => {
         className="cyber-card"
         style={{
           borderRadius: '18px',
-          padding: '16px 20px',
+          padding: 'clamp(12px, 2.5vw, 16px) clamp(12px, 3vw, 20px)',
           background: 'rgba(9, 12, 30, 0.85)',
           display: 'flex',
           flexWrap: 'wrap',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '16px',
+          gap: '12px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
           <span
             style={{
               width: '8px',
@@ -80,11 +80,12 @@ const LivePayoutFeed = () => {
         <div
           style={{
             display: 'flex',
-            gap: '12px',
+            gap: '10px',
             overflowX: 'auto',
             paddingBottom: '4px',
             flex: 1,
-            justifyContent: 'flex-end',
+            minWidth: '220px',
+            WebkitOverflowScrolling: 'touch',
           }}
         >
           {events.slice(0, 3).map((item) => (

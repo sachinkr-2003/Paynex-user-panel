@@ -237,22 +237,24 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
       style={{
         position: 'relative',
         zIndex: 10,
-        padding: 'clamp(8px, 2vw, 16px) clamp(12px, 3vw, 24px) clamp(24px, 4vw, 40px)',
+        padding: 'clamp(8px, 2vw, 16px) clamp(10px, 3vw, 24px) clamp(24px, 4vw, 40px)',
         maxWidth: '1360px',
         margin: '0 auto',
+        width: '100%',
+        boxSizing: 'border-box',
       }}
     >
       <div
         className="hero-grid"
         style={{
           display: 'grid',
-          gap: 'clamp(24px, 4vw, 40px)',
+          gap: 'clamp(20px, 4vw, 40px)',
           alignItems: 'center',
           width: '100%',
         }}
       >
         {/* Left Column: Epic Copy & CTA */}
-        <div style={{ transform: 'translateY(0)' }}>
+        <div style={{ transform: 'translateY(0)', width: '100%', maxWidth: '100%' }}>
           {/* Glowing Cyber Badge */}
           <div
             style={{
@@ -262,10 +264,11 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
               background: 'rgba(245, 158, 11, 0.12)',
               border: '1px solid rgba(245, 158, 11, 0.45)',
               borderRadius: '9999px',
-              padding: '5px 12px',
+              padding: '5px clamp(8px, 2vw, 12px)',
               marginBottom: '14px',
               boxShadow: '0 0 20px rgba(245, 158, 11, 0.2)',
               maxWidth: '100%',
+              boxSizing: 'border-box',
             }}
           >
             <span
@@ -281,16 +284,17 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
             />
             <span
               style={{
-                fontSize: 'clamp(9px, 2.4vw, 11px)',
+                fontSize: 'clamp(9px, 2.3vw, 11px)',
                 fontWeight: 800,
                 color: '#fbbf24',
-                letterSpacing: 'clamp(0.5px, 1.2vw, 1.5px)',
+                letterSpacing: 'clamp(0.4px, 1vw, 1px)',
+                lineHeight: 1.3,
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
               }}
             >
-              🛡️ 8+ YEARS OF PROVEN FINANCIAL TRUST (ESTD. 2018) • 100% CAPITAL ASSURANCE GUARANTEE
+              🛡️ 8+ YEARS OF FINANCIAL TRUST • 100% CAPITAL ASSURANCE
             </span>
           </div>
 
@@ -298,14 +302,15 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
           <h1
             className="font-display"
             style={{
-              fontSize: 'clamp(1.75rem, 5.2vw, 3.6rem)',
+              fontSize: 'clamp(1.35rem, 5.2vw, 3.2rem)',
               fontWeight: 900,
-              lineHeight: 1.15,
+              lineHeight: 1.2,
               letterSpacing: '-0.5px',
               marginBottom: '14px',
             }}
           >
-            Predict Crypto Moves.{' '}
+            Predict Crypto Moves.
+            <br />
             <span className="gradient-text-crypto">Trade in Seconds.</span>
             <br />
             Win Up to <span className="gradient-text-gold">95% Payout.</span>
@@ -327,7 +332,7 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
           {/* Action Buttons */}
           <div
             className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-3.5 mb-6"
-            style={{ maxWidth: '500px' }}
+            style={{ maxWidth: '500px', width: '100%' }}
           >
             <button
               onClick={onScrollToArena}
@@ -383,18 +388,20 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
               display: 'inline-flex',
               alignItems: 'center',
               gap: '10px',
-              padding: '8px 14px',
+              padding: '8px 12px',
               background: 'linear-gradient(90deg, rgba(245, 158, 11, 0.12) 0%, rgba(16, 185, 129, 0.08) 100%)',
               border: '1px solid rgba(245, 158, 11, 0.35)',
               borderRadius: '10px',
               marginBottom: '16px',
               maxWidth: '540px',
+              width: '100%',
+              boxSizing: 'border-box',
               boxShadow: '0 0 18px rgba(245, 158, 11, 0.12)',
             }}
           >
-            <span style={{ fontSize: '18px' }}>🛡️</span>
-            <div style={{ fontSize: '11.5px', lineHeight: 1.4 }}>
-              <span style={{ fontWeight: 800, color: '#fbbf24', letterSpacing: '0.4px' }}>
+            <span style={{ fontSize: '18px', flexShrink: 0 }}>🛡️</span>
+            <div style={{ fontSize: '11.5px', lineHeight: 1.4, minWidth: 0 }}>
+              <span style={{ fontWeight: 800, color: '#fbbf24', letterSpacing: '0.4px', display: 'inline' }}>
                 8-YEAR CAPITAL PROTECTION WARRANTY
               </span>
               <span style={{ color: '#cbd5e1', marginLeft: '6px' }}>
@@ -404,60 +411,51 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
           </div>
 
           {/* Metric Bar (4 Trust Columns) */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: 'clamp(6px, 1.8vw, 14px)',
-              borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-              paddingTop: '14px',
-              maxWidth: '560px',
-            }}
-          >
-            <div>
+          <div className="hero-metric-bar">
+            <div className="hero-metric-item">
               <div
                 className="font-mono"
-                style={{ fontSize: 'clamp(15px, 3.8vw, 21px)', fontWeight: 900, color: '#fbbf24' }}
+                style={{ fontSize: 'clamp(16px, 4vw, 22px)', fontWeight: 900, color: '#fbbf24' }}
               >
                 8+ Yrs
               </div>
-              <div style={{ fontSize: 'clamp(9px, 2.2vw, 11px)', color: '#94a3b8', fontWeight: 600 }}>
+              <div style={{ fontSize: 'clamp(9.5px, 2.4vw, 11px)', color: '#94a3b8', fontWeight: 600 }}>
                 Estd. 2018
               </div>
             </div>
 
-            <div>
+            <div className="hero-metric-item">
               <div
                 className="font-mono"
-                style={{ fontSize: 'clamp(15px, 3.8vw, 21px)', fontWeight: 900, color: '#fff' }}
+                style={{ fontSize: 'clamp(16px, 4vw, 22px)', fontWeight: 900, color: '#fff' }}
               >
                 $48.5M+
               </div>
-              <div style={{ fontSize: 'clamp(9px, 2.2vw, 11px)', color: '#94a3b8', fontWeight: 600 }}>
+              <div style={{ fontSize: 'clamp(9.5px, 2.4vw, 11px)', color: '#94a3b8', fontWeight: 600 }}>
                 24H Volume
               </div>
             </div>
 
-            <div>
+            <div className="hero-metric-item">
               <div
                 className="font-mono"
-                style={{ fontSize: 'clamp(15px, 3.8vw, 21px)', fontWeight: 900, color: '#10b981' }}
+                style={{ fontSize: 'clamp(16px, 4vw, 22px)', fontWeight: 900, color: '#10b981' }}
               >
                 0.4s
               </div>
-              <div style={{ fontSize: 'clamp(9px, 2.2vw, 11px)', color: '#94a3b8', fontWeight: 600 }}>
+              <div style={{ fontSize: 'clamp(9.5px, 2.4vw, 11px)', color: '#94a3b8', fontWeight: 600 }}>
                 Instant Payout
               </div>
             </div>
 
-            <div>
+            <div className="hero-metric-item">
               <div
                 className="font-mono"
-                style={{ fontSize: 'clamp(15px, 3.8vw, 21px)', fontWeight: 900, color: '#38bdf8' }}
+                style={{ fontSize: 'clamp(16px, 4vw, 22px)', fontWeight: 900, color: '#38bdf8' }}
               >
                 100%
               </div>
-              <div style={{ fontSize: 'clamp(9px, 2.2vw, 11px)', color: '#94a3b8', fontWeight: 600 }}>
+              <div style={{ fontSize: 'clamp(9.5px, 2.4vw, 11px)', color: '#94a3b8', fontWeight: 600 }}>
                 Capital Safe
               </div>
             </div>
@@ -472,7 +470,11 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
             justifyContent: 'center',
             alignItems: 'center',
             perspective: '1200px',
-            padding: '16px 14px',
+            padding: 'clamp(8px, 2vw, 16px) 0',
+            width: '100%',
+            maxWidth: '100%',
+            minWidth: 0,
+            boxSizing: 'border-box',
           }}
         >
           {/* Floating 3D Embossed Bitcoin Gold Medallion (Top-Left Celestial Orbit) */}
@@ -561,14 +563,16 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
               transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
               width: '100%',
               maxWidth: '490px',
+              minWidth: 0,
               background: 'linear-gradient(150deg, rgba(14, 18, 44, 0.95) 0%, rgba(5, 7, 20, 0.98) 100%)',
               border: '1.5px solid rgba(245, 158, 11, 0.42)',
               borderRadius: '20px',
-              padding: '14px clamp(10px, 3vw, 18px)',
+              padding: 'clamp(12px, 3.5vw, 18px)',
               boxShadow: '0 25px 65px rgba(0, 0, 0, 0.8), 0 0 50px rgba(245, 158, 11, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.12)',
               position: 'relative',
               overflow: 'hidden',
               backdropFilter: 'blur(20px)',
+              boxSizing: 'border-box',
             }}
           >
             {/* Holographic interactive sheen */}
@@ -639,12 +643,14 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
             <div
               style={{
                 display: 'flex',
-                gap: '6px',
+                gap: '4px',
                 marginBottom: '10px',
                 background: 'rgba(255, 255, 255, 0.03)',
                 padding: '3px',
                 borderRadius: '10px',
                 border: '1px solid rgba(255, 255, 255, 0.06)',
+                width: '100%',
+                boxSizing: 'border-box',
               }}
             >
               {Object.keys(ASSETS).map((key) => {
@@ -659,24 +665,26 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '5px',
-                      padding: '5px 6px',
+                      gap: '4px',
+                      padding: '5px 4px',
                       borderRadius: '8px',
                       border: isSelected ? `1px solid ${item.badgeBorder}` : '1px solid transparent',
                       background: isSelected ? item.badgeBg : 'transparent',
                       color: isSelected ? '#fff' : '#94a3b8',
                       cursor: 'pointer',
-                      fontSize: '11.5px',
+                      fontSize: 'clamp(10px, 2.7vw, 11.5px)',
                       fontWeight: 700,
                       transition: 'all 0.2s ease',
                       boxShadow: isSelected ? `0 0 12px ${item.accentGlow}` : 'none',
+                      minWidth: 0,
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    <span style={{ color: item.color, fontSize: '12px' }}>{item.symbol}</span>
+                    <span style={{ color: item.color, fontSize: 'clamp(11px, 2.8vw, 12.5px)' }}>{item.symbol}</span>
                     <span>{key.split('/')[0]}</span>
                     <span
                       style={{
-                        fontSize: '9.5px',
+                        fontSize: 'clamp(8.5px, 2.2vw, 9.5px)',
                         color: '#10b981',
                         background: 'rgba(16, 185, 129, 0.18)',
                         padding: '1px 3px',
@@ -700,9 +708,10 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
                 marginBottom: '10px',
                 paddingBottom: '8px',
                 borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                gap: '8px',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                 <div
                   style={{
                     width: '32px',
@@ -721,9 +730,9 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
                 >
                   {asset.symbol}
                 </div>
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <h3 style={{ fontSize: '14px', fontWeight: 900, margin: 0, color: '#fff' }}>
+                    <h3 style={{ fontSize: 'clamp(12.5px, 3.2vw, 14px)', fontWeight: 900, margin: 0, color: '#fff', whiteSpace: 'nowrap' }}>
                       {selectedAsset}
                     </h3>
                     <span
@@ -760,11 +769,11 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
               </div>
 
               {/* Live Pulsing Price Tag */}
-              <div style={{ textAlign: 'right' }}>
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 <div
                   className="font-mono"
                   style={{
-                    fontSize: '18px',
+                    fontSize: 'clamp(14px, 3.8vw, 18px)',
                     fontWeight: 900,
                     color: priceFlash === 'up' ? '#34d399' : priceFlash === 'down' ? '#f87171' : '#fff',
                     transition: 'color 0.2s',
@@ -774,13 +783,14 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
                         : priceFlash === 'down'
                         ? '0 0 15px rgba(248, 113, 113, 0.8)'
                         : 'none',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   ${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
-                <div style={{ fontSize: '10.5px', color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                <div style={{ fontSize: 'clamp(9px, 2.3vw, 10.5px)', color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '3px', whiteSpace: 'nowrap' }}>
                   <span>{asset.change24h} (24h)</span>
-                  <span style={{ fontSize: '9.5px', color: '#94a3b8' }}>• 8ms</span>
+                  <span style={{ fontSize: '9px', color: '#94a3b8' }}>• 8ms</span>
                 </div>
               </div>
             </div>
@@ -932,8 +942,18 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
               </div>
 
               {/* Chart Footer Info */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', zIndex: 5 }}>
-                <span style={{ color: '#a78bfa' }}>Contract Payout Multiplier:</span>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: 'clamp(9.5px, 2.5vw, 11px)',
+                  zIndex: 5,
+                  flexWrap: 'wrap',
+                  gap: '4px',
+                }}
+              >
+                <span style={{ color: '#a78bfa' }}>Contract Payout:</span>
                 <span style={{ color: '#fbbf24', fontWeight: 800 }}>
                   +{asset.payout}% (₹{Math.round(selectedAmount * (1 + asset.payout / 100)).toLocaleString('en-IN')} return)
                 </span>
@@ -960,9 +980,10 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
                     <span style={{ fontSize: '20px' }}>{miniResult.isWin ? '🏆' : '✕'}</span>
                     <span
                       style={{
-                        fontSize: '14px',
+                        fontSize: 'clamp(12px, 3.2vw, 14px)',
                         fontWeight: 900,
                         color: miniResult.isWin ? '#10b981' : '#ef4444',
+                        textAlign: 'center',
                       }}
                     >
                       {miniResult.isWin ? 'DEMO TRADE WON!' : 'TRADE SETTLED OUT OF MONEY'}
@@ -971,7 +992,7 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
                   <div
                     className="font-mono"
                     style={{
-                      fontSize: '17px',
+                      fontSize: 'clamp(15px, 4vw, 17px)',
                       fontWeight: 900,
                       color: miniResult.isWin ? '#34d399' : '#f87171',
                       marginBottom: '8px',
@@ -1024,9 +1045,9 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
                       background: selectedAmount === amt ? 'rgba(245, 158, 11, 0.25)' : 'rgba(255, 255, 255, 0.04)',
                       border: `1px solid ${selectedAmount === amt ? '#fbbf24' : 'rgba(255, 255, 255, 0.08)'}`,
                       color: selectedAmount === amt ? '#fbbf24' : '#94a3b8',
-                      padding: '4px 0',
+                      padding: '5px 0',
                       borderRadius: '7px',
-                      fontSize: '10.5px',
+                      fontSize: 'clamp(9.5px, 2.5vw, 11px)',
                       fontWeight: 700,
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
@@ -1046,19 +1067,27 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
                 onClick={() => handleQuickBet('CALL')}
                 className="btn-cyber-bull"
                 style={{
-                  padding: '9px 12px',
+                  padding: '9px 8px',
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '6px',
-                  fontSize: '12.5px',
+                  gap: '2px',
+                  fontSize: 'clamp(11px, 3vw, 12.5px)',
                   opacity: miniTrade ? 0.6 : 1,
                   cursor: miniTrade ? 'not-allowed' : 'pointer',
-                  borderRadius: '10px',
+                  borderRadius: '12px',
+                  width: '100%',
+                  boxSizing: 'border-box',
                 }}
               >
-                <span>▲</span>
-                <span>CALL / UP (+{asset.payout}%)</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '12px' }}>▲</span>
+                  <span>CALL / UP</span>
+                </div>
+                <span style={{ fontSize: '10px', opacity: 0.95, fontWeight: 700 }}>
+                  +{asset.payout}% Payout
+                </span>
               </button>
 
               <button
@@ -1066,19 +1095,27 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
                 onClick={() => handleQuickBet('PUT')}
                 className="btn-cyber-bear"
                 style={{
-                  padding: '9px 12px',
+                  padding: '9px 8px',
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '6px',
-                  fontSize: '12.5px',
+                  gap: '2px',
+                  fontSize: 'clamp(11px, 3vw, 12.5px)',
                   opacity: miniTrade ? 0.6 : 1,
                   cursor: miniTrade ? 'not-allowed' : 'pointer',
-                  borderRadius: '10px',
+                  borderRadius: '12px',
+                  width: '100%',
+                  boxSizing: 'border-box',
                 }}
               >
-                <span>▼</span>
-                <span>PUT / DOWN (+{asset.payout}%)</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '12px' }}>▼</span>
+                  <span>PUT / DOWN</span>
+                </div>
+                <span style={{ fontSize: '10px', opacity: 0.95, fontWeight: 700 }}>
+                  +{asset.payout}% Payout
+                </span>
               </button>
             </div>
 
@@ -1088,16 +1125,19 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
                 background: 'rgba(245, 158, 11, 0.08)',
                 border: '1px solid rgba(245, 158, 11, 0.25)',
                 borderRadius: '10px',
-                padding: '5px 10px',
+                padding: '5px 8px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                fontSize: '10px',
+                flexWrap: 'wrap',
+                gap: '4px',
+                fontSize: 'clamp(9px, 2.5vw, 10px)',
                 minHeight: '28px',
                 transition: 'all 0.3s ease',
+                boxSizing: 'border-box',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <span style={{ color: '#fbbf24' }}>🏆</span>
                 <span style={{ color: '#cbd5e1' }}>User {currentWinner.user} won</span>
               </div>
