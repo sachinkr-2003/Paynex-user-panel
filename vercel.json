@@ -25,6 +25,19 @@
           "value": "attachment; filename=\"PAYNEX_Release_v1.0.apk\""
         }
       ]
+    },
+    {
+      "source": "/app-release.apk",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/vnd.android.package-archive"
+        },
+        {
+          "key": "Content-Disposition",
+          "value": "attachment; filename=\"PAYNEX_Release_v1.0.apk\""
+        }
+      ]
     }
   ],
   "rewrites": [
