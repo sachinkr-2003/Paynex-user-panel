@@ -1,3 +1,6 @@
+import React from 'react';
+import { Crown, Rocket, ShieldCheck, Zap, UserCheck } from 'lucide-react';
+
 // 3D Bar Chart Visual
 const BarChart3D = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', position: 'relative', height: '200px', gap: '14px', perspective: '600px' }}>
@@ -16,7 +19,9 @@ const BarChart3D = () => (
     ].map((bar, i) => (
       <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', position: 'relative' }}>
         {bar.crown && (
-          <div style={{ fontSize: '24px', marginBottom: '6px', filter: 'drop-shadow(0 0 8px gold)' }}>👑</div>
+          <div style={{ marginBottom: '6px', filter: 'drop-shadow(0 0 8px gold)', display: 'flex', justifyContent: 'center' }}>
+            <Crown size={24} color="#fbbf24" />
+          </div>
         )}
         {/* Bar face */}
         <div style={{
@@ -49,10 +54,12 @@ const BarChart3D = () => (
     {/* Golden Arrow */}
     <div style={{
       position: 'absolute', bottom: '40px', right: '-20px',
-      fontSize: '40px',
       transform: 'rotate(-40deg)',
       filter: 'drop-shadow(0 0 10px rgba(251,191,36,0.8))',
-    }}>🚀</div>
+      display: 'flex',
+    }}>
+      <Rocket size={34} color="#fbbf24" />
+    </div>
   </div>
 );
 
@@ -88,9 +95,9 @@ const About = () => {
         {/* Right — Points */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {[
-            { icon: '🤝', title: 'Trusted & Transparent', desc: 'We believe in complete transparency and fair processes.' },
-            { icon: '🚀', title: 'Innovative Technology', desc: 'Built with modern technology for better performance and security.' },
-            { icon: '👤', title: 'Customer First', desc: 'Your satisfaction is our top priority.' },
+            { icon: <ShieldCheck size={20} color="#fbbf24" />, title: 'Trusted & Transparent', desc: 'We believe in complete transparency and fair processes.' },
+            { icon: <Zap size={20} color="#fbbf24" />, title: 'Innovative Technology', desc: 'Built with modern technology for better performance and security.' },
+            { icon: <UserCheck size={20} color="#fbbf24" />, title: 'Customer First', desc: 'Your satisfaction is our top priority.' },
           ].map(item => (
             <div key={item.title} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
               <div style={{
@@ -98,7 +105,7 @@ const About = () => {
                 background: 'rgba(245,158,11,0.15)',
                 border: '1px solid rgba(245,158,11,0.3)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '18px', flexShrink: 0,
+                flexShrink: 0,
               }}>{item.icon}</div>
               <div>
                 <h4 style={{ fontSize: '15px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{item.title}</h4>

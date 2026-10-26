@@ -1,30 +1,33 @@
+import React from 'react';
+import { UserPlus, CreditCard, TrendingUp, Trophy } from 'lucide-react';
+
 const STEPS = [
   {
     n: '01',
     title: 'Create Account & Claim ₹50K',
     desc: 'Sign up in 10 seconds. Claim ₹50,000 free demo practice funds instantly with no KYC required.',
-    icon: '👤',
+    icon: <UserPlus size={22} color="#2563eb" />,
     color: '#2563eb',
   },
   {
     n: '02',
     title: 'Deposit via UPI or USDT',
     desc: 'Deposit instantly in INR via PhonePe/GPay or transfer USDT on TRC-20 with zero network fees.',
-    icon: '💳',
+    icon: <CreditCard size={22} color="#38bdf8" />,
     color: '#38bdf8',
   },
   {
     n: '03',
     title: 'Predict & Place Bet (Call/Put)',
     desc: 'Choose your asset (BTC, ETH, SOL), pick your expiry (30s or 60s), and forecast market direction.',
-    icon: '📈',
+    icon: <TrendingUp size={22} color="#10b981" />,
     color: '#10b981',
   },
   {
     n: '04',
     title: 'Win Up to 95% & Instant Cashout',
     desc: 'Collect your high-yield payout and withdraw directly to your bank account or crypto address in 30s.',
-    icon: '🏆',
+    icon: <Trophy size={22} color="#fbbf24" />,
     color: '#fbbf24',
   },
 ];
@@ -110,7 +113,6 @@ const HowItWorks = ({ onOpenAuth }) => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '22px',
                     boxShadow: `0 0 20px ${s.color}35`,
                   }}
                 >

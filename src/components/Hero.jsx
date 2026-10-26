@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { ShieldCheck, Rocket, Zap, Trophy, X, ArrowRight } from 'lucide-react';
 
 const ASSETS = {
   'BTC/USDT': {
@@ -292,9 +293,13 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
               }}
             >
-              🛡️ 8+ YEARS OF FINANCIAL TRUST • 100% CAPITAL ASSURANCE
+              <ShieldCheck size={14} color="#fbbf24" />
+              <span>8+ YEARS OF FINANCIAL TRUST • 100% CAPITAL ASSURANCE</span>
             </span>
           </div>
 
@@ -346,7 +351,7 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
                 gap: '8px',
               }}
             >
-              <span>🚀</span>
+              <Rocket size={16} />
               <span>Launch 3D Trade Arena</span>
             </button>
 
@@ -399,7 +404,7 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
               boxShadow: '0 0 18px rgba(245, 158, 11, 0.12)',
             }}
           >
-            <span style={{ fontSize: '18px', flexShrink: 0 }}>🛡️</span>
+            <ShieldCheck size={18} color="#fbbf24" style={{ flexShrink: 0 }} />
             <div style={{ fontSize: '11.5px', lineHeight: 1.4, minWidth: 0 }}>
               <span style={{ fontWeight: 800, color: '#fbbf24', letterSpacing: '0.4px', display: 'inline' }}>
                 8-YEAR CAPITAL PROTECTION WARRANTY
@@ -814,7 +819,9 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
               {/* Chart Coordinates Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', zIndex: 5 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ color: '#fbbf24', fontWeight: 700 }}>⚡ LASER VOLATILITY CURVE</span>
+                  <span style={{ color: '#fbbf24', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <Zap size={13} color="#fbbf24" /> LASER VOLATILITY CURVE
+                  </span>
                   <span style={{ color: '#64748b' }}>| Real-Time Tick</span>
                 </div>
                 <span
@@ -977,7 +984,9 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '20px' }}>{miniResult.isWin ? '🏆' : '✕'}</span>
+                    <span style={{ display: 'flex', alignItems: 'center' }}>
+                      {miniResult.isWin ? <Trophy size={20} color="#10b981" /> : <X size={20} color="#ef4444" />}
+                    </span>
                     <span
                       style={{
                         fontSize: 'clamp(12px, 3.2vw, 14px)',
@@ -1019,9 +1028,9 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
                     <button
                       onClick={onScrollToArena}
                       className="btn-cyber-primary"
-                      style={{ padding: '6px 16px', fontSize: '11px' }}
+                      style={{ padding: '6px 16px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
                     >
-                      Enter Full Arena ➔
+                      Enter Full Arena <ArrowRight size={13} />
                     </button>
                   </div>
                 </div>
@@ -1138,7 +1147,7 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <span style={{ color: '#fbbf24' }}>🏆</span>
+                <Trophy size={14} color="#fbbf24" />
                 <span style={{ color: '#cbd5e1' }}>User {currentWinner.user} won</span>
               </div>
               <span className="font-mono" style={{ color: currentWinner.color, fontWeight: 800 }}>

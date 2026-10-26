@@ -1,27 +1,28 @@
 import { useState, useEffect } from 'react';
+import { Crown, Medal, Trophy, Rocket } from 'lucide-react';
 
 const LEADERBOARD_DATA = {
   today: [
-    { rank: 1, user: 'CryptoKaran_99', profit: '₹1,85,400', winRate: '95.8%', trades: 48, asset: 'BTC/USDT', streak: '14 Wins 🔥', badge: '🥇 CHAMPION' },
-    { rank: 2, user: 'Priya_Alpha', profit: '₹1,42,800', winRate: '93.2%', trades: 39, asset: 'ETH/USDT', streak: '9 Wins 🔥', badge: '🥈 PRO' },
-    { rank: 3, user: 'Vikram_TradeX', profit: '₹1,18,500', winRate: '91.7%', trades: 34, asset: 'SOL/USDT', streak: '7 Wins 🔥', badge: '🥉 ELITE' },
-    { rank: 4, user: 'Rahul_Whale', profit: '₹84,200', winRate: '89.5%', trades: 28, asset: 'BTC/USDT', streak: '5 Wins 🔥', badge: 'MASTER' },
-    { rank: 5, user: 'Sneha_Crypto', profit: '₹67,900', winRate: '88.0%', trades: 25, asset: 'BNB/USDT', streak: '6 Wins 🔥', badge: 'MASTER' },
+    { rank: 1, user: 'CryptoKaran_99', profit: '₹1,85,400', winRate: '95.8%', trades: 48, asset: 'BTC/USDT', streak: '14 Wins', badge: 'CHAMPION' },
+    { rank: 2, user: 'Priya_Alpha', profit: '₹1,42,800', winRate: '93.2%', trades: 39, asset: 'ETH/USDT', streak: '9 Wins', badge: 'PRO' },
+    { rank: 3, user: 'Vikram_TradeX', profit: '₹1,18,500', winRate: '91.7%', trades: 34, asset: 'SOL/USDT', streak: '7 Wins', badge: 'ELITE' },
+    { rank: 4, user: 'Rahul_Whale', profit: '₹84,200', winRate: '89.5%', trades: 28, asset: 'BTC/USDT', streak: '5 Wins', badge: 'MASTER' },
+    { rank: 5, user: 'Sneha_Crypto', profit: '₹67,900', winRate: '88.0%', trades: 25, asset: 'BNB/USDT', streak: '6 Wins', badge: 'MASTER' },
     { rank: 6, user: 'Aditya_Bull', profit: '₹52,400', winRate: '86.4%', trades: 22, asset: 'ETH/USDT', streak: '4 Wins', badge: 'EXPERT' },
   ],
   week: [
-    { rank: 1, user: 'WhaleKing_IN', profit: '₹8,92,000', winRate: '96.2%', trades: 210, asset: 'BTC/USDT', streak: '22 Wins 🔥', badge: '🥇 CHAMPION' },
-    { rank: 2, user: 'CryptoKaran_99', profit: '₹6,45,200', winRate: '94.5%', trades: 175, asset: 'ETH/USDT', streak: '18 Wins 🔥', badge: '🥈 PRO' },
-    { rank: 3, user: 'Mumbai_TraderX', profit: '₹5,18,000', winRate: '92.9%', trades: 142, asset: 'SOL/USDT', streak: '11 Wins 🔥', badge: '🥉 ELITE' },
-    { rank: 4, user: 'Priya_Alpha', profit: '₹4,12,600', winRate: '91.8%', trades: 120, asset: 'BTC/USDT', streak: '9 Wins 🔥', badge: 'MASTER' },
+    { rank: 1, user: 'WhaleKing_IN', profit: '₹8,92,000', winRate: '96.2%', trades: 210, asset: 'BTC/USDT', streak: '22 Wins', badge: 'CHAMPION' },
+    { rank: 2, user: 'CryptoKaran_99', profit: '₹6,45,200', winRate: '94.5%', trades: 175, asset: 'ETH/USDT', streak: '18 Wins', badge: 'PRO' },
+    { rank: 3, user: 'Mumbai_TraderX', profit: '₹5,18,000', winRate: '92.9%', trades: 142, asset: 'SOL/USDT', streak: '11 Wins', badge: 'ELITE' },
+    { rank: 4, user: 'Priya_Alpha', profit: '₹4,12,600', winRate: '91.8%', trades: 120, asset: 'BTC/USDT', streak: '9 Wins', badge: 'MASTER' },
     { rank: 5, user: 'Rohit_Scalper', profit: '₹3,28,400', winRate: '89.2%', trades: 98, asset: 'SOL/USDT', streak: '8 Wins', badge: 'MASTER' },
     { rank: 6, user: 'Ananya_Pro', profit: '₹2,75,900', winRate: '88.1%', trades: 86, asset: 'BTC/USDT', streak: '5 Wins', badge: 'EXPERT' },
   ],
   allTime: [
-    { rank: 1, user: 'AlphaWhale_Global', profit: '₹34,80,000', winRate: '97.1%', trades: 940, asset: 'BTC/USDT', streak: '31 Wins 🔥', badge: '🥇 LEGEND' },
-    { rank: 2, user: 'WhaleKing_IN', profit: '₹26,50,000', winRate: '95.6%', trades: 780, asset: 'BTC/USDT', streak: '24 Wins 🔥', badge: '🥈 TITAN' },
-    { rank: 3, user: 'CryptoKaran_99', profit: '₹19,25,000', winRate: '94.2%', trades: 610, asset: 'ETH/USDT', streak: '19 Wins 🔥', badge: '🥉 MASTER' },
-    { rank: 4, user: 'Delhi_CryptoLord', profit: '₹14,90,000', winRate: '93.0%', trades: 490, asset: 'SOL/USDT', streak: '15 Wins 🔥', badge: 'MASTER' },
+    { rank: 1, user: 'AlphaWhale_Global', profit: '₹34,80,000', winRate: '97.1%', trades: 940, asset: 'BTC/USDT', streak: '31 Wins', badge: 'LEGEND' },
+    { rank: 2, user: 'WhaleKing_IN', profit: '₹26,50,000', winRate: '95.6%', trades: 780, asset: 'BTC/USDT', streak: '24 Wins', badge: 'TITAN' },
+    { rank: 3, user: 'CryptoKaran_99', profit: '₹19,25,000', winRate: '94.2%', trades: 610, asset: 'ETH/USDT', streak: '19 Wins', badge: 'MASTER' },
+    { rank: 4, user: 'Delhi_CryptoLord', profit: '₹14,90,000', winRate: '93.0%', trades: 490, asset: 'SOL/USDT', streak: '15 Wins', badge: 'MASTER' },
     { rank: 5, user: 'Mumbai_TraderX', profit: '₹11,40,000', winRate: '91.8%', trades: 410, asset: 'BTC/USDT', streak: '12 Wins', badge: 'EXPERT' },
     { rank: 6, user: 'Priya_Alpha', profit: '₹9,85,000', winRate: '90.5%', trades: 360, asset: 'ETH/USDT', streak: '10 Wins', badge: 'EXPERT' },
   ],
@@ -80,7 +81,7 @@ const Leaderboard = ({ onScrollToArena }) => {
         bg: 'linear-gradient(180deg, rgba(245, 158, 11, 0.16) 0%, rgba(10, 13, 30, 0.95) 100%)',
         glow: '0 0 35px rgba(245, 158, 11, 0.35)',
         badgeColor: '#fbbf24',
-        crown: '👑',
+        icon: Crown,
         heightOffset: '0px',
       };
     }
@@ -90,7 +91,7 @@ const Leaderboard = ({ onScrollToArena }) => {
         bg: 'linear-gradient(180deg, rgba(148, 163, 184, 0.12) 0%, rgba(10, 13, 30, 0.95) 100%)',
         glow: '0 0 25px rgba(148, 163, 184, 0.2)',
         badgeColor: '#e2e8f0',
-        crown: '🥈',
+        icon: Medal,
         heightOffset: '14px',
       };
     }
@@ -99,7 +100,7 @@ const Leaderboard = ({ onScrollToArena }) => {
       bg: 'linear-gradient(180deg, rgba(217, 119, 6, 0.12) 0%, rgba(10, 13, 30, 0.95) 100%)',
       glow: '0 0 25px rgba(217, 119, 6, 0.2)',
       badgeColor: '#f59e0b',
-      crown: '🥉',
+      icon: Medal,
       heightOffset: '24px',
     };
   };
@@ -200,7 +201,7 @@ const Leaderboard = ({ onScrollToArena }) => {
                 transition: 'all 0.2s',
               }}
             >
-              <span>🏆</span>
+              <Trophy size={15} />
               <span>Top Traders</span>
             </button>
             <button
@@ -305,12 +306,13 @@ const Leaderboard = ({ onScrollToArena }) => {
                   >
                     <div
                       style={{
-                        fontSize: '26px',
-                        lineHeight: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         filter: 'drop-shadow(0 0 10px rgba(251, 191, 36, 0.5))',
                       }}
                     >
-                      {pStyle.crown}
+                      <pStyle.icon size={26} color={pStyle.badgeColor} />
                     </div>
                     <span
                       style={{
@@ -542,10 +544,9 @@ const Leaderboard = ({ onScrollToArena }) => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '14px',
                     }}
                   >
-                    🏆
+                    <Trophy size={14} color="#10b981" />
                   </div>
                   <div>
                     <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#fff' }}>
@@ -613,7 +614,7 @@ const Leaderboard = ({ onScrollToArena }) => {
           className="btn-cyber-primary"
           style={{ padding: '12px 28px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}
         >
-          <span>🚀</span>
+          <Rocket size={16} />
           <span>Join Arena & Climb Leaderboard</span>
         </button>
       </div>

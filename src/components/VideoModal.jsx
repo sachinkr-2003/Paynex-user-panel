@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { X, ArrowRight } from 'lucide-react';
 
 const VideoModal = ({ isOpen, onClose }) => {
   const [activeScene, setActiveScene] = useState(0);
@@ -112,7 +113,7 @@ const VideoModal = ({ isOpen, onClose }) => {
               justifyContent: 'center',
             }}
           >
-            ✕
+            <X size={15} />
           </button>
         </div>
 
@@ -225,9 +226,9 @@ const VideoModal = ({ isOpen, onClose }) => {
           <button
             onClick={onClose}
             className="btn-cyber-primary"
-            style={{ padding: '8px 20px', fontSize: '13px' }}
+            style={{ padding: '8px 20px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
-            Enter 3D Arena ➔
+            Enter 3D Arena <ArrowRight size={14} />
           </button>
         </div>
       </div>

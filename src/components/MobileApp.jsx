@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Home, TrendingUp, CreditCard, User, Smartphone, Apple, Check } from 'lucide-react';
 import IosInstallModal from './IosInstallModal';
 
 const MobileApp = () => {
@@ -132,13 +133,14 @@ const MobileApp = () => {
                 justifyContent: 'space-around',
                 borderTop: '1px solid rgba(255, 255, 255, 0.1)',
                 paddingTop: '6px',
-                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'center',
               }}
             >
-              <span>🏠</span>
-              <span>📈</span>
-              <span>💳</span>
-              <span>👤</span>
+              <Home size={14} color="#38bdf8" />
+              <TrendingUp size={14} color="#94a3b8" />
+              <CreditCard size={14} color="#94a3b8" />
+              <User size={14} color="#94a3b8" />
             </div>
           </div>
         </div>
@@ -203,7 +205,7 @@ const MobileApp = () => {
               onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')}
               onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
             >
-              <span style={{ fontSize: '20px' }}>🤖</span>
+              <Smartphone size={20} color="#fff" />
               <div style={{ textAlign: 'left' }}>
                 <div style={{ fontSize: '9px', opacity: 0.9 }}>Direct APK (55MB)</div>
                 <div style={{ fontSize: '13px', fontWeight: 800 }}>Android APK</div>
@@ -236,7 +238,7 @@ const MobileApp = () => {
               onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')}
               onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
             >
-              <span style={{ fontSize: '20px' }}>🍏</span>
+              <Apple size={20} color="#34d399" />
               <div style={{ textAlign: 'left' }}>
                 <div style={{ fontSize: '9px', color: '#34d399', fontWeight: 800 }}>Direct Download</div>
                 <div style={{ fontSize: '13px', fontWeight: 800 }}>iOS Web App (Profile)</div>
@@ -253,7 +255,7 @@ const MobileApp = () => {
               'Sub-10ms Match Speed',
             ].map((item) => (
               <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12px', color: '#cbd5e1' }}>
-                <span style={{ color: '#10b981', fontWeight: 900, fontSize: '13px' }}>✓</span>
+                <Check size={13} color="#10b981" strokeWidth={3} />
                 <span>{item}</span>
               </div>
             ))}

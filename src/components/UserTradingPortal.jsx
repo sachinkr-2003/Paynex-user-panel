@@ -2,6 +2,48 @@ import { useState, useEffect, useRef } from 'react';
 import userApi from '../services/api';
 import { showUserSuccess, showUserWarning, showUserError } from '../utils/swal';
 import { FIFTY_STOCKS_MAP, getCompanyQrUrl, enrichStockWithPayment, getCustomQrOverride } from '../data/stocksData';
+import AssetIcon from './AssetIcon';
+import {
+  Zap,
+  Flame,
+  Users,
+  Activity,
+  TrendingUp,
+  TrendingDown,
+  ShieldCheck,
+  Crown,
+  Sparkles,
+  Clock,
+  ArrowUpRight,
+  User,
+  CheckCircle2,
+  Gift,
+  Headphones,
+  Lock,
+  Key,
+  FileText,
+  Landmark,
+  Wallet,
+  Home,
+  BarChart2,
+  Check,
+  X,
+  Eye,
+  EyeOff,
+  Bot,
+  Send,
+  Mail,
+  Phone,
+  HelpCircle,
+  Download,
+  Upload,
+  AlertTriangle,
+  FolderOpen,
+  Smartphone,
+  CreditCard,
+  ChevronRight,
+  Edit3,
+} from 'lucide-react';
 
 
 const DEFAULT_ASSETS = FIFTY_STOCKS_MAP || {};
@@ -13,7 +55,7 @@ const FALLBACK_ASSET = {
   category: 'Crypto',
   basePrice: 5524321,
   step: 240,
-  icon: '₿',
+  icon: 'BTC',
   color: '#f7931a',
   returnPercent: 30,
   payout: 90,
@@ -37,6 +79,97 @@ const resolveAsset = (map, key) => {
   const firstInDefault = DEFAULT_ASSETS ? Object.values(DEFAULT_ASSETS)[0] : null;
   if (firstInDefault) return firstInDefault;
   return FALLBACK_ASSET;
+};
+
+const getInitialInvestorsForAsset = (assetKey) => {
+  const key = (assetKey || '').toUpperCase().replace('/USDT', '').replace('/INR', '');
+  const map = {
+    BTC: 24850,
+    ETH: 27420,
+    SOL: 22340,
+    BNB: 23650,
+    USDT: 21120,
+    XRP: 21890,
+    DOGE: 20620,
+    TCS: 28430,
+    INFY: 22940,
+    HDFCBANK: 26810,
+    HDFC: 26810,
+    RELIANCE: 31450,
+    TATAMOTORS: 23890,
+    ICICIBANK: 25120,
+    SBIN: 21980,
+    BHARTIARTL: 21450,
+    ITC: 26350,
+    LICI: 20890,
+  };
+  if (map[key]) return map[key];
+  let hash = 0;
+  for (let i = 0; i < (assetKey || '').length; i++) hash = (hash << 5) - hash + assetKey.charCodeAt(i);
+  return 20500 + (Math.abs(hash) % 14500); // Always > 20,000
+};
+
+const getInitialPoolForAsset = (assetKey) => {
+  const key = (assetKey || '').toUpperCase().replace('/USDT', '').replace('/INR', '');
+  const map = {
+    BTC: 48520000,
+    ETH: 37400000,
+    SOL: 21850000,
+    BNB: 24210000,
+    USDT: 20540000,
+    XRP: 21560000,
+    DOGE: 20830000,
+    TCS: 29540000,
+    INFY: 24180000,
+    HDFCBANK: 31850000,
+    HDFC: 31850000,
+    RELIANCE: 41260000,
+    TATAMOTORS: 23670000,
+    ICICIBANK: 25840000,
+    SBIN: 22450000,
+    BHARTIARTL: 23150000,
+    ITC: 26350000,
+    LICI: 20890000,
+  };
+  if (map[key]) return map[key];
+  let hash = 0;
+  for (let i = 0; i < (assetKey || '').length; i++) hash = (hash << 5) - hash + assetKey.charCodeAt(i);
+  return 20000000 + ((Math.abs(hash) % 250) * 100000);
+};
+
+const generateSeedTradersForAsset = (assetKey, rate) => {
+  const displayAsset = (assetKey || '').replace('/USDT', '').replace('/INR', '');
+  const returnPct = Number(rate) || 12;
+  const seedData = [
+    { name: 'Neha Bansal', avatar: 'NB', amount: 48500, time: 'Just now' },
+    { name: 'Divya Singhania', avatar: 'DS', amount: 45000, time: '3s ago' },
+    { name: 'Arjun Mehta', avatar: 'AM', amount: 38000, time: '6s ago' },
+    { name: 'Sanjay Aggarwal', avatar: 'SA', amount: 32000, time: '10s ago' },
+    { name: 'Priya Nair', avatar: 'PN', amount: 28000, time: '14s ago' },
+    { name: 'Rohan Kapoor', avatar: 'RK', amount: 25000, time: '19s ago' },
+    { name: 'Vikram Patel', avatar: 'VP', amount: 22000, time: '24s ago' },
+    { name: 'Sneha Roy', avatar: 'SR', amount: 18500, time: '29s ago' },
+    { name: 'Rajesh Rao', avatar: 'RR', amount: 15000, time: '34s ago' },
+    { name: 'Aman Gupta', avatar: 'AG', amount: 12000, time: '40s ago' },
+    { name: 'Pooja Verma', avatar: 'PV', amount: 8500, time: '46s ago' },
+    { name: 'Rahul Sharma', avatar: 'RS', amount: 5000, time: '52s ago' },
+  ];
+
+  return seedData.map((d, idx) => {
+    const profit = Math.round((d.amount * returnPct) / 100);
+    return {
+      id: `seed_${assetKey}_${idx}`,
+      name: d.name,
+      avatar: d.avatar,
+      amount: d.amount,
+      adminPercent: returnPct,
+      profit: profit,
+      payout: d.amount + profit,
+      time: d.time,
+      isUser: false,
+      asset: displayAsset,
+    };
+  });
 };
 
 const TIMEFRAMES = [
@@ -111,10 +244,10 @@ const UserTradingPortal = ({
     }
   });
 
-  // Dynamic asset-specific return rate (strictly between 2% and 12%)
+  // Dynamic asset-specific return rate
   const currentAsset = resolveAsset(assetsMap, selectedAsset);
   const rawAssetRate = currentAsset?.returnPercent ?? adminProfitPercent;
-  const currentAssetRate = Math.min(12, Math.max(2, rawAssetRate));
+  const currentAssetRate = Number(rawAssetRate) || 12;
 
   // Auto-adjust bet amount when asset changes if below min limit
   useEffect(() => {
@@ -151,7 +284,7 @@ const UserTradingPortal = ({
               category: a.category || 'Stock',
               basePrice: Number(a.basePrice) || 1000,
               step: Number(a.step) || Math.max(1, (Number(a.basePrice) * 0.001)),
-              icon: a.icon || '📈',
+              icon: a.icon || 'stock',
               color: a.color || '#38bdf8',
               returnPercent: Number(a.returnPercent) || 30,
               payout: 90,
@@ -261,7 +394,7 @@ const UserTradingPortal = ({
               setChatMessages([
                 {
                   sender: 'ai',
-                  text: `Namaste ${user?.name || 'Trader'}! PAYNEX 24/7 AI Desk online hai. 🤖✨\n\nAapko deposit, withdrawal, KYC, staking returns ya password reset me koi bhi sahayata chahiye toh yahan likhein!`,
+                  text: `Namaste ${user?.name || 'Trader'}! PAYNEX 24/7 AI Desk online hai.\n\nAapko deposit, withdrawal, KYC, staking returns ya password reset me koi bhi sahayata chahiye toh yahan likhein!`,
                   createdAt: new Date().toISOString(),
                 },
               ]);
@@ -378,7 +511,7 @@ const UserTradingPortal = ({
                 asset: r.asset,
                 assetName: assetObj?.name || r.asset,
                 symbol: assetObj?.symbol || r.asset,
-                icon: assetObj?.icon || '📈',
+                icon: assetObj?.icon || 'stock',
                 color: assetObj?.color || '#fbbf24',
                 category: assetObj?.category || 'Stock',
                 amount: amt,
@@ -467,41 +600,44 @@ const UserTradingPortal = ({
 
   const chartHeight = windowWidth < 640 ? 190 : windowWidth < 992 ? 260 : 320;
 
-  // Live Multiplayer Room Stakers & Pool State ("Koun Kitna Lagaye Hai")
-  const [liveTradersCount, setLiveTradersCount] = useState(1348);
-  const [roomTraders, setRoomTraders] = useState([
-    { id: 'rt_1', name: 'Rahul Sharma', avatar: '👨‍💼', amount: 2500, adminPercent: 30, profit: 750, payout: 3250, time: '2s ago', isUser: false, asset: 'BTC/USDT' },
-    { id: 'rt_2', name: 'Vikram Patel', avatar: '🧑‍💻', amount: 5000, adminPercent: 30, profit: 1500, payout: 6500, time: '5s ago', isUser: false, asset: 'BTC/USDT' },
-    { id: 'rt_3', name: 'Pooja Verma', avatar: '👩‍💼', amount: 1000, adminPercent: 30, profit: 300, payout: 1300, time: '8s ago', isUser: false, asset: 'BTC/USDT' },
-    { id: 'rt_4', name: 'Aman Gupta', avatar: '🧔', amount: 3000, adminPercent: 30, profit: 900, payout: 3900, time: '12s ago', isUser: false, asset: 'BTC/USDT' },
-    { id: 'rt_5', name: 'Sneha Roy', avatar: '👩‍🦰', amount: 1500, adminPercent: 30, profit: 450, payout: 1950, time: '17s ago', isUser: false, asset: 'BTC/USDT' },
-    { id: 'rt_6', name: 'Karan Malhotra', avatar: '👨‍🦱', amount: 5000, adminPercent: 30, profit: 1500, payout: 6500, time: '21s ago', isUser: false, asset: 'BTC/USDT' },
-    { id: 'rt_7', name: 'Deepak Joshi', avatar: '👨', amount: 2000, adminPercent: 30, profit: 600, payout: 2600, time: '26s ago', isUser: false, asset: 'BTC/USDT' },
-    { id: 'rt_8', name: 'Ananya Deshmukh', avatar: '👩', amount: 1000, adminPercent: 30, profit: 300, payout: 1300, time: '30s ago', isUser: false, asset: 'BTC/USDT' },
-    { id: 'rt_9', name: 'Rohan Mehra', avatar: '🧑', amount: 4000, adminPercent: 30, profit: 1200, payout: 5200, time: '34s ago', isUser: false, asset: 'BTC/USDT' },
-  ]);
+  // Live Multiplayer Room Stakers & Pool State (Company-specific, investors > 20,000)
+  const [companyInvestors, setCompanyInvestors] = useState(() => ({
+    'BTC/USDT': 24850,
+    'TCS': 28430,
+    'INFY': 22940,
+    'HDFCBANK': 26810,
+    'RELIANCE': 31450,
+  }));
+  const [companyRoomTraders, setCompanyRoomTraders] = useState({});
 
-  // Periodic incoming stakes from other simulated users in this pool
+  const currentInvestors = companyInvestors[selectedAsset] || getInitialInvestorsForAsset(selectedAsset);
+  const activeRoomTraders = companyRoomTraders[selectedAsset] || generateSeedTradersForAsset(selectedAsset, currentAssetRate);
+
+  // Periodic incoming stakes strictly under ₹50,000 for the selected company
   useEffect(() => {
     const SAMPLE_NAMES = [
-      { name: 'Arjun Mehta', avatar: '👨‍🦱' },
-      { name: 'Rohan Kapoor', avatar: '🧑‍💻' },
-      { name: 'Priya Nair', avatar: '👩‍💼' },
-      { name: 'Mohit Chawla', avatar: '🧔' },
-      { name: 'Divya Singhania', avatar: '👩' },
-      { name: 'Sanjay Aggarwal', avatar: '👨‍💼' },
-      { name: 'Neha Bansal', avatar: '👩‍🦰' },
-      { name: 'Rajesh Rao', avatar: '👨' },
-      { name: 'Kavita Iyer', avatar: '👩‍🦱' },
-      { name: 'Aditya Sen', avatar: '🧑' },
+      { name: 'Arjun Mehta', avatar: 'AM' },
+      { name: 'Rohan Kapoor', avatar: 'RK' },
+      { name: 'Priya Nair', avatar: 'PN' },
+      { name: 'Mohit Chawla', avatar: 'MC' },
+      { name: 'Divya Singhania', avatar: 'DS' },
+      { name: 'Sanjay Aggarwal', avatar: 'SA' },
+      { name: 'Neha Bansal', avatar: 'NB' },
+      { name: 'Rajesh Rao', avatar: 'RR' },
+      { name: 'Vikram Patel', avatar: 'VP' },
+      { name: 'Sneha Roy', avatar: 'SR' },
+      { name: 'Aman Gupta', avatar: 'AG' },
+      { name: 'Karan Malhotra', avatar: 'KM' },
     ];
-    const AMOUNTS = [500, 1000, 1500, 2000, 2500, 3000, 5000, 7500, 10000];
+    // Stakes strictly under ₹50,000
+    const AMOUNTS = [48500, 45000, 42000, 38000, 35000, 32000, 28000, 25000, 22000, 18500, 15000, 12000, 9500, 6000];
 
     const timer = setInterval(() => {
       const randomUser = SAMPLE_NAMES[Math.floor(Math.random() * SAMPLE_NAMES.length)];
       const randomAmount = AMOUNTS[Math.floor(Math.random() * AMOUNTS.length)];
       const simProfit = Math.round((randomAmount * currentAssetRate) / 100);
       const simPayout = randomAmount + simProfit;
+      const displayAsset = (selectedAsset || '').replace('/USDT', '').replace('/INR', '');
 
       const newBet = {
         id: `t_${Date.now()}_${Math.random()}`,
@@ -513,20 +649,33 @@ const UserTradingPortal = ({
         payout: simPayout,
         time: 'Just now',
         isUser: false,
-        asset: selectedAsset,
+        asset: displayAsset,
       };
 
-      setRoomTraders((prev) => [newBet, ...prev.slice(0, 19)]);
-      setLiveTradersCount((prev) => prev + (Math.random() > 0.48 ? 1 : -1));
+      setCompanyRoomTraders((prev) => {
+        const currentList = prev[selectedAsset] || generateSeedTradersForAsset(selectedAsset, currentAssetRate);
+        return {
+          ...prev,
+          [selectedAsset]: [newBet, ...currentList.slice(0, 24)],
+        };
+      });
+
+      setCompanyInvestors((prev) => {
+        const cur = prev[selectedAsset] || getInitialInvestorsForAsset(selectedAsset);
+        const delta = Math.random() > 0.48 ? 1 : -1;
+        return {
+          ...prev,
+          [selectedAsset]: Math.max(20001, cur + delta),
+        };
+      });
     }, 3500);
 
     return () => clearInterval(timer);
   }, [selectedAsset, currentAssetRate]);
 
   // Calculate Live Staking Pool Totals
-  const filteredRoomTraders = roomTraders.filter((t) => !t.asset || t.asset === selectedAsset);
-  const roomStakeTotal = filteredRoomTraders.reduce((sum, t) => sum + t.amount, 0);
-  const basePoolStake = 1450000;
+  const roomStakeTotal = activeRoomTraders.reduce((sum, t) => sum + t.amount, 0);
+  const basePoolStake = getInitialPoolForAsset(selectedAsset);
   const totalRoundPool = basePoolStake + roomStakeTotal;
   const totalMaturityPayout = Math.round(totalRoundPool * (1 + currentAssetRate / 100));
 
@@ -874,7 +1023,7 @@ const UserTradingPortal = ({
       ctx.fillStyle = '#f59e0b';
       ctx.font = 'bold 10px sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText(`⚡ Active Holding: ₹${activeTrade.amount.toLocaleString('en-IN')} (+${activeTrade.adminPercent}% in ${activeTrade.timeLeft}s)`, 20, activeEntryY - 5);
+      ctx.fillText(`Active Holding: ₹${activeTrade.amount.toLocaleString('en-IN')} (+${activeTrade.adminPercent}% in ${activeTrade.timeLeft}s)`, 20, activeEntryY - 5);
     }
   }, [chartHeight, currentPrice, priceHistory, activeTrade, windowWidth, chartTimeframe]);
 
@@ -923,7 +1072,7 @@ const UserTradingPortal = ({
       asset: selectedAsset,
       assetName: currentAsset?.name || selectedAsset,
       symbol: currentAsset?.symbol || selectedAsset,
-      icon: currentAsset?.icon || '⚡',
+      icon: currentAsset?.icon || 'stock',
       color: currentAsset?.color || '#fbbf24',
       category: currentAsset?.category || 'Asset',
       amount: betAmount,
@@ -938,20 +1087,30 @@ const UserTradingPortal = ({
     setUserContracts((prevContracts) => [newContract, ...prevContracts]);
 
     // Add user's real stake into the live room participants feed
+    const displayAsset = (selectedAsset || '').replace('/USDT', '').replace('/INR', '');
     const userStakeEntry = {
       id: serverRoundId || `user_stake_${Date.now()}`,
       name: `${user?.name || 'Sachin'} (You)`,
-      avatar: '⭐',
+      avatar: 'TRD',
       amount: betAmount,
       adminPercent: currentAssetRate,
       profit,
       payout,
       time: 'Just now',
       isUser: true,
-      asset: selectedAsset,
+      asset: displayAsset,
     };
-    setRoomTraders((prev) => [userStakeEntry, ...prev.slice(0, 19)]);
-    setLiveTradersCount((c) => c + 1);
+    setCompanyRoomTraders((prev) => {
+      const currentList = prev[selectedAsset] || generateSeedTradersForAsset(selectedAsset, currentAssetRate);
+      return {
+        ...prev,
+        [selectedAsset]: [userStakeEntry, ...currentList.slice(0, 24)],
+      };
+    });
+    setCompanyInvestors((prev) => {
+      const cur = prev[selectedAsset] || getInitialInvestorsForAsset(selectedAsset);
+      return { ...prev, [selectedAsset]: cur + 1 };
+    });
   };
 
   // Dedicated Stock Purchase & QR Payment Modal State
@@ -1052,7 +1211,7 @@ const UserTradingPortal = ({
       asset: purchaseModalAsset.symbol || purchaseModalAsset.id,
       assetName: purchaseModalAsset.name,
       symbol: purchaseModalAsset.symbol || purchaseModalAsset.id,
-      icon: purchaseModalAsset.icon || '📈',
+      icon: purchaseModalAsset.icon || 'stock',
       color: purchaseModalAsset.color || '#3b82f6',
       category: purchaseModalAsset.category || 'Stock',
       amount: buyAmt,
@@ -1066,33 +1225,44 @@ const UserTradingPortal = ({
     };
     setUserContracts((prevContracts) => [newContract, ...prevContracts]);
 
+    const purchasedSymbol = purchaseModalAsset.symbol || purchaseModalAsset.id;
+    const displaySymbol = (purchasedSymbol || '').replace('/USDT', '').replace('/INR', '');
     const userStakeEntry = {
       id: serverRoundId || `user_stake_${Date.now()}`,
       name: `${user?.name || 'Sachin'} (You)`,
-      avatar: '⭐',
+      avatar: 'TRD',
       amount: buyAmt,
       adminPercent: assetRate,
       profit,
       payout,
       time: 'Just now',
       isUser: true,
-      asset: purchaseModalAsset.symbol || purchaseModalAsset.id,
+      asset: displaySymbol,
     };
-    setRoomTraders((prev) => [userStakeEntry, ...prev.slice(0, 19)]);
-    setLiveTradersCount((c) => c + 1);
+    setCompanyRoomTraders((prev) => {
+      const currentList = prev[purchasedSymbol] || generateSeedTradersForAsset(purchasedSymbol, assetRate);
+      return {
+        ...prev,
+        [purchasedSymbol]: [userStakeEntry, ...currentList.slice(0, 24)],
+      };
+    });
+    setCompanyInvestors((prev) => {
+      const cur = prev[purchasedSymbol] || getInitialInvestorsForAsset(purchasedSymbol);
+      return { ...prev, [purchasedSymbol]: cur + 1 };
+    });
 
     const purchasedAssetName = purchaseModalAsset.name;
     setPurchaseModalAsset(null);
 
     showUserSuccess(
-      '🎉 Stock Purchase & Stake Activated!',
+      'Stock Purchase & Stake Activated!',
       `Successfully purchased <strong>${purchasedAssetName}</strong> (${purchaseMode === 'qr' ? 'via Company QR' : 'from Wallet'}). Growth plan active with <strong>+${assetRate}% Guaranteed Profit</strong>!`
     );
   };
 
 
   // Render Rich Contracts History Section
-  const renderContractsHistorySection = ({ title = '📋 My Contracts & Holdings History', subtitle = null }) => {
+  const renderContractsHistorySection = ({ title = 'My Contracts & Holdings History', subtitle = null }) => {
     const displayedContracts = userContracts.filter((c) => {
       if (contractFilter === 'running') return c.status === 'Running';
       if (contractFilter === 'completed') return c.status === 'Completed';
@@ -1114,7 +1284,7 @@ const UserTradingPortal = ({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '20px' }}>📋</span>
+              <FileText size={20} color="#fbbf24" />
               <h3 style={{ fontSize: 'clamp(16px, 4vw, 19px)', fontWeight: 800, color: '#fff', margin: 0 }}>
                 {title}
               </h3>
@@ -1212,8 +1382,8 @@ const UserTradingPortal = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
           {[
             { id: 'all', label: `All Contracts (${userContracts.length})` },
-            { id: 'running', label: `⚡ Active / Running (${activeContractsList.length})` },
-            { id: 'completed', label: `✅ Completed (${completedContractsList.length})` },
+            { id: 'running', label: `Active / Running (${activeContractsList.length})` },
+            { id: 'completed', label: `Completed (${completedContractsList.length})` },
           ].map((tab) => {
             const isSel = contractFilter === tab.id;
             return (
@@ -1249,7 +1419,7 @@ const UserTradingPortal = ({
               border: '1px dashed rgba(255, 255, 255, 0.1)',
             }}
           >
-            <div style={{ fontSize: '28px', marginBottom: '8px' }}>📂</div>
+            <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'center' }}><FolderOpen size={32} color="#64748b" /></div>
             <div style={{ fontSize: '14px', fontWeight: 700, color: '#e2e8f0', marginBottom: '4px' }}>
               No Contracts Found
             </div>
@@ -1302,7 +1472,7 @@ const UserTradingPortal = ({
                           fontSize: '18px',
                         }}
                       >
-                        {c.icon || '📈'}
+                        <AssetIcon symbol={c.symbol || c.name} iconName={c.icon} size={16} />
                       </div>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1361,7 +1531,7 @@ const UserTradingPortal = ({
                             padding: '3px 10px',
                           }}
                         >
-                          <span style={{ color: '#10b981', fontSize: '11px' }}>✓</span>
+                          <Check size={11} color="#10b981" />
                           <span style={{ fontSize: '11px', fontWeight: 800, color: '#10b981' }}>
                             Completed & Credited
                           </span>
@@ -1582,7 +1752,7 @@ const UserTradingPortal = ({
                 }}
                 title="Amount currently locked in active contracts"
               >
-                <span style={{ fontSize: '12px' }}>⚡</span>
+                <Zap size={12} color="#fbbf24" />
                 <span style={{ fontSize: '11px', color: '#fbbf24', fontWeight: 600 }}>In Contract:</span>
                 <span style={{ fontSize: 'clamp(13px, 3.5vw, 15px)', fontWeight: 800, color: '#fbbf24', fontFamily: 'monospace' }}>
                   ₹{activeContractAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -1609,7 +1779,7 @@ const UserTradingPortal = ({
                 }}
                 title="View All My Contracts"
               >
-                <span>📋</span>
+                <FileText size={14} color="#38bdf8" />
                 <span>Contracts ({userContracts.length})</span>
               </button>
 
@@ -1706,7 +1876,7 @@ const UserTradingPortal = ({
                         flexShrink: 0,
                       }}
                     >
-                      {item.icon}
+                      <AssetIcon symbol={item.symbol || symbol} iconName={item.icon} category={item.category} size={15} color="#fff" />
                     </span>
                     <div style={{ textAlign: 'left', minWidth: 0 }}>
                       <div style={{ fontSize: 'clamp(11.5px, 3vw, 13px)', fontWeight: 800, whiteSpace: 'nowrap' }}>
@@ -1741,7 +1911,9 @@ const UserTradingPortal = ({
                       borderRadius: '6px',
                     }}
                   >
-                    👥 {liveTradersCount.toLocaleString('en-IN')} Active
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <Users size={11} /> {currentInvestors.toLocaleString('en-IN')} Active
+                    </span>
                   </span>
                 </div>
 
@@ -1787,7 +1959,9 @@ const UserTradingPortal = ({
                       fontWeight: 800,
                     }}
                   >
-                    ⚡ Fixed Return
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                      <Zap size={11} /> Fixed Return
+                    </span>
                   </span>
                   <span style={{ fontSize: 'clamp(11.5px, 3.2vw, 13px)', fontWeight: 900, color: '#34d399' }}>
                     +{currentAssetRate}% Guaranteed
@@ -1852,7 +2026,7 @@ const UserTradingPortal = ({
                           boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
                         }}
                       >
-                        {assetInfo.icon || '📈'}
+                        <AssetIcon symbol={assetInfo.symbol || selectedAsset} iconName={assetInfo.icon} category={assetInfo.category} size={18} color="#fff" />
                       </span>
                       <div>
                         <div style={{ fontSize: 'clamp(16px, 4.2vw, 19px)', fontWeight: 900, color: '#fff', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1898,7 +2072,7 @@ const UserTradingPortal = ({
                         }}
                         title={`Scan QR code to pay & invest in ${assetInfo.name || selectedAsset}`}
                       >
-                        <span>📱</span>
+                        <Smartphone size={14} color="#38bdf8" />
                         <span>QR Pay</span>
                       </button>
                       <span
@@ -1913,7 +2087,9 @@ const UserTradingPortal = ({
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        🔥 +{currentAssetRate}% Guaranteed
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                          <Flame size={12} /> +{currentAssetRate}% Guaranteed
+                        </span>
                       </span>
                     </div>
                   </div>
@@ -1924,8 +2100,8 @@ const UserTradingPortal = ({
                       <span style={{ fontSize: 'clamp(22px, 5.5vw, 27px)', fontWeight: 900, color: '#fbbf24', fontFamily: 'monospace', letterSpacing: '-0.5px' }}>
                         ₹{currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </span>
-                      <span style={{ fontSize: '11.5px', color: '#10b981', fontWeight: 800, background: 'rgba(16, 185, 129, 0.12)', padding: '2px 8px', borderRadius: '6px' }}>
-                        ▲ +{currentAssetRate}% Fixed Return
+                      <span style={{ fontSize: '11.5px', color: '#10b981', fontWeight: 800, background: 'rgba(16, 185, 129, 0.12)', padding: '2px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                        <TrendingUp size={12} /> +{currentAssetRate}% Fixed Return
                       </span>
                     </div>
 
@@ -1985,7 +2161,7 @@ const UserTradingPortal = ({
                           flexShrink: 0,
                         }}
                       >
-                        ⚡
+                        <Zap size={14} color="#f59e0b" />
                       </div>
                       <div style={{ minWidth: 0, overflow: 'hidden' }}>
                         <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
@@ -2086,7 +2262,7 @@ const UserTradingPortal = ({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                   <div>
                     <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>⚡</span> Buy {assetInfo.name || selectedAsset}
+                      <Zap size={14} color="#120a00" /> Buy {assetInfo.name || selectedAsset}
                     </h3>
                     <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
                       Fixed Guaranteed Return on Maturity
@@ -2279,8 +2455,8 @@ const UserTradingPortal = ({
                       {activeTrade
                         ? `⏳ Plan Active • Maturing in ${activeTrade.timeLeft}s`
                         : realBalance >= betAmount
-                        ? `⚡ 1-Click Buy via Wallet (₹${betAmount.toLocaleString('en-IN')})`
-                        : `⚡ Buy via Wallet (₹${betAmount.toLocaleString('en-IN')})`}
+                        ? `1-Click Buy via Wallet (₹${betAmount.toLocaleString('en-IN')})`
+                        : `Buy via Wallet (₹${betAmount.toLocaleString('en-IN')})`}
                     </span>
                     <span style={{ fontSize: '10.5px', fontWeight: 700, opacity: 0.9, marginTop: '2px' }}>
                       {activeTrade
@@ -2313,7 +2489,7 @@ const UserTradingPortal = ({
                     }}
                     title={`Scan company QR and pay directly for ${assetInfo.name}`}
                   >
-                    <span style={{ fontSize: '15px' }}>📱</span>
+                    <Smartphone size={15} color="#38bdf8" />
                     <span>Scan & Pay via {assetInfo.name || selectedAsset} QR Code</span>
                   </button>
                 </div>
@@ -2337,10 +2513,10 @@ const UserTradingPortal = ({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                   <div>
                     <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      👥 Live Room Stakes
+                      Live Room Stakes
                     </h4>
                     <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                      Who staked how much & Live returns
+                      Top stakes under ₹50,000 & Live returns
                     </span>
                   </div>
                   <span
@@ -2354,13 +2530,15 @@ const UserTradingPortal = ({
                       borderRadius: '12px',
                     }}
                   >
-                    ● Real-Time
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <Activity size={10} /> Real-Time
+                    </span>
                   </span>
                 </div>
 
-                {/* Traders List */}
+                {/* Traders List (Stakes < ₹50,000) */}
                 <div style={{ maxHeight: '340px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }} className="custom-scroll">
-                  {filteredRoomTraders.map((trader) => (
+                  {activeRoomTraders.slice(0, 10).map((trader) => (
                     <div
                       key={trader.id}
                       style={{
@@ -2379,7 +2557,27 @@ const UserTradingPortal = ({
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '20px' }}>{trader.avatar}</span>
+                        <div
+                          style={{
+                            width: '30px',
+                            height: '30px',
+                            borderRadius: '50%',
+                            background: trader.isUser
+                              ? 'linear-gradient(135deg, #fbbf24, #f59e0b)'
+                              : 'linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(99, 102, 241, 0.28))',
+                            border: trader.isUser ? '1.5px solid #fbbf24' : '1px solid rgba(56, 189, 248, 0.4)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 900,
+                            fontSize: '10.5px',
+                            color: trader.isUser ? '#000' : '#38bdf8',
+                            flexShrink: 0,
+                            letterSpacing: '0.5px',
+                          }}
+                        >
+                          {trader.isUser ? 'YOU' : (trader.name || 'TR').split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
+                        </div>
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <span style={{ fontSize: '13px', fontWeight: 800, color: trader.isUser ? '#fbbf24' : '#fff' }}>
@@ -2416,7 +2614,7 @@ const UserTradingPortal = ({
               {/* Card 2: Your Staking & Contract History */}
               <div style={{ marginTop: '4px' }}>
                 {renderContractsHistorySection({
-                  title: '📜 Your Staking & Contract History',
+                  title: 'Your Staking & Contract History',
                   subtitle: 'Complete record of contracts taken in the Trading Arena with live settlement tracking.',
                 })}
               </div>
@@ -2462,7 +2660,7 @@ const UserTradingPortal = ({
                   onClick={() => setBalanceVisible(!balanceVisible)}
                   style={{ color: '#94a3b8', cursor: 'pointer', fontSize: '18px' }}
                 >
-                  {balanceVisible ? '👁️' : '🔒'}
+                  {balanceVisible ? <Eye size={15} /> : <EyeOff size={15} />}
                 </span>
               </div>
 
@@ -2503,7 +2701,7 @@ const UserTradingPortal = ({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
-                    <span style={{ fontSize: '11px' }}>⚡</span>
+                    <Zap size={11} color="#fbbf24" />
                     <span style={{ fontSize: '11px', color: '#fbbf24', fontWeight: 700 }}>In Contract Amount</span>
                   </div>
                   <div style={{ fontSize: 'clamp(14px, 3.5vw, 17px)', fontWeight: 900, color: '#fbbf24', fontFamily: 'monospace' }}>
@@ -2517,7 +2715,7 @@ const UserTradingPortal = ({
 
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(251, 191, 36, 0.12)', border: '1px solid rgba(251, 191, 36, 0.3)', padding: '3px 10px', borderRadius: '16px', marginBottom: '20px' }}>
                 <span style={{ color: '#fbbf24', fontSize: '11px', fontWeight: 700 }}>
-                  📋 {userContracts.length} Total Contracts Taken • +₹{totalProfitEarned.toLocaleString('en-IN')} Profit Credited
+                  {userContracts.length} Total Contracts Taken • +₹{totalProfitEarned.toLocaleString('en-IN')} Profit Credited
                 </span>
               </div>
 
@@ -2558,10 +2756,10 @@ const UserTradingPortal = ({
             {/* Quick Actions (Invest, Referral, Support, More) */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'clamp(6px, 1.8vw, 10px)', marginBottom: '24px' }}>
               {[
-                { title: 'Invest', icon: '📈', action: () => setCurrentTab('plans') },
-                { title: 'Referral', icon: '🎁', action: () => setCurrentTab('profile') },
-                { title: 'Support', icon: '🎧', action: () => alert('Support ticket system: 24/7 Live Desk active!') },
-                { title: 'Trade Game', icon: '⚡', action: () => setCurrentTab('game') },
+                { title: 'Invest', icon: <TrendingUp size={22} color="#10b981" />, action: () => setCurrentTab('plans') },
+                { title: 'Referral', icon: <Gift size={22} color="#fbbf24" />, action: () => setCurrentTab('profile') },
+                { title: 'Support', icon: <Headphones size={22} color="#38bdf8" />, action: () => alert('Support ticket system: 24/7 Live Desk active!') },
+                { title: 'Trade Game', icon: <Zap size={22} color="#f59e0b" />, action: () => setCurrentTab('game') },
               ].map((item) => (
                 <div
                   key={item.title}
@@ -2607,7 +2805,7 @@ const UserTradingPortal = ({
                       justifyContent: 'center',
                     }}
                   >
-                    ⚡
+                    <Zap size={16} color="#fbbf24" />
                   </div>
                   <span style={{ fontSize: '15px', fontWeight: 800, color: '#fff' }}>
                     Guaranteed Growth Plan
@@ -2667,7 +2865,7 @@ const UserTradingPortal = ({
 
             {/* My Contracts & Holdings History Section (All Contracts taken by user) */}
             {renderContractsHistorySection({
-              title: '📋 My Active & Matured Contracts',
+              title: 'My Active & Matured Contracts',
               subtitle: 'Live tracker of all contracts purchased, locked amount, guaranteed profit and credit status.',
             })}
 
@@ -2688,7 +2886,7 @@ const UserTradingPortal = ({
                   { name: 'Bitcoin', symbol: 'BTC', price: '₹ 55,24,321', change: '+2.56%', color: '#f7931a', icon: '₿' },
                   { name: 'Ethereum', symbol: 'ETH', price: '₹ 2,48,762', change: '+1.83%', color: '#627eea', icon: 'Ξ' },
                   { name: 'Solana', symbol: 'SOL', price: '₹ 12,450', change: '+3.21%', color: '#9945ff', icon: '◎' },
-                  { name: 'BNB', symbol: 'BNB', price: '₹ 37,820', change: '+1.12%', color: '#f3ba2f', icon: '🔶' },
+                  { name: 'BNB', symbol: 'BNB', price: '₹ 37,820', change: '+1.12%', color: '#f3ba2f', icon: 'bnb' },
                 ].map((c) => (
                   <div
                     key={c.symbol}
@@ -2722,7 +2920,7 @@ const UserTradingPortal = ({
                           color: '#fff',
                         }}
                       >
-                        {c.icon}
+                        <AssetIcon symbol={c.symbol} iconName={c.icon} category={c.category} size={18} color="#fff" />
                       </div>
                       <div>
                         <div style={{ fontSize: '15px', fontWeight: 800, color: '#fff' }}>{c.name}</div>
@@ -2799,7 +2997,7 @@ const UserTradingPortal = ({
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {flt === 'Stock' ? '📈 Indian Stocks' : flt === 'Crypto' ? '🪙 Crypto' : flt === 'Commodity' ? '🏆 Commodity' : '🌐 All Assets'}
+                  {flt === 'Stock' ? 'Indian Stocks' : flt === 'Crypto' ? 'Crypto' : flt === 'Commodity' ? 'Commodity' : 'All Assets'}
                 </button>
               ))}
             </div>
@@ -2856,7 +3054,7 @@ const UserTradingPortal = ({
                           color: '#fff',
                         }}
                       >
-                        {coin.icon || '📈'}
+                        <AssetIcon symbol={coin.symbol} iconName={coin.icon} category={coin.category} size={18} color="#fff" />
                       </div>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -2916,7 +3114,7 @@ const UserTradingPortal = ({
                           }}
                           title={`Scan & Pay via ${coin.name} QR Code`}
                         >
-                          <span>📱</span>
+                          <Smartphone size={14} color="#38bdf8" />
                           <span>Pay QR</span>
                         </button>
                         <button
@@ -2939,7 +3137,7 @@ const UserTradingPortal = ({
                           }}
                           title={`Buy & Stake ${coin.name}`}
                         >
-                          <span>⚡</span>
+                          <Zap size={12} color="#120a00" />
                           <span>Buy</span>
                         </button>
                       </div>
@@ -2956,7 +3154,7 @@ const UserTradingPortal = ({
         {currentTab === 'contracts' && (
           <div>
             {renderContractsHistorySection({
-              title: '📋 All Contracts & Holdings History',
+              title: 'All Contracts & Holdings History',
               subtitle: 'Comprehensive record of all active running contracts and settled investment returns with instant payout status.',
             })}
           </div>
@@ -2985,7 +3183,7 @@ const UserTradingPortal = ({
               {/* Sub-grid of Available Balance & In Contract */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '18px', textAlign: 'left' }}>
                 <div style={{ background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.35)', borderRadius: '12px', padding: '10px 12px' }}>
-                  <div style={{ fontSize: '11px', color: '#6ee7b7', fontWeight: 700 }}>🟢 Available Balance</div>
+                  <div style={{ fontSize: '11px', color: '#6ee7b7', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}><CheckCircle2 size={11} /> Available Balance</div>
                   <div style={{ fontSize: 'clamp(14px, 3.5vw, 16px)', fontWeight: 900, color: '#fff', fontFamily: 'monospace' }}>
                     ₹{Number(realBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </div>
@@ -2993,7 +3191,7 @@ const UserTradingPortal = ({
                 </div>
 
                 <div style={{ background: activeContractAmount > 0 ? 'rgba(245, 158, 11, 0.16)' : 'rgba(255, 255, 255, 0.04)', border: activeContractAmount > 0 ? '1px solid rgba(245, 158, 11, 0.45)' : '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '10px 12px' }}>
-                  <div style={{ fontSize: '11px', color: '#fbbf24', fontWeight: 700 }}>⚡ In Contract Amount</div>
+                  <div style={{ fontSize: '11px', color: '#fbbf24', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}><Zap size={11} /> In Contract Amount</div>
                   <div style={{ fontSize: 'clamp(14px, 3.5vw, 16px)', fontWeight: 900, color: '#fbbf24', fontFamily: 'monospace' }}>
                     ₹{activeContractAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </div>
@@ -3038,7 +3236,7 @@ const UserTradingPortal = ({
                   cursor: 'pointer',
                 }}
               >
-                💳 Transactions ({walletHistory.length})
+                Transactions ({walletHistory.length})
               </button>
               <button
                 onClick={() => setWalletViewTab('contracts')}
@@ -3053,13 +3251,13 @@ const UserTradingPortal = ({
                   cursor: 'pointer',
                 }}
               >
-                📋 Contracts History ({userContracts.length})
+                Contracts History ({userContracts.length})
               </button>
             </div>
 
             {walletViewTab === 'contracts' ? (
               renderContractsHistorySection({
-                title: '📋 Contracts Taken History',
+                title: 'Contracts Taken History',
                 subtitle: 'History of all stakes and stock investment contracts placed from your wallet.',
               })
             ) : (
@@ -3186,7 +3384,7 @@ const UserTradingPortal = ({
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <div style={{ fontSize: '14px', fontWeight: 800, color: '#fbbf24' }}>
-                  🎁 Referral Code: <span style={{ fontFamily: 'monospace', letterSpacing: '1px', color: '#fff', background: 'rgba(251, 191, 36, 0.2)', padding: '2px 8px', borderRadius: '6px' }}>{user?.uid || 'TRD-782910'}</span>
+                  Referral Code: <span style={{ fontFamily: 'monospace', letterSpacing: '1px', color: '#fff', background: 'rgba(251, 191, 36, 0.2)', padding: '2px 8px', borderRadius: '6px' }}>{user?.uid || 'TRD-782910'}</span>
                 </div>
                 <div style={{ fontSize: '11px', color: '#10b981', fontWeight: 700 }}>
                   5% 1st Deposit Bonus
@@ -3221,14 +3419,14 @@ const UserTradingPortal = ({
             {/* Menu List */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {[
-                { id: 'personal', title: 'Personal Information', icon: '👤', badge: null },
-                { id: 'withdrawalPassword', title: 'Withdrawal Password (Fund PIN)', icon: '🔐', badge: (user?.hasWithdrawalPassword || hasWithdrawalPass) ? 'Active' : 'Set PIN' },
-                { id: 'changePassword', title: 'Change Login Password', icon: '🔑', badge: 'Protected' },
-                { id: 'kyc', title: 'KYC Verification', icon: '🪪', badge: 'Under Review' },
-                { id: 'security', title: 'Security & 2FA Settings', icon: '🔒', badge: 'Active' },
-                { id: 'bank', title: 'Bank Account & UPI Details', icon: '🏦', badge: 'Verified' },
-                { id: 'statement', title: 'Account Statement & Ledger', icon: '📜', badge: 'Records' },
-                { id: 'support', title: 'Help & 24/7 Support', icon: '🎧', badge: '24x7 Live' },
+                { id: 'personal', title: 'Personal Information', icon: User, badge: null },
+                { id: 'withdrawalPassword', title: 'Withdrawal Password (Fund PIN)', icon: Lock, badge: (user?.hasWithdrawalPassword || hasWithdrawalPass) ? 'Active' : 'Set PIN' },
+                { id: 'changePassword', title: 'Change Login Password', icon: Key, badge: 'Protected' },
+                { id: 'kyc', title: 'KYC Verification', icon: ShieldCheck, badge: 'Under Review' },
+                { id: 'security', title: 'Security & 2FA Settings', icon: Lock, badge: 'Active' },
+                { id: 'bank', title: 'Bank Account & UPI Details', icon: Landmark, badge: 'Verified' },
+                { id: 'statement', title: 'Account Statement & Ledger', icon: FileText, badge: 'Records' },
+                { id: 'support', title: 'Help & 24/7 Support', icon: Headphones, badge: '24x7 Live' },
               ].map((m) => (
                 <div
                   key={m.title}
@@ -3254,7 +3452,7 @@ const UserTradingPortal = ({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '18px' }}>{m.icon}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', color: '#fbbf24' }}><m.icon size={18} /></span>
                     <span style={{ fontSize: '14px', fontWeight: 600, color: '#fff' }}>{m.title}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -3344,15 +3542,15 @@ const UserTradingPortal = ({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '20px' }}>
-                    {activeSettingModal === 'personal' && '👤'}
-                    {activeSettingModal === 'withdrawalPassword' && '🔐'}
-                    {activeSettingModal === 'changePassword' && '🔑'}
-                    {activeSettingModal === 'kyc' && '🪪'}
-                    {activeSettingModal === 'security' && '🔒'}
-                    {activeSettingModal === 'bank' && '🏦'}
-                    {activeSettingModal === 'statement' && '📜'}
-                    {activeSettingModal === 'support' && '🎧'}
+                  <span style={{ display: 'flex', alignItems: 'center' }}>
+                    {activeSettingModal === 'personal' && <User size={20} color="#fbbf24" />}
+                    {activeSettingModal === 'withdrawalPassword' && <Lock size={20} color="#fbbf24" />}
+                    {activeSettingModal === 'changePassword' && <Key size={20} color="#fbbf24" />}
+                    {activeSettingModal === 'kyc' && <ShieldCheck size={20} color="#fbbf24" />}
+                    {activeSettingModal === 'security' && <Lock size={20} color="#fbbf24" />}
+                    {activeSettingModal === 'bank' && <Landmark size={20} color="#fbbf24" />}
+                    {activeSettingModal === 'statement' && <FileText size={20} color="#fbbf24" />}
+                    {activeSettingModal === 'support' && <Headphones size={20} color="#fbbf24" />}
                   </span>
                   <h3 style={{ fontSize: '17px', fontWeight: 900, color: '#fff', margin: 0 }}>
                     {activeSettingModal === 'personal' && 'Personal Information'}
@@ -3375,13 +3573,12 @@ const UserTradingPortal = ({
                     height: '32px',
                     color: '#94a3b8',
                     cursor: 'pointer',
-                    fontSize: '16px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  ✕
+                  <X size={16} />
                 </button>
               </div>
 
@@ -3453,7 +3650,7 @@ const UserTradingPortal = ({
                           }}
                         />
                         <span style={{ position: 'absolute', right: '12px', top: '10px', fontSize: '11px', color: '#10b981', fontWeight: 800 }}>
-                          Verified ✅
+                          Verified
                         </span>
                       </div>
                     </div>
@@ -3525,7 +3722,7 @@ const UserTradingPortal = ({
                       className="btn-cyber-primary"
                       style={{ width: '100%', padding: '12px', marginTop: '8px', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}
                     >
-                      💾 Save Changes
+                      Save Changes
                     </button>
                   </div>
                 </div>
@@ -3559,14 +3756,14 @@ const UserTradingPortal = ({
                   {/* 3 Step Timeline */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px', padding: '0 8px' }}>
                     <div style={{ textAlign: 'center', flex: 1 }}>
-                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#10b981', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 4px', fontWeight: 900, fontSize: '12px' }}>
-                        ✓
+                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#10b981', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 4px' }}>
+                        <Check size={14} color="#000" strokeWidth={3} />
                       </div>
                       <div style={{ fontSize: '10.5px', color: '#fff', fontWeight: 700 }}>ID Submitted</div>
                     </div>
                     <div style={{ textAlign: 'center', flex: 1 }}>
-                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#fbbf24', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 4px', fontWeight: 900, fontSize: '12px' }}>
-                        ⏳
+                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#fbbf24', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 4px' }}>
+                        <Clock size={14} color="#000" />
                       </div>
                       <div style={{ fontSize: '10.5px', color: '#fbbf24', fontWeight: 800 }}>Audit Review</div>
                     </div>
@@ -3582,20 +3779,20 @@ const UserTradingPortal = ({
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
                     <div style={{ background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '20px' }}>🪪</span>
+                        <ShieldCheck size={20} color="#38bdf8" />
                         <div>
                           <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#fff' }}>Aadhaar Card (Front & Back)</div>
                           <div style={{ fontSize: '11px', color: '#94a3b8' }}>Number: •••• •••• 6789</div>
                         </div>
                       </div>
                       <span style={{ fontSize: '10px', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>
-                        Uploaded ✅
+                        Uploaded
                       </span>
                     </div>
 
                     <div style={{ background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '20px' }}>📄</span>
+                        <FileText size={20} color="#38bdf8" />
                         <div>
                           <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#fff' }}>PAN Card</div>
                           <div style={{ fontSize: '11px', color: '#94a3b8' }}>Number: ABCDE1234F</div>
@@ -3615,10 +3812,10 @@ const UserTradingPortal = ({
                     className="btn-cyber-primary"
                     style={{ width: '100%', padding: '12px', fontSize: '13px', fontWeight: 800, cursor: 'pointer' }}
                   >
-                    📤 Re-upload / Update ID Documents
+                    Re-upload / Update ID Documents
                   </button>
                   <p style={{ fontSize: '10.5px', color: '#64748b', textAlign: 'center', margin: '10px 0 0' }}>
-                    🔒 256-Bit SSL Encrypted. Documents are stored compliant with Government PMLA rules.
+                    256-Bit SSL Encrypted. Documents are stored compliant with Government PMLA rules.
                   </p>
                 </div>
               )}
@@ -3637,7 +3834,7 @@ const UserTradingPortal = ({
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                       <span style={{ fontSize: '13px', fontWeight: 800, color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span>🛡️</span> Fund Protection PIN
+                        <ShieldCheck size={16} color="#fbbf24" /> Fund Protection PIN
                       </span>
                       <span
                         style={{
@@ -3727,7 +3924,7 @@ const UserTradingPortal = ({
                               fontSize: '14px',
                             }}
                           >
-                            {showWithdrawPassCurrent ? '🙈' : '👁️'}
+                            {showWithdrawPassCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
                           </button>
                         </div>
                       </div>
@@ -3770,7 +3967,7 @@ const UserTradingPortal = ({
                             fontSize: '14px',
                           }}
                         >
-                          {showWithdrawPassNew ? '🙈' : '👁️'}
+                          {showWithdrawPassNew ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
                       </div>
                     </div>
@@ -3802,7 +3999,7 @@ const UserTradingPortal = ({
                         <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px' }}>PIN does not match</div>
                       )}
                       {withdrawPassForm.confirm && withdrawPassForm.newPass === withdrawPassForm.confirm && (
-                        <div style={{ fontSize: '11px', color: '#10b981', marginTop: '4px' }}>✓ PIN matches perfectly</div>
+                        <div style={{ fontSize: '11px', color: '#10b981', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}><Check size={12} /> PIN matches perfectly</div>
                       )}
                     </div>
 
@@ -3857,7 +4054,7 @@ const UserTradingPortal = ({
                     }}
                   >
                     <div style={{ fontSize: '13px', fontWeight: 800, color: '#60a5fa', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>🔐</span> Account Login Security
+                      <Lock size={16} color="#fbbf24" /> Account Login Security
                     </div>
                     <p style={{ fontSize: '11.5px', color: '#cbd5e1', margin: 0, lineHeight: 1.5 }}>
                       Change the password used to sign in to your PAYNEX trading account. Strong passwords should have at least 6 characters including letters and numbers.
@@ -3929,7 +4126,7 @@ const UserTradingPortal = ({
                             fontSize: '14px',
                           }}
                         >
-                          {showPassCurrent ? '🙈' : '👁️'}
+                          {showPassCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
                       </div>
                     </div>
@@ -3971,7 +4168,7 @@ const UserTradingPortal = ({
                             fontSize: '14px',
                           }}
                         >
-                          {showPassNew ? '🙈' : '👁️'}
+                          {showPassNew ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
                       </div>
                     </div>
@@ -4003,7 +4200,7 @@ const UserTradingPortal = ({
                         <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px' }}>Passwords do not match</div>
                       )}
                       {passForm.confirm && passForm.newPass === passForm.confirm && (
-                        <div style={{ fontSize: '11px', color: '#10b981', marginTop: '4px' }}>✓ Passwords match</div>
+                        <div style={{ fontSize: '11px', color: '#10b981', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}><Check size={12} /> Passwords match</div>
                       )}
                     </div>
 
@@ -4061,7 +4258,7 @@ const UserTradingPortal = ({
                           cursor: 'pointer',
                         }}
                       >
-                        <div style={{ fontSize: '16px', marginBottom: '4px' }}>🔐</div>
+                        <div style={{ marginBottom: '4px', display: 'flex', justifyContent: 'center' }}><Lock size={18} color="#fbbf24" /></div>
                         <div style={{ fontSize: '12px', fontWeight: 800, color: '#fbbf24' }}>Withdrawal PIN</div>
                         <div style={{ fontSize: '10px', color: '#94a3b8' }}>Create/change fund PIN</div>
                       </div>
@@ -4075,7 +4272,7 @@ const UserTradingPortal = ({
                           cursor: 'pointer',
                         }}
                       >
-                        <div style={{ fontSize: '16px', marginBottom: '4px' }}>🔑</div>
+                        <div style={{ marginBottom: '4px', display: 'flex', justifyContent: 'center' }}><Key size={18} color="#fbbf24" /></div>
                         <div style={{ fontSize: '12px', fontWeight: 800, color: '#60a5fa' }}>Login Password</div>
                         <div style={{ fontSize: '10px', color: '#94a3b8' }}>Change account password</div>
                       </div>
@@ -4173,7 +4370,7 @@ const UserTradingPortal = ({
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '14px', fontWeight: 800, color: '#fff' }}>🏦 {bankAccount.bankName}</span>
+                        <span style={{ fontSize: '14px', fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }}><Landmark size={16} color="#fbbf24" /> {bankAccount.bankName}</span>
                         <span style={{ fontSize: '10px', background: '#10b981', color: '#000', padding: '2px 6px', borderRadius: '4px', fontWeight: 900 }}>
                           VERIFIED PRIMARY
                         </span>
@@ -4192,7 +4389,7 @@ const UserTradingPortal = ({
                       className="btn-cyber-outline"
                       style={{ width: '100%', padding: '11px', fontSize: '12.5px', fontWeight: 800, cursor: 'pointer' }}
                     >
-                      ✏️ Edit or Change Bank Account Details
+                      Edit or Change Bank Account Details
                     </button>
                   ) : (
                     <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '12px', padding: '12px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
@@ -4276,7 +4473,7 @@ const UserTradingPortal = ({
                         cursor: 'pointer',
                       }}
                     >
-                      📥 Download PDF
+                      Download PDF
                     </button>
                   </div>
 
@@ -4350,7 +4547,7 @@ const UserTradingPortal = ({
                         transition: 'all 0.2s ease',
                       }}
                     >
-                      <span>🤖</span>
+                      <Bot size={15} color="#38bdf8" />
                       <span>Live AI Chat</span>
                       <span
                         style={{
@@ -4385,7 +4582,7 @@ const UserTradingPortal = ({
                         transition: 'all 0.2s ease',
                       }}
                     >
-                      <span>📋</span>
+                      <FileText size={14} color="#38bdf8" />
                       <span>Helpline & FAQs</span>
                     </button>
                   </div>
@@ -4436,7 +4633,7 @@ const UserTradingPortal = ({
                           </div>
                         ) : chatMessages.length === 0 ? (
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b', fontSize: '12px', textAlign: 'center', padding: '20px' }}>
-                            <div style={{ fontSize: '32px', marginBottom: '8px' }}>🤖</div>
+                            <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'center' }}><Bot size={32} color="#38bdf8" /></div>
                             <div style={{ color: '#fff', fontWeight: 700, marginBottom: '4px' }}>PAYNEX Live AI Support</div>
                             <div>Poochhiye koi bhi sawaal (Deposit, Withdrawal, KYC, Trading Rules) in Hindi ya English.</div>
                           </div>
@@ -4460,7 +4657,7 @@ const UserTradingPortal = ({
                               >
                                 {!isUser && (
                                   <div style={{ fontSize: '10px', fontWeight: 800, color: isAdmin ? '#818cf8' : '#fbbf24', marginBottom: '3px', paddingLeft: '4px' }}>
-                                    {isAdmin ? '🛡️ Admin Support' : '🤖 PAYNEX AI Agent'}
+                                    {isAdmin ? 'Admin Support' : 'PAYNEX AI Agent'}
                                   </div>
                                 )}
                                 <div
@@ -4508,11 +4705,11 @@ const UserTradingPortal = ({
                       {/* Quick Prompt Suggestion Chips */}
                       <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '6px', marginBottom: '8px' }}>
                         {[
-                          '💳 Deposit nahi aaya',
-                          '⚡ Withdrawal kab aayega?',
-                          '🔐 Password reset',
-                          '🪪 KYC verification',
-                          '📈 30% Return rules',
+                          'Deposit nahi aaya',
+                          'Withdrawal kab aayega?',
+                          'Password reset',
+                          'KYC verification',
+                          '30% Return rules',
                         ].map((prompt, i) => (
                           <button
                             key={i}
@@ -4592,7 +4789,7 @@ const UserTradingPortal = ({
                           }}
                         >
                           <span>Send</span>
-                          <span>➤</span>
+                          <Send size={14} />
                         </button>
                       </form>
                     </div>
@@ -4612,7 +4809,7 @@ const UserTradingPortal = ({
                             textAlign: 'left',
                           }}
                         >
-                          <div style={{ fontSize: '20px', marginBottom: '4px' }}>✉️</div>
+                          <div style={{ marginBottom: '4px', display: 'flex', justifyContent: 'center' }}><Mail size={20} color="#38bdf8" /></div>
                           <div style={{ fontSize: '13px', fontWeight: 800, color: '#fbbf24' }}>Email Support</div>
                           <div style={{ fontSize: '10px', color: '#cbd5e1' }}>Direct Desk Assistance</div>
                         </button>
@@ -4629,7 +4826,7 @@ const UserTradingPortal = ({
                             textAlign: 'left',
                           }}
                         >
-                          <div style={{ fontSize: '20px', marginBottom: '4px' }}>✈️</div>
+                          <div style={{ marginBottom: '4px', display: 'flex', justifyContent: 'center' }}><Send size={20} color="#38bdf8" /></div>
                           <div style={{ fontSize: '13px', fontWeight: 800, color: '#38bdf8' }}>Telegram Official</div>
                           <div style={{ fontSize: '10px', color: '#cbd5e1' }}>24x7 Community channel</div>
                         </button>
@@ -4637,12 +4834,12 @@ const UserTradingPortal = ({
 
                       <div style={{ background: 'rgba(255, 255, 255, 0.04)', borderRadius: '12px', padding: '12px', marginBottom: '14px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                          <span style={{ fontSize: '16px' }}>📞</span>
+                          <Phone size={14} color="#38bdf8" />
                           <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#fff' }}>Toll-Free Helpline:</span>
                           <strong style={{ color: '#fbbf24', fontSize: '13px', fontFamily: 'monospace' }}>1800 234 5678</strong>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '16px' }}>✉️</span>
+                          <Mail size={14} color="#38bdf8" />
                           <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#fff' }}>Official Email:</span>
                           <strong style={{ color: '#38bdf8', fontSize: '12px' }}>support@paynex.com</strong>
                         </div>
@@ -4650,7 +4847,7 @@ const UserTradingPortal = ({
 
                       {/* FAQs List */}
                       <div style={{ fontSize: '12px', fontWeight: 800, color: '#fbbf24', marginBottom: '8px' }}>
-                        ❓ Frequently Asked Questions
+                        Frequently Asked Questions
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         {[
@@ -4709,7 +4906,7 @@ const UserTradingPortal = ({
               gap: '8px',
             }}
           >
-            <span>✓</span> {toastMessage}
+            <CheckCircle2 size={14} color="#10b981" /> <span>{toastMessage}</span>
           </div>
         )}
 
@@ -4756,11 +4953,11 @@ const UserTradingPortal = ({
                   boxShadow: '0 0 25px rgba(16, 185, 129, 0.6)',
                 }}
               >
-                💎
+                <Sparkles size={28} color="#10b981" />
               </div>
 
               <h3 style={{ fontSize: '22px', fontWeight: 900, color: '#fff', margin: '0 0 6px' }}>
-                🎉 PLAN MATURED SUCCESSFULLY!
+                PLAN MATURED SUCCESSFULLY!
               </h3>
               <p style={{ fontSize: '13px', color: '#94a3b8', margin: '0 0 16px' }}>
                 Your {tradeResult.asset} staking plan has matured with +{tradeResult.adminPercent}% return!
@@ -4811,12 +5008,12 @@ const UserTradingPortal = ({
           }}
         >
           {[
-            { id: 'home', label: 'Home', icon: '🏠' },
-            { id: 'market', label: 'Market', icon: '📊' },
-            { id: 'game', label: 'Trade Game', icon: '⚡' },
-            { id: 'contracts', label: 'Contracts', icon: '📋' },
-            { id: 'wallet', label: 'Wallet', icon: '💳' },
-            { id: 'profile', label: 'Profile', icon: '👤' },
+            { id: 'home', label: 'Home', icon: <Home size={19} /> },
+            { id: 'market', label: 'Market', icon: <TrendingUp size={19} /> },
+            { id: 'game', label: 'Trade Game', icon: <Zap size={19} /> },
+            { id: 'contracts', label: 'Contracts', icon: <FileText size={19} /> },
+            { id: 'wallet', label: 'Wallet', icon: <Wallet size={19} /> },
+            { id: 'profile', label: 'Profile', icon: <User size={19} /> },
           ].map((tab) => {
             const isSel = currentTab === tab.id;
             return (
@@ -4904,7 +5101,7 @@ const UserTradingPortal = ({
                     fontWeight: 900,
                   }}
                 >
-                  {purchaseModalAsset.icon || '📈'}
+                  <AssetIcon symbol={purchaseModalAsset.symbol} iconName={purchaseModalAsset.icon} category={purchaseModalAsset.category} size={20} color="#fff" />
                 </div>
                 <div>
                   <h3 style={{ fontSize: '15px', fontWeight: 900, color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -4925,13 +5122,12 @@ const UserTradingPortal = ({
                   height: '28px',
                   borderRadius: '50%',
                   cursor: 'pointer',
-                  fontSize: '14px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                ✕
+                <X size={15} />
               </button>
             </div>
 
@@ -5042,7 +5238,7 @@ const UserTradingPortal = ({
                     gap: '5px',
                   }}
                 >
-                  <span>📱</span>
+                  <Smartphone size={14} color="#38bdf8" />
                   <span>{purchaseModalAsset.name.split(' ')[0]} QR Code</span>
                 </button>
                 <button
@@ -5063,7 +5259,7 @@ const UserTradingPortal = ({
                     gap: '5px',
                   }}
                 >
-                  <span>💰</span>
+                  <Wallet size={14} color="#10b981" />
                   <span>Wallet Balance</span>
                 </button>
               </div>
@@ -5106,7 +5302,7 @@ const UserTradingPortal = ({
                     gap: '10px',
                   }}
                 >
-                  <span style={{ fontSize: '18px' }}>🔒</span>
+                  <Lock size={18} color="#fbbf24" />
                   <div style={{ fontSize: '11.5px', color: '#cbd5e1', lineHeight: '1.4' }}>
                     <strong style={{ color: '#fbbf24' }}>Direct QR Scanner:</strong> Scan the QR code above with your payment app (PhonePe, GPay, Paytm) to complete payment securely. Then enter the 12-digit UTR reference below.
                   </div>
@@ -5176,7 +5372,7 @@ const UserTradingPortal = ({
                 >
                   {isSubmittingPurchase
                     ? '⏳ Submitting Payment...'
-                    : `⚡ Confirm Payment & Start ${purchaseModalAsset.name} Stake`}
+                    : `Confirm Payment & Start ${purchaseModalAsset.name} Stake`}
                 </button>
               </div>
             )}
@@ -5198,7 +5394,7 @@ const UserTradingPortal = ({
                   </div>
                   {realBalance < Number(purchaseAmount || 0) && (
                     <div style={{ color: '#ef4444', fontSize: '11px', marginTop: '6px', fontWeight: 700 }}>
-                      ⚠️ Insufficient balance. Please switch to "Pay via {purchaseModalAsset.name} QR Code" above.
+                      Insufficient balance. Please switch to "Pay via {purchaseModalAsset.name} QR Code" above.
                     </div>
                   )}
                 </div>
@@ -5219,7 +5415,7 @@ const UserTradingPortal = ({
                     boxShadow: '0 8px 25px rgba(16, 185, 129, 0.35)',
                   }}
                 >
-                  ⚡ Pay ₹{Number(purchaseAmount || 0).toLocaleString('en-IN')} from Wallet & Start Stake
+                  Pay ₹{Number(purchaseAmount || 0).toLocaleString('en-IN')} from Wallet & Start Stake
                 </button>
               </div>
             )}

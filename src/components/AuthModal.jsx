@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { X, CheckCircle2 } from 'lucide-react';
 import userApi from '../services/api';
 import { showUserToast, showUserError } from '../utils/swal';
 
@@ -274,7 +275,7 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login', onLoginSuccess }) =>
           onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.16)')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)')}
         >
-          ✕
+          <X size={15} />
         </button>
 
         {/* Brand Header */}
@@ -624,9 +625,14 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login', onLoginSuccess }) =>
                     fontSize: '14px',
                     fontWeight: 700,
                     marginTop: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
                   }}
                 >
-                  ✓ Password Reset Successfully!
+                  <CheckCircle2 size={16} />
+                  <span>Password Reset Successfully!</span>
                 </div>
               ) : (
                 <button
@@ -918,9 +924,14 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login', onLoginSuccess }) =>
                   fontSize: '14px',
                   fontWeight: 700,
                   marginTop: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
                 }}
               >
-                ✓ Account Created! Launching Desk...
+                <CheckCircle2 size={16} />
+                <span>Account Created! Launching Desk...</span>
               </div>
             ) : (
               <button
@@ -1104,9 +1115,14 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login', onLoginSuccess }) =>
                   fontSize: '14px',
                   fontWeight: 700,
                   marginTop: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
                 }}
               >
-                ✓ Success! Logging into Trading Desk...
+                <CheckCircle2 size={16} />
+                <span>Success! Logging into Trading Desk...</span>
               </div>
             ) : (
               <button

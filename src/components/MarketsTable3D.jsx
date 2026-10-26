@@ -1,15 +1,16 @@
 import { useState } from 'react';
+import AssetIcon from './AssetIcon';
 
 const MARKETS_DATA = [
-  { rank: 1, name: 'Bitcoin', symbol: 'BTC', price: 68420.5, change: 3.84, high: 69200, low: 67100, volume: '28.4B', category: 'layer1', icon: '₿', color: '#f59e0b' },
-  { rank: 2, name: 'Ethereum', symbol: 'ETH', price: 3524.8, change: 2.15, high: 3590, low: 3460, volume: '14.2B', category: 'layer1', icon: 'Ξ', color: '#2563eb' },
-  { rank: 3, name: 'Solana', symbol: 'SOL', price: 184.6, change: 7.92, high: 188.5, low: 172.0, volume: '6.8B', category: 'layer1', icon: '◎', color: '#06b6d4' },
-  { rank: 4, name: 'Binance Coin', symbol: 'BNB', price: 592.1, change: 1.45, high: 598.0, low: 585.0, volume: '1.9B', category: 'layer1', icon: '🟡', color: '#eab308' },
-  { rank: 5, name: 'Ripple', symbol: 'XRP', price: 0.5892, change: 4.62, high: 0.605, low: 0.562, volume: '2.1B', category: 'defi', icon: '✕', color: '#38bdf8' },
-  { rank: 6, name: 'Dogecoin', symbol: 'DOGE', price: 0.1472, change: -1.25, high: 0.155, low: 0.142, volume: '1.4B', category: 'meme', icon: 'Ð', color: '#fb923c' },
-  { rank: 7, name: 'Pepe', symbol: 'PEPE', price: 0.00000984, change: 14.8, high: 0.0000105, low: 0.0000084, volume: '980M', category: 'meme', icon: '🐸', color: '#10b981' },
-  { rank: 8, name: 'Near Protocol', symbol: 'NEAR', price: 5.42, change: 5.14, high: 5.65, low: 5.15, volume: '620M', category: 'layer1', icon: 'Ⓝ', color: '#0284c7' },
-  { rank: 9, name: 'Avalanche', symbol: 'AVAX', price: 32.4, change: 3.12, high: 33.8, low: 31.2, volume: '490M', category: 'layer1', icon: '🔺', color: '#ef4444' },
+  { rank: 1, name: 'Bitcoin', symbol: 'BTC', price: 68420.5, change: 3.84, high: 69200, low: 67100, volume: '28.4B', category: 'layer1', icon: 'btc', color: '#f59e0b' },
+  { rank: 2, name: 'Ethereum', symbol: 'ETH', price: 3524.8, change: 2.15, high: 3590, low: 3460, volume: '14.2B', category: 'layer1', icon: 'eth', color: '#2563eb' },
+  { rank: 3, name: 'Solana', symbol: 'SOL', price: 184.6, change: 7.92, high: 188.5, low: 172.0, volume: '6.8B', category: 'layer1', icon: 'sol', color: '#06b6d4' },
+  { rank: 4, name: 'Binance Coin', symbol: 'BNB', price: 592.1, change: 1.45, high: 598.0, low: 585.0, volume: '1.9B', category: 'layer1', icon: 'bnb', color: '#eab308' },
+  { rank: 5, name: 'Ripple', symbol: 'XRP', price: 0.5892, change: 4.62, high: 0.605, low: 0.562, volume: '2.1B', category: 'defi', icon: 'xrp', color: '#38bdf8' },
+  { rank: 6, name: 'Dogecoin', symbol: 'DOGE', price: 0.1472, change: -1.25, high: 0.155, low: 0.142, volume: '1.4B', category: 'meme', icon: 'doge', color: '#fb923c' },
+  { rank: 7, name: 'Pepe', symbol: 'PEPE', price: 0.00000984, change: 14.8, high: 0.0000105, low: 0.0000084, volume: '980M', category: 'meme', icon: 'pepe', color: '#10b981' },
+  { rank: 8, name: 'Near Protocol', symbol: 'NEAR', price: 5.42, change: 5.14, high: 5.65, low: 5.15, volume: '620M', category: 'layer1', icon: 'near', color: '#0284c7' },
+  { rank: 9, name: 'Avalanche', symbol: 'AVAX', price: 32.4, change: 3.12, high: 33.8, low: 31.2, volume: '490M', category: 'layer1', icon: 'avax', color: '#ef4444' },
 ];
 
 const MiniSparkline = ({ isPositive }) => (
@@ -87,9 +88,9 @@ const MarketsTable3D = ({ onSelectAsset }) => {
         >
           {[
             { id: 'all', label: 'All Coins' },
-            { id: 'gainers', label: 'Top Gainers 🔥' },
-            { id: 'layer1', label: 'Layer-1 ⚡' },
-            { id: 'meme', label: 'Memes 🐸' },
+            { id: 'gainers', label: 'Top Gainers' },
+            { id: 'layer1', label: 'Layer-1' },
+            { id: 'meme', label: 'Memes' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -178,7 +179,7 @@ const MarketsTable3D = ({ onSelectAsset }) => {
                           flexShrink: 0,
                         }}
                       >
-                        {coin.icon}
+                        <AssetIcon symbol={coin.symbol} iconName={coin.icon} size={16} color={coin.color} />
                       </div>
                       <div>
                         <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' }}>{coin.name}</div>
@@ -246,7 +247,7 @@ const MarketsTable3D = ({ onSelectAsset }) => {
                         borderRadius: '8px',
                       }}
                     >
-                      Trade ➔
+                      Trade →
                     </button>
                   </td>
                 </tr>

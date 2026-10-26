@@ -348,7 +348,7 @@ const LogoPreloader = ({ onComplete }) => {
           e.currentTarget.style.color = '#475569';
         }}
       >
-        PRESS TO ENTER DESK ➔
+        PRESS TO ENTER DESK →
       </button>
     </div>
   );

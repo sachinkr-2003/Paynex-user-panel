@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { X, Landmark, Lock, Eye, EyeOff, AlertTriangle, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import userApi from '../services/api';
 import { showUserSuccess, showUserError } from '../utils/swal';
 
@@ -152,7 +153,7 @@ const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
             justifyContent: 'center',
           }}
         >
-          ✕
+          <X size={15} />
         </button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
@@ -198,7 +199,7 @@ const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '18px' }}>🏦</span>
+            <Landmark size={18} color="#fbbf24" />
             <div>
               <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#fff' }}>IMPS Direct Bank Transfer</div>
               <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>Payout destination is verified bank account</div>
@@ -389,7 +390,7 @@ const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
               <label style={{ fontSize: '12.5px', color: '#fbbf24', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>🔒</span>
+                <Lock size={14} color="#fbbf24" />
                 <span>Enter Withdrawal Password or Account Password (Required) *</span>
               </label>
             </div>
@@ -438,16 +439,17 @@ const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
                   alignItems: 'center',
                 }}
               >
-                {showPassword ? '👁️' : '🔒'}
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
             {passwordError ? (
-              <div style={{ color: '#ef4444', fontSize: '11px', marginTop: '6px', fontWeight: 700 }}>
-                ⚠️ {passwordError}
+              <div style={{ color: '#ef4444', fontSize: '11px', marginTop: '6px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <AlertTriangle size={13} /> {passwordError}
               </div>
             ) : (
-              <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '6px' }}>
-                🛡️ Security Check: Jis password se aap apna account login karte hain, usi se verify hone ke baad hi payout transfer hoga.
+              <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <ShieldCheck size={13} color="#fbbf24" style={{ flexShrink: 0 }} />
+                <span>Security Check: Jis password se aap apna account login karte hain, usi se verify hone ke baad hi payout transfer hoga.</span>
               </div>
             )}
           </div>
@@ -463,9 +465,14 @@ const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
                 color: '#34d399',
                 fontSize: '14px',
                 fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
               }}
             >
-              ✓ Withdrawal Request of ₹{Number(amount).toLocaleString('en-IN')} Submitted! Funds will arrive within 15 minutes.
+              <CheckCircle2 size={16} color="#34d399" />
+              <span>Withdrawal Request of ₹{Number(amount).toLocaleString('en-IN')} Submitted! Funds will arrive within 15 minutes.</span>
             </div>
           ) : (
             <button
@@ -478,8 +485,9 @@ const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
             </button>
           )}
 
-          <p style={{ fontSize: '11px', color: '#64748b', textAlign: 'center', margin: 0 }}>
-            🔒 Safe & Secure 256-bit IMPS / UPI processing with 0% fee.
+          <p style={{ fontSize: '11px', color: '#64748b', textAlign: 'center', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+            <Lock size={11} />
+            <span>Safe & Secure 256-bit IMPS / UPI processing with 0% fee.</span>
           </p>
         </form>
       </div>

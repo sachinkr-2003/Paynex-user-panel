@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Home, BarChart2, Zap, Trophy, ShieldCheck, Crown, Lock, Smartphone, X, ArrowRight } from 'lucide-react';
 
 const Navbar = ({
   onOpenAuth,
@@ -14,12 +15,12 @@ const Navbar = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
-    { label: 'Home', href: '#home', icon: '🏠' },
-    { label: 'Markets', href: '#markets', icon: '📊' },
-    { label: '3D Trade Arena', href: '#trading-arena', icon: '⚡' },
-    { label: 'Leaderboard', href: '#leaderboard', icon: '🏆' },
-    { label: '8-Year Warranty', href: '#warranty', icon: '🛡️' },
-    { label: 'VIP Tiers', href: '#vip', icon: '💎' },
+    { label: 'Home', href: '#home', icon: <Home size={17} /> },
+    { label: 'Markets', href: '#markets', icon: <BarChart2 size={17} /> },
+    { label: '3D Trade Arena', href: '#trading-arena', icon: <Zap size={17} /> },
+    { label: 'Leaderboard', href: '#leaderboard', icon: <Trophy size={17} /> },
+    { label: '8-Year Warranty', href: '#warranty', icon: <ShieldCheck size={17} /> },
+    { label: 'VIP Tiers', href: '#vip', icon: <Crown size={17} /> },
   ];
 
   // Handle direct hash navigation, browser back/forward, and hash changes
@@ -315,7 +316,7 @@ const Navbar = ({
                     cursor: 'pointer',
                   }}
                 >
-                  <span>⚡</span>
+                  <Zap size={13} color="#fbbf24" />
                   <span>Trade Desk</span>
                 </button>
                 <div
@@ -380,7 +381,7 @@ const Navbar = ({
                 whiteSpace: 'nowrap',
               }}
             >
-              <span>📲</span>
+              <Smartphone size={13} color="#fbbf24" />
               <span>App</span>
             </button>
 
@@ -405,7 +406,7 @@ const Navbar = ({
               }}
             >
               {mobileMenuOpen ? (
-                <span style={{ color: '#fbbf24', fontSize: '18px', fontWeight: 'bold', lineHeight: 1 }}>✕</span>
+                <X size={18} color="#fbbf24" />
               ) : (
                 <>
                   <span style={{ width: '18px', height: '2px', background: '#fbbf24', borderRadius: '2px' }} />
@@ -531,7 +532,7 @@ const Navbar = ({
                       gap: '8px',
                     }}
                   >
-                    <span>⚡</span>
+                    <span style={{ display: 'flex', alignItems: 'center' }}><Zap size={16} /></span>
                     <span>Enter 3D Trade Desk</span>
                   </button>
                   <button
@@ -573,7 +574,7 @@ const Navbar = ({
                     gap: '8px',
                   }}
                 >
-                  <span>🔐</span>
+                  <span style={{ display: 'flex', alignItems: 'center' }}><Lock size={16} /></span>
                   <span>Sign In</span>
                 </button>
               )}
@@ -595,13 +596,13 @@ const Navbar = ({
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '22px' }}>📱</span>
+                <span style={{ display: 'flex', alignItems: 'center' }}><Smartphone size={22} color="#38bdf8" /></span>
                 <div>
                   <div style={{ fontSize: '13px', fontWeight: 800, color: '#fff' }}>PAYNEX Mobile APK</div>
                   <div style={{ fontSize: '10px', color: '#38bdf8' }}>Ultra-Low Latency 120Hz Trading</div>
                 </div>
               </div>
-              <span style={{ color: '#fbbf24', fontWeight: 900, fontSize: '16px' }}>➔</span>
+              <ArrowRight size={16} color="#fbbf24" />
             </div>
           </div>
         </div>

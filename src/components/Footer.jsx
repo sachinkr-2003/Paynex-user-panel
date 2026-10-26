@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { ShieldCheck, Trophy, Zap, Lock } from 'lucide-react';
 
 const Footer = () => {
   const [videoLoaded, setVideoLoaded] = useState(false);
@@ -304,7 +305,7 @@ const Footer = () => {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '20px' }}>🛡️</span>
+              <ShieldCheck size={22} color="#fbbf24" style={{ flexShrink: 0 }} />
               <div>
                 <span
                   style={{
@@ -325,26 +326,33 @@ const Footer = () => {
 
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {[
-                { label: '🏆 Estd. 2018 (8+ Yrs)' },
-                { label: '🛡️ 100% Principal Protected' },
-                { label: '⚡ 30s Instant Settlement' },
-                { label: '🔒 1:1 Proof of Reserves' },
-              ].map((badge) => (
-                <span
-                  key={badge.label}
-                  style={{
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    color: '#cbd5e1',
-                    background: 'rgba(255, 255, 255, 0.04)',
-                    border: '1px solid rgba(245, 158, 11, 0.3)',
-                    padding: '4px 9px',
-                    borderRadius: '6px',
-                  }}
-                >
-                  {badge.label}
-                </span>
-              ))}
+                { icon: Trophy, label: 'Estd. 2018 (8+ Yrs)' },
+                { icon: ShieldCheck, label: '100% Principal Protected' },
+                { icon: Zap, label: '30s Instant Settlement' },
+                { icon: Lock, label: '1:1 Proof of Reserves' },
+              ].map((badge) => {
+                const IconComponent = badge.icon;
+                return (
+                  <span
+                    key={badge.label}
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      color: '#cbd5e1',
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid rgba(245, 158, 11, 0.3)',
+                      padding: '4px 9px',
+                      borderRadius: '6px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                    }}
+                  >
+                    <IconComponent size={12} color="#fbbf24" />
+                    <span>{badge.label}</span>
+                  </span>
+                );
+              })}
             </div>
           </div>
         </div>

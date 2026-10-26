@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Globe } from 'lucide-react';
 import userApi from '../services/api';
 import { showUserToast, showUserSuccess, showUserError, PaynexUserSwal } from '../utils/swal';
 
@@ -441,9 +442,12 @@ export default function ApkLoginScreen({ onLoginSuccess, onSwitchToRegister, onS
               cursor: 'pointer',
               textDecoration: 'underline',
               padding: '6px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
             }}
           >
-            🌐 View Public Web Showcase
+            <Globe size={13} /> View Public Web Showcase
           </button>
         )}
       </div>

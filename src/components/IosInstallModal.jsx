@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { X, Apple, Download, Settings, Compass, Share, Copy } from 'lucide-react';
 
 export default function IosInstallModal({ isOpen, onClose }) {
   if (!isOpen) return null;
@@ -75,7 +76,7 @@ export default function IosInstallModal({ isOpen, onClose }) {
             justifyContent: 'center',
           }}
         >
-          ✕
+          <X size={16} />
         </button>
 
         {/* Modal Header */}
@@ -115,7 +116,7 @@ export default function IosInstallModal({ isOpen, onClose }) {
               marginBottom: '8px',
             }}
           >
-            <span>🍏</span>
+            <Apple size={14} color="#34d399" />
             <span>Direct iOS Web App Download</span>
           </div>
           <h3 style={{ fontSize: '20px', fontWeight: 900, margin: '2px 0 6px', color: '#fff' }}>
@@ -150,7 +151,7 @@ export default function IosInstallModal({ isOpen, onClose }) {
             onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')}
             onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
           >
-            <span style={{ fontSize: '22px' }}>📥</span>
+            <Download size={22} color="#fff" />
             <div style={{ textAlign: 'left' }}>
               <div style={{ fontSize: '10px', opacity: 0.9, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Direct 1-Click Download
@@ -221,7 +222,7 @@ export default function IosInstallModal({ isOpen, onClose }) {
                 2
               </div>
               <div style={{ fontSize: '12px', color: '#e2e8f0', lineHeight: 1.4 }}>
-                Open iPhone <strong style={{ color: '#fbbf24' }}>Settings ⚙️</strong> ➔ Tap <strong style={{ color: '#38bdf8' }}>"Profile Downloaded"</strong> (at the top) ➔ Tap <strong style={{ color: '#10b981' }}>"Install"</strong>!
+                Open iPhone <strong style={{ color: '#fbbf24' }}>Settings <Settings size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /></strong> → Tap <strong style={{ color: '#38bdf8' }}>"Profile Downloaded"</strong> (at the top) → Tap <strong style={{ color: '#10b981' }}>"Install"</strong>!
               </div>
             </div>
           </div>
@@ -241,8 +242,9 @@ export default function IosInstallModal({ isOpen, onClose }) {
             gap: '8px',
           }}
         >
-          <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-            🧭 Or in Safari: Tap <strong style={{ color: '#38bdf8' }}>Share (⬆️)</strong> ➔ <strong style={{ color: '#10b981' }}>Add to Home Screen</strong>
+          <div style={{ fontSize: '11px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <Compass size={13} style={{ flexShrink: 0 }} />
+            <span>Or in Safari: Tap <strong style={{ color: '#38bdf8' }}>Share <Share size={11} style={{ display: 'inline', verticalAlign: 'middle' }} /></strong> → <strong style={{ color: '#10b981' }}>Add to Home Screen</strong></span>
           </div>
           <button
             onClick={handleCopyLink}
@@ -256,9 +258,13 @@ export default function IosInstallModal({ isOpen, onClose }) {
               fontWeight: 700,
               cursor: 'pointer',
               whiteSpace: 'nowrap',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
             }}
           >
-            📋 Copy URL
+            <Copy size={11} />
+            <span>Copy URL</span>
           </button>
         </div>
 
@@ -277,7 +283,7 @@ export default function IosInstallModal({ isOpen, onClose }) {
             cursor: 'pointer',
           }}
         >
-          Got It, Close ✓
+          Got It, Close
         </button>
       </div>
     </div>

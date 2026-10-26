@@ -1,7 +1,10 @@
+import React from 'react';
+import { Users, CreditCard, ShieldCheck } from 'lucide-react';
+
 const stats = [
-  { icon: '😊', value: '50K+', label: 'Happy Users' },
-  { icon: '💳', value: '₹2.5Cr+', label: 'Total Transactions' },
-  { icon: '✅', value: '99.9%', label: 'Platform Uptime' },
+  { icon: <Users size={22} color="#fbbf24" />, value: '50K+', label: 'Happy Users' },
+  { icon: <CreditCard size={22} color="#fbbf24" />, value: '₹2.5Cr+', label: 'Total Transactions' },
+  { icon: <ShieldCheck size={22} color="#fbbf24" />, value: '99.9%', label: 'Platform Uptime' },
 ];
 
 const Stats = () => {
@@ -51,7 +54,7 @@ const Stats = () => {
                   background: 'rgba(245,158,11,0.15)',
                   border: '1px solid rgba(245,158,11,0.3)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '22px', margin: '0 auto 16px',
+                  margin: '0 auto 16px',
                 }}>{stat.icon}</div>
                 <div style={{ fontSize: '28px', fontWeight: 800, color: '#fbbf24', marginBottom: '6px' }}>
                   {stat.value}

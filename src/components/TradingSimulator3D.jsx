@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Zap, BarChart2, Trophy, X, ArrowRight } from 'lucide-react';
 
 const ASSETS = {
   'BTC/USDT': { name: 'Bitcoin', basePrice: 68420, step: 4.5, icon: '₿', color: '#f59e0b', payout: 95 },
@@ -323,7 +324,9 @@ const TradingSimulator3D = ({ demoBalance, setDemoBalance }) => {
             marginBottom: '12px',
           }}
         >
-          <span>⚡ LIVE 3D TRADING SIMULATOR</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <Zap size={14} color="#38bdf8" /> LIVE 3D TRADING SIMULATOR
+          </span>
         </div>
 
         <h2
@@ -432,9 +435,13 @@ const TradingSimulator3D = ({ demoBalance, setDemoBalance }) => {
                   fontSize: '12px',
                   fontWeight: 800,
                   cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
                 }}
               >
-                ⚡ Laser Line
+                <Zap size={13} />
+                <span>Laser Line</span>
               </button>
               <button
                 onClick={() => setCandleType('candle')}
@@ -447,9 +454,13 @@ const TradingSimulator3D = ({ demoBalance, setDemoBalance }) => {
                   fontSize: '12px',
                   fontWeight: 800,
                   cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
                 }}
               >
-                📊 Candlestick
+                <BarChart2 size={13} />
+                <span>Candlestick</span>
               </button>
             </div>
 
@@ -556,12 +567,11 @@ const TradingSimulator3D = ({ demoBalance, setDemoBalance }) => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '28px',
                     marginBottom: '16px',
                     boxShadow: `0 0 30px ${tradeResult.isWin ? 'rgba(16, 185, 129, 0.6)' : 'rgba(239, 68, 68, 0.6)'}`,
                   }}
                 >
-                  {tradeResult.isWin ? '🏆' : '✕'}
+                  {tradeResult.isWin ? <Trophy size={28} color="#10b981" /> : <X size={28} color="#ef4444" />}
                 </div>
 
                 <h3
@@ -577,7 +587,7 @@ const TradingSimulator3D = ({ demoBalance, setDemoBalance }) => {
                 </h3>
 
                 <p style={{ fontSize: '14px', color: '#cbd5e1', marginBottom: '18px' }}>
-                  Entry: ${tradeResult.entryPrice} ➔ Close: ${tradeResult.closePrice.toFixed(2)}
+                  Entry: ${tradeResult.entryPrice} → Close: ${tradeResult.closePrice.toFixed(2)}
                 </p>
 
                 <div
@@ -595,9 +605,9 @@ const TradingSimulator3D = ({ demoBalance, setDemoBalance }) => {
                 <button
                   onClick={() => setTradeResult(null)}
                   className="btn-cyber-primary"
-                  style={{ padding: '9px 24px', fontSize: '13px' }}
+                  style={{ padding: '9px 24px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                 >
-                  Place Next Bet ➔
+                  Place Next Bet <ArrowRight size={14} />
                 </button>
               </div>
             )}

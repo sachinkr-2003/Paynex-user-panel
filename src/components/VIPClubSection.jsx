@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import React from 'react';
+import { Medal, Crown, Gem, Check, ArrowRight } from 'lucide-react';
 
 const TIERS = [
   {
     name: 'Bronze Trader',
     level: 'VIP 1',
-    badge: '🥉',
+    badge: <Medal size={26} color="#cd7f32" />,
     color: '#cd7f32',
     req: '₹10,000 Volume',
     payout: 'Up to 90%',
@@ -14,7 +15,7 @@ const TIERS = [
   {
     name: 'Silver Elite',
     level: 'VIP 2',
-    badge: '🥈',
+    badge: <Medal size={26} color="#c0c0c0" />,
     color: '#c0c0c0',
     req: '₹50,000 Volume',
     payout: 'Up to 92%',
@@ -24,7 +25,7 @@ const TIERS = [
   {
     name: 'Gold Master',
     level: 'VIP 3',
-    badge: '🥇',
+    badge: <Crown size={26} color="#f59e0b" />,
     color: '#f59e0b',
     req: '₹2,50,000 Volume',
     payout: 'Up to 95%',
@@ -35,7 +36,7 @@ const TIERS = [
   {
     name: 'Diamond Whale',
     level: 'VIP 4',
-    badge: '💎',
+    badge: <Gem size={26} color="#06b6d4" />,
     color: '#06b6d4',
     req: '₹10,00,000+ Volume',
     payout: 'Up to 98%',
@@ -132,7 +133,7 @@ const VIPClubSection = ({ onOpenAuth }) => {
 
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-                <span style={{ fontSize: '28px' }}>{tier.badge}</span>
+                <span style={{ display: 'flex', alignItems: 'center' }}>{tier.badge}</span>
                 <div>
                   <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#fff', margin: 0 }}>
                     {tier.name}
@@ -170,7 +171,7 @@ const VIPClubSection = ({ onOpenAuth }) => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
                 {tier.benefits.map((b) => (
                   <div key={b} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#cbd5e1' }}>
-                    <span style={{ color: '#10b981', fontWeight: 900 }}>✓</span>
+                    <Check size={14} color="#10b981" />
                     <span>{b}</span>
                   </div>
                 ))}
@@ -180,9 +181,10 @@ const VIPClubSection = ({ onOpenAuth }) => {
             <button
               onClick={() => onOpenAuth && onOpenAuth('signup')}
               className={tier.popular ? 'btn-cyber-primary' : 'btn-cyber-outline'}
-              style={{ width: '100%', fontSize: '13px', padding: '10px 0' }}
+              style={{ width: '100%', fontSize: '13px', padding: '10px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
             >
-              Unlock VIP Tier ➔
+              <span>Unlock VIP Tier</span>
+              <ArrowRight size={14} />
             </button>
           </div>
         ))}

@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
+import AssetIcon from './AssetIcon';
 
 const INITIAL_COINS = [
-  { symbol: 'BTC/USDT', name: 'Bitcoin', price: 68420.5, change: 3.84, icon: '₿', color: '#f59e0b', sparkline: [40, 45, 42, 48, 52, 49, 58, 62] },
-  { symbol: 'ETH/USDT', name: 'Ethereum', price: 3524.8, change: 2.15, icon: 'Ξ', color: '#2563eb', sparkline: [30, 32, 28, 35, 42, 40, 48, 51] },
-  { symbol: 'SOL/USDT', name: 'Solana', price: 184.6, change: 7.92, icon: '◎', color: '#06b6d4', sparkline: [20, 25, 22, 34, 39, 45, 52, 60] },
-  { symbol: 'BNB/USDT', name: 'Binance', price: 592.1, change: 1.45, icon: '🟡', color: '#eab308', sparkline: [45, 46, 44, 48, 49, 51, 52, 54] },
-  { symbol: 'XRP/USDT', name: 'Ripple', price: 0.5892, change: 4.62, icon: '✕', color: '#38bdf8', sparkline: [12, 14, 13, 17, 18, 16, 21, 24] },
-  { symbol: 'DOGE/USDT', name: 'Dogecoin', price: 0.1472, change: -1.25, icon: 'Ð', color: '#fb923c', sparkline: [30, 28, 29, 27, 26, 28, 25, 24] },
-  { symbol: 'PEPE/USDT', name: 'Pepe', price: 0.00000984, change: 12.8, icon: '🐸', color: '#10b981', sparkline: [10, 15, 12, 22, 28, 35, 42, 55] },
-  { symbol: 'NEAR/USDT', name: 'Near Protocol', price: 5.42, change: 5.14, icon: 'Ⓝ', color: '#0284c7', sparkline: [18, 20, 19, 23, 24, 28, 31, 35] },
+  { symbol: 'BTC/USDT', name: 'Bitcoin', price: 68420.5, change: 3.84, icon: 'btc', color: '#f59e0b', sparkline: [40, 45, 42, 48, 52, 49, 58, 62] },
+  { symbol: 'ETH/USDT', name: 'Ethereum', price: 3524.8, change: 2.15, icon: 'eth', color: '#2563eb', sparkline: [30, 32, 28, 35, 42, 40, 48, 51] },
+  { symbol: 'SOL/USDT', name: 'Solana', price: 184.6, change: 7.92, icon: 'sol', color: '#06b6d4', sparkline: [20, 25, 22, 34, 39, 45, 52, 60] },
+  { symbol: 'BNB/USDT', name: 'Binance', price: 592.1, change: 1.45, icon: 'bnb', color: '#eab308', sparkline: [45, 46, 44, 48, 49, 51, 52, 54] },
+  { symbol: 'XRP/USDT', name: 'Ripple', price: 0.5892, change: 4.62, icon: 'xrp', color: '#38bdf8', sparkline: [12, 14, 13, 17, 18, 16, 21, 24] },
+  { symbol: 'DOGE/USDT', name: 'Dogecoin', price: 0.1472, change: -1.25, icon: 'doge', color: '#fb923c', sparkline: [30, 28, 29, 27, 26, 28, 25, 24] },
+  { symbol: 'PEPE/USDT', name: 'Pepe', price: 0.00000984, change: 12.8, icon: 'pepe', color: '#10b981', sparkline: [10, 15, 12, 22, 28, 35, 42, 55] },
+  { symbol: 'NEAR/USDT', name: 'Near Protocol', price: 5.42, change: 5.14, icon: 'near', color: '#0284c7', sparkline: [18, 20, 19, 23, 24, 28, 31, 35] },
 ];
 
 const CryptoTickerMarquee = ({ onSelectAsset }) => {
@@ -121,7 +122,7 @@ const CryptoTickerMarquee = ({ onSelectAsset }) => {
                   boxShadow: `0 0 10px ${coin.color}40`,
                 }}
               >
-                {coin.icon}
+                <AssetIcon symbol={coin.symbol} iconName={coin.icon} size={13} color={coin.color} />
               </div>
 
               <span style={{ fontSize: '12px', fontWeight: 700, color: '#f1f5f9' }}>{coin.symbol}</span>

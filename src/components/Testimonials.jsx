@@ -1,3 +1,5 @@
+import { Star } from 'lucide-react';
+
 const reviews = [
   {
     name: 'Rahul Sharma',
@@ -23,9 +25,14 @@ const reviews = [
 ];
 
 const Stars = ({ count }) => (
-  <div style={{ display: 'flex', gap: '2px', marginBottom: '12px' }}>
+  <div style={{ display: 'flex', gap: '4px', marginBottom: '12px' }}>
     {[...Array(5)].map((_, i) => (
-      <span key={i} style={{ color: i < count ? '#f59e0b' : '#374151', fontSize: '14px' }}>★</span>
+      <Star
+        key={i}
+        size={14}
+        fill={i < count ? '#f59e0b' : 'none'}
+        color={i < count ? '#f59e0b' : '#374151'}
+      />
     ))}
   </div>
 );

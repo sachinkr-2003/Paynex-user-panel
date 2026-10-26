@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
+import { Zap, ShieldCheck, CheckCircle2, Check, X, Copy, Smartphone, Info, Camera, Upload, Clock, RefreshCw } from 'lucide-react';
 import userApi from '../services/api';
 import { showUserSuccess, showUserWarning, showUserError } from '../utils/swal';
 import { FIFTY_STOCKS, enrichStockWithPayment } from '../data/stocksData';
@@ -110,7 +111,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
               setStep('success');
               if (onRechargeSuccess) onRechargeSuccess(order.amount);
               showUserSuccess(
-                'Payment Verified & Credited! 🎉',
+                'Payment Verified & Credited!',
                 `₹${order.amount.toLocaleString('en-IN')} has been added to your live wallet balance.`
               );
             } else if (res.order.status === 'Failed') {
@@ -219,15 +220,15 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
       if (res?.success) {
         setStep('under_review');
         showUserSuccess(
-          'Real Payment Verified ✅',
+          'Real Payment Verified',
           `Bank transaction confirmed for UTR <strong>${utrNumber}</strong>! Your deposit of ₹${order?.amount} has been verified and forwarded to admin for instant wallet credit.`
         );
       } else {
-        showUserError('Payment Verification Failed ❌', res?.message || 'Bank debit was not detected. Please complete payment via UPI before submitting.');
+        showUserError('Payment Verification Failed', res?.message || 'Bank debit was not detected. Please complete payment via UPI before submitting.');
       }
     } catch (err) {
       showUserError(
-        'Payment Verification Failed ❌',
+        'Payment Verification Failed',
         err.message || 'Acquiring bank did not confirm inbound credit. Please make sure you have paid via UPI.'
       );
     } finally {
@@ -343,12 +344,12 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
             <div>
               <div style={{ fontSize: 'clamp(14px, 3.5vw, 16px)', fontWeight: 800, color: '#fff', letterSpacing: '0.3px' }}>
                 {step === 'checkout'
-                  ? '⚡ Secure UPI Payment Gateway'
+                  ? 'Secure UPI Payment Gateway'
                   : step === 'under_review'
-                  ? '⏳ Verification Under Review'
+                  ? 'Verification Under Review'
                   : step === 'success'
-                  ? '🎉 Payment Successful'
-                  : '💳 Recharge Trading Wallet'}
+                  ? 'Payment Successful'
+                  : 'Recharge Trading Wallet'}
               </div>
               <div style={{ fontSize: '11px', color: '#94a3b8' }}>
                 {step === 'checkout'
@@ -370,10 +371,9 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '16px',
             }}
           >
-            ✕
+            <X size={16} />
           </button>
         </div>
 
@@ -457,7 +457,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                     >
                       {companies.map((c) => (
                         <option key={c.id || c.symbol} value={c.id || c.symbol}>
-                          🏢 {c.name} ({c.symbol}) • Return: {c.return || '+30%'}
+                          {c.name} ({c.symbol}) • Return: {c.return || '+30%'}
                         </option>
                       ))}
                     </select>
@@ -543,7 +543,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                       marginBottom: '20px',
                     }}
                   >
-                    <span style={{ fontSize: '18px' }}>🛡️</span>
+                    <ShieldCheck size={20} color="#fbbf24" style={{ flexShrink: 0 }} />
                     <div style={{ fontSize: '11.5px', color: '#10b981', lineHeight: '1.4' }}>
                       <strong>8-Year Capital Protection Guarantee (Estd. 2018):</strong> 100% principal safe with 0% gateway fee. Operating without default since 2018.
                     </div>
@@ -626,7 +626,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                         cursor: 'pointer',
                       }}
                     >
-                      {copiedAddress ? 'Address Copied! ✅' : 'Copy Address'}
+                      {copiedAddress ? 'Address Copied!' : 'Copy Address'}
                     </button>
                   </div>
                   <div style={{ fontSize: '11px', color: '#64748b', lineHeight: '1.4' }}>
@@ -753,14 +753,15 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                     gap: '4px',
                   }}
                 >
-                  {copiedUpi ? 'Copied! ✅' : '📋 Copy UPI'}
+                  <Copy size={12} />
+                  <span>{copiedUpi ? 'Copied!' : 'Copy UPI'}</span>
                 </button>
               </div>
 
               {/* 1-Tap Direct UPI Payment App Launch Buttons */}
               <div style={{ marginBottom: '14px' }}>
                 <div style={{ fontSize: '12px', fontWeight: 800, color: '#fff', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>⚡</span> Pay Directly via Any UPI App (1-Tap):
+                  <Zap size={14} color="#fbbf24" /> Pay Directly via Any UPI App (1-Tap):
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
                   <a
@@ -772,10 +773,12 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                       borderRadius: '10px',
                       padding: '8px 4px',
                       textAlign: 'center',
-                      display: 'block',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
                     }}
                   >
-                    <div style={{ fontSize: '16px' }}>🟣</div>
+                    <Smartphone size={16} color="#a855f7" />
                     <div style={{ fontSize: '11px', fontWeight: 800, color: '#fff', marginTop: '2px' }}>PhonePe</div>
                   </a>
 
@@ -788,10 +791,12 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                       borderRadius: '10px',
                       padding: '8px 4px',
                       textAlign: 'center',
-                      display: 'block',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
                     }}
                   >
-                    <div style={{ fontSize: '16px' }}>🔵</div>
+                    <Smartphone size={16} color="#38bdf8" />
                     <div style={{ fontSize: '11px', fontWeight: 800, color: '#fff', marginTop: '2px' }}>GPay</div>
                   </a>
 
@@ -804,10 +809,12 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                       borderRadius: '10px',
                       padding: '8px 4px',
                       textAlign: 'center',
-                      display: 'block',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
                     }}
                   >
-                    <div style={{ fontSize: '16px' }}>🟦</div>
+                    <Smartphone size={16} color="#06b6d4" />
                     <div style={{ fontSize: '11px', fontWeight: 800, color: '#fff', marginTop: '2px' }}>Paytm</div>
                   </a>
 
@@ -820,10 +827,12 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                       borderRadius: '10px',
                       padding: '8px 4px',
                       textAlign: 'center',
-                      display: 'block',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
                     }}
                   >
-                    <div style={{ fontSize: '16px' }}>⚡</div>
+                    <Zap size={16} color="#f59e0b" />
                     <div style={{ fontSize: '11px', fontWeight: 800, color: '#f59e0b', marginTop: '2px' }}>Any UPI</div>
                   </a>
                 </div>
@@ -842,7 +851,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                   marginBottom: '16px',
                 }}
               >
-                <span style={{ fontSize: '18px' }}>💡</span>
+                <Info size={18} color="#fbbf24" style={{ flexShrink: 0 }} />
                 <div style={{ fontSize: '11.5px', color: '#cbd5e1', lineHeight: '1.4' }}>
                   <strong>How to complete:</strong> 1. Pay via PhonePe, GPay, Paytm or scan QR. 2. Enter 12-digit UTR below. 3. Attach payment screenshot and submit.
                 </div>
@@ -865,9 +874,12 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                       fontWeight: 800,
                       cursor: 'pointer',
                       padding: 0,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
                     }}
                   >
-                    ⚡ Auto-Fill Test UTR
+                    <Zap size={11} /> Auto-Fill Test UTR
                   </button>
                 </div>
 
@@ -915,11 +927,14 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                 {/* Screenshot Upload Option */}
                 <div style={{ marginTop: '14px', marginBottom: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#f1f5f9' }}>
-                      📸 Upload Payment Screenshot (Receipt Proof):
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#f1f5f9', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <Camera size={13} color="#f59e0b" />
+                      <span>Upload Payment Screenshot (Receipt Proof):</span>
                     </label>
                     {screenshotProof && (
-                      <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 800 }}>Slip Attached ✅</span>
+                      <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                        <Check size={12} /> Slip Attached
+                      </span>
                     )}
                   </div>
 
@@ -977,22 +992,26 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                             padding: '4px 8px',
                             fontSize: '11px',
                             cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                           }}
                         >
-                          ✕
+                          <X size={12} />
                         </button>
                       </div>
                     ) : (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f59e0b', fontSize: '12px', fontWeight: 700 }}>
-                        <span>📁</span>
+                        <Upload size={14} color="#f59e0b" />
                         <span>Click to choose payment receipt / screenshot</span>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '6px', lineHeight: '1.4' }}>
-                  💡 <strong>Tip:</strong> After paying on PhonePe/Paytm/GPay, copy the 12-digit <em>UPI Ref No</em> and attach your payment receipt screenshot.
+                <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '6px', lineHeight: '1.4', display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
+                  <Info size={12} color="#fbbf24" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <span><strong>Tip:</strong> After paying on PhonePe/Paytm/GPay, copy the 12-digit <em>UPI Ref No</em> and attach your payment receipt screenshot.</span>
                 </div>
 
                 <button
@@ -1019,7 +1038,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                     gap: '8px',
                   }}
                 >
-                  {submittingUtr ? 'Verifying UTR...' : 'Submit UTR & Verify Payment ✓'}
+                  {submittingUtr ? 'Verifying UTR...' : 'Submit UTR & Verify Payment'}
                 </button>
               </form>
             </div>
@@ -1041,11 +1060,10 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '34px',
                   animation: 'pulse 2s infinite',
                 }}
               >
-                ⏳
+                <Clock size={36} color="#f59e0b" />
               </div>
               <div style={{ fontSize: '18px', fontWeight: 900, color: '#f59e0b', marginBottom: '6px' }}>
                 Payment Under Review
@@ -1074,12 +1092,15 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
                   <span style={{ color: '#64748b' }}>Status:</span>
-                  <span style={{ color: '#f59e0b', fontWeight: 800 }}>🟡 Under Review</span>
+                  <span style={{ color: '#f59e0b', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <Clock size={12} /> Under Review
+                  </span>
                 </div>
               </div>
 
-              <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '16px' }}>
-                🔄 Live auto-check is running. This window will automatically update as soon as the admin approves your transaction.
+              <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+                <RefreshCw size={12} className="spin" style={{ display: 'inline' }} />
+                <span>Live auto-check is running. This window will automatically update as soon as the admin approves your transaction.</span>
               </div>
 
               <button
@@ -1117,10 +1138,9 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '36px',
                 }}
               >
-                ✓
+                <CheckCircle2 size={36} color="#10b981" />
               </div>
               <div style={{ fontSize: '20px', fontWeight: 900, color: '#10b981', marginBottom: '6px' }}>
                 Payment Approved & Credited!

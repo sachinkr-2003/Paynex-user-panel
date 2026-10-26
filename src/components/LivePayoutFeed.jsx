@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Trophy, ArrowDownToLine } from 'lucide-react';
 
 const INITIAL_EVENTS = [
-  { id: 1, user: 'Aryan99**', type: 'WIN', text: 'Won ₹14,250 on BTC/USDT (60s)', time: 'Just now', icon: '🏆', color: '#10b981' },
-  { id: 2, user: 'Karan_X**', type: 'PAYOUT', text: 'Withdrew ₹25,000 via Instant UPI', time: '1m ago', icon: '💸', color: '#38bdf8' },
-  { id: 3, user: 'CryptoGuru**', type: 'WIN', text: 'Won $420 USDT on SOL/USDT', time: '2m ago', icon: '🏆', color: '#10b981' },
-  { id: 4, user: 'Pooja_R**', type: 'WIN', text: 'Won ₹8,550 on ETH/USDT (30s)', time: '3m ago', icon: '🏆', color: '#10b981' },
-  { id: 5, user: 'WhaleTrader**', type: 'PAYOUT', text: 'Withdrew 1,200 USDT (TRC-20)', time: '4m ago', icon: '⚡', color: '#fbbf24' },
+  { id: 1, user: 'Aryan99**', type: 'WIN', text: 'Won ₹14,250 on BTC/USDT (60s)', time: 'Just now', color: '#10b981' },
+  { id: 2, user: 'Karan_X**', type: 'PAYOUT', text: 'Withdrew ₹25,000 via Instant UPI', time: '1m ago', color: '#38bdf8' },
+  { id: 3, user: 'CryptoGuru**', type: 'WIN', text: 'Won $420 USDT on SOL/USDT', time: '2m ago', color: '#10b981' },
+  { id: 4, user: 'Pooja_R**', type: 'WIN', text: 'Won ₹8,550 on ETH/USDT (30s)', time: '3m ago', color: '#10b981' },
+  { id: 5, user: 'WhaleTrader**', type: 'PAYOUT', text: 'Withdrew 1,200 USDT (TRC-20)', time: '4m ago', color: '#fbbf24' },
 ];
 
 const NEW_NAMES = ['Aman**', 'Rohan**', 'Deepak**', 'Ananya**', 'Sanjay**', 'Neha**', 'Aditya**', 'Suresh**'];
@@ -27,7 +28,6 @@ const LivePayoutFeed = () => {
         type: isWin ? 'WIN' : 'PAYOUT',
         text: isWin ? `Won ₹${amount.toLocaleString('en-IN')} on ${asset} (30s)` : `Withdrew ₹${amount.toLocaleString('en-IN')} via UPI`,
         time: 'Just now',
-        icon: isWin ? '🏆' : '💸',
         color: isWin ? '#10b981' : '#38bdf8',
       };
 
@@ -103,7 +103,13 @@ const LivePayoutFeed = () => {
                 whiteSpace: 'nowrap',
               }}
             >
-              <span>{item.icon}</span>
+              <span style={{ display: 'flex', alignItems: 'center' }}>
+                {item.type === 'WIN' ? (
+                  <Trophy size={14} color="#10b981" />
+                ) : (
+                  <ArrowDownToLine size={14} color="#38bdf8" />
+                )}
+              </span>
               <span style={{ color: '#94a3b8', fontWeight: 600 }}>{item.user}:</span>
               <span style={{ color: item.color, fontWeight: 800 }}>{item.text}</span>
             </div>

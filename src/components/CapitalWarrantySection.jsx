@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { ShieldCheck, Zap, Landmark, Trophy, FileCheck, Check } from 'lucide-react';
 
 const WARRANTY_PILLARS = [
   {
-    icon: '🛡️',
+    icon: <ShieldCheck size={26} color="#fbbf24" />,
     title: '8-Year Capital Protection Warranty',
     subtitle: '100% Principal Protection Guarantee',
     desc: 'Every rupee and USDT deposited is fully safeguarded in cold-storage multi-signature escrow vaults. Over 8 continuous years (2018 - 2026) with zero capital loss for any trader.',
@@ -11,7 +12,7 @@ const WARRANTY_PILLARS = [
     glow: 'rgba(245, 158, 11, 0.35)',
   },
   {
-    icon: '⚡',
+    icon: <Zap size={26} color="#10b981" />,
     title: 'Instant Settlement Guarantee',
     subtitle: 'Sub-30s Automated Payout SLA',
     desc: 'Automated high-speed withdrawal rails directly to UPI (PhonePe, Google Pay, Paytm) and on-chain USDT/BTC. Guaranteed fast settlement with 0% platform withdrawal fee.',
@@ -20,7 +21,7 @@ const WARRANTY_PILLARS = [
     glow: 'rgba(16, 185, 129, 0.35)',
   },
   {
-    icon: '🏦',
+    icon: <Landmark size={26} color="#06b6d4" />,
     title: '1:1 Proof-of-Reserves Solvency',
     subtitle: '100% Fully Backed Capital Reserve',
     desc: 'All trader balances are 100% backed 1:1 and segregated from operational company capital. Audited cold storage reserves guarantee absolute solvency at all times.',
@@ -29,7 +30,7 @@ const WARRANTY_PILLARS = [
     glow: 'rgba(6, 182, 212, 0.35)',
   },
   {
-    icon: '🏆',
+    icon: <Trophy size={26} color="#a855f7" />,
     title: '8+ Years Unbroken Track Record',
     subtitle: 'Operational Since 2018',
     desc: 'Established in 2018, PAYNEX has successfully facilitated millions of prediction contracts and paid out over ₹2.5 Crore+ in winnings with unbroken 99.98% platform reliability.',
@@ -91,7 +92,7 @@ const CapitalWarrantySection = ({ onOpenAuth }) => {
             boxShadow: '0 0 20px rgba(245, 158, 11, 0.2)',
           }}
         >
-          <span style={{ fontSize: '14px' }}>🛡️</span>
+          <span style={{ display: 'flex', alignItems: 'center' }}><ShieldCheck size={14} color="#fbbf24" /></span>
           <span
             style={{
               fontSize: '11px',
@@ -186,7 +187,7 @@ const CapitalWarrantySection = ({ onOpenAuth }) => {
                   flexShrink: 0,
                 }}
               >
-                📜
+                <FileCheck size={24} color="#fbbf24" />
               </div>
               <div>
                 <span
@@ -222,11 +223,11 @@ const CapitalWarrantySection = ({ onOpenAuth }) => {
             {/* Checklist */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '10px' }}>
               {[
-                { icon: '✓', text: 'Estd. 2018 (8+ Years Active)' },
-                { icon: '✓', text: '100% Principal Protection' },
-                { icon: '✓', text: 'Instant Bank UPI IMPS Payouts' },
-                { icon: '✓', text: 'Cold Storage Multi-Sig Escrow' },
-              ].map((item, idx) => (
+                'Estd. 2018 (8+ Years Active)',
+                '100% Principal Protection',
+                'Instant Bank UPI IMPS Payouts',
+                'Cold Storage Multi-Sig Escrow',
+              ].map((text, idx) => (
                 <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span
                     style={{
@@ -236,17 +237,15 @@ const CapitalWarrantySection = ({ onOpenAuth }) => {
                       background: 'rgba(16, 185, 129, 0.2)',
                       border: '1px solid #10b981',
                       color: '#10b981',
-                      fontSize: '11px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontWeight: 800,
                       flexShrink: 0,
                     }}
                   >
-                    {item.icon}
+                    <Check size={11} color="#10b981" strokeWidth={3} />
                   </span>
-                  <span style={{ fontSize: '12px', color: '#e2e8f0', fontWeight: 600 }}>{item.text}</span>
+                  <span style={{ fontSize: '12px', color: '#e2e8f0', fontWeight: 600 }}>{text}</span>
                 </div>
               ))}
             </div>
@@ -283,7 +282,7 @@ const CapitalWarrantySection = ({ onOpenAuth }) => {
                 marginBottom: '14px',
               }}
             >
-              <span style={{ fontSize: '28px' }}>🛡️</span>
+              <ShieldCheck size={28} color="#fbbf24" />
               <span style={{ fontSize: '8.5px', fontWeight: 900, color: '#fbbf24', letterSpacing: '0.8px' }}>
                 8 YEARS
               </span>

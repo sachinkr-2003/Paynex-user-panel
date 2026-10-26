@@ -1,43 +1,44 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { Zap, CreditCard, ShieldCheck, BarChart2, TrendingUp, ArrowDownToLine } from 'lucide-react';
 
 const FEATURE_LIST = [
   {
-    icon: '⚡',
+    icon: <Zap size={24} color="#06b6d4" />,
     title: 'Sub-10ms Match Engine',
     desc: 'Proprietary high-frequency trading architecture guarantees zero slippage and instantaneous bet fills.',
     badge: 'ULTRA FAST',
     glow: 'rgba(6, 182, 212, 0.4)',
   },
   {
-    icon: '💳',
+    icon: <CreditCard size={24} color="#10b981" />,
     title: 'Instant UPI & Crypto Rails',
     desc: 'Deposit seamlessly using PhonePe, Google Pay, Paytm, or deposit directly in USDT (TRC-20 & BEP-20) / BTC.',
     badge: 'HYBRID WALLET',
     glow: 'rgba(16, 185, 129, 0.4)',
   },
   {
-    icon: '🛡️',
+    icon: <ShieldCheck size={24} color="#fbbf24" />,
     title: '8-Year Capital Protection Warranty',
     desc: 'Operational since 2018. 100% principal protection guarantee, bank-grade 256-bit SSL, and audited cold vaults ensuring complete solvency.',
     badge: '8-YR WARRANTY',
     glow: 'rgba(245, 158, 11, 0.45)',
   },
   {
-    icon: '📊',
+    icon: <BarChart2 size={24} color="#3b82f6" />,
     title: 'AI Market Pulse & Indicators',
     desc: 'Integrated machine-learning sentiment oscillators and Bollinger bands for high-probability binary entries.',
     badge: 'SMART AI',
     glow: 'rgba(37, 99, 235, 0.4)',
   },
   {
-    icon: '🚀',
+    icon: <TrendingUp size={24} color="#fbbf24" />,
     title: '95% Peak Profit Contracts',
     desc: 'Maximize your potential returns with market-leading contract payouts on 30s, 60s, and 5-minute options.',
     badge: 'HIGH YIELD',
     glow: 'rgba(245, 158, 11, 0.5)',
   },
   {
-    icon: '💸',
+    icon: <ArrowDownToLine size={24} color="#60a5fa" />,
     title: 'Auto-Settled Withdrawals',
     desc: 'Automated withdrawal engine disburses funds to your UPI or Crypto address within 30 seconds flat.',
     badge: 'NO DELAYS',
@@ -89,7 +90,6 @@ const FeatureCard = ({ item }) => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '24px',
             boxShadow: `0 0 25px ${item.glow}`,
           }}
         >
