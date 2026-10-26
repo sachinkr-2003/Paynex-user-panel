@@ -159,7 +159,7 @@ const Footer = () => {
                   CRYPTO
                 </span>
                 <p style={{ fontSize: '11px', color: '#fbbf24', margin: '2px 0 0', fontWeight: 600 }}>
-                  Invest Today and Grow Tomorrow
+                  Invest Today and Grow Tomorrow • Estd. 2018
                 </p>
               </div>
             </div>
@@ -296,7 +296,7 @@ const Footer = () => {
             color: '#64748b',
           }}
         >
-          <span>© 2026 PAYNEX CRYPTO. All rights reserved.</span>
+          <span>© 2018 - 2026 PAYNEX CRYPTO. All rights reserved.</span>
           <div style={{ display: 'flex', gap: '16px' }}>
             <a href="#faq" style={{ color: 'inherit', textDecoration: 'none' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#94a3b8')} onMouseLeave={(e) => (e.currentTarget.style.color = '#64748b')}>Privacy Policy</a>
             <span>•</span>
