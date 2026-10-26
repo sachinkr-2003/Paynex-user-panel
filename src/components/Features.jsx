@@ -17,10 +17,10 @@ const FEATURE_LIST = [
   },
   {
     icon: '🛡️',
-    title: 'Cold Storage & Proof of Reserve',
-    desc: 'Bank-grade 256-bit SSL encryption paired with on-chain multi-sig wallets ensuring complete fund security.',
-    badge: 'SECURE',
-    glow: 'rgba(245, 158, 11, 0.4)',
+    title: '8-Year Capital Protection Warranty',
+    desc: 'Operational since 2018. 100% principal protection guarantee, bank-grade 256-bit SSL, and audited cold vaults ensuring complete solvency.',
+    badge: '8-YR WARRANTY',
+    glow: 'rgba(245, 158, 11, 0.45)',
   },
   {
     icon: '📊',

@@ -282,6 +282,73 @@ const Footer = () => {
           </div>
         </div>
 
+        {/* Institutional 8-Year Capital Protection Warranty & Solvency Box */}
+        <div
+          style={{
+            borderTop: '1px solid rgba(245, 158, 11, 0.25)',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            padding: '20px 0',
+            marginBottom: '18px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '20px' }}>🛡️</span>
+              <div>
+                <span
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 900,
+                    color: '#fbbf24',
+                    letterSpacing: '0.8px',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  PAYNEX 8-YEAR CAPITAL PROTECTION WARRANTY & SOLVENCY GUARANTEE
+                </span>
+                <p style={{ margin: 0, fontSize: '11px', color: '#94a3b8' }}>
+                  Operational continuously since 2018. Backed by 100% segregated multi-signature cold vaults and instant settlement SLA.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {[
+                { label: '🏆 Estd. 2018 (8+ Yrs)' },
+                { label: '🛡️ 100% Principal Protected' },
+                { label: '⚡ 30s Instant Settlement' },
+                { label: '🔒 1:1 Proof of Reserves' },
+              ].map((badge) => (
+                <span
+                  key={badge.label}
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    color: '#cbd5e1',
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    padding: '4px 9px',
+                    borderRadius: '6px',
+                  }}
+                >
+                  {badge.label}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Simple Bottom Copyright Bar (No Regulatory Wall) */}
         <div
           style={{

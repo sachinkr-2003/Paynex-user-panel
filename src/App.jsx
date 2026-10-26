@@ -8,6 +8,7 @@ import LivePayoutFeed from './components/LivePayoutFeed';
 import TradingSimulator3D from './components/TradingSimulator3D';
 import Leaderboard from './components/Leaderboard';
 import MarketsTable3D from './components/MarketsTable3D';
+import CapitalWarrantySection from './components/CapitalWarrantySection';
 import Features from './components/Features';
 import VIPClubSection from './components/VIPClubSection';
 import MobileApp from './components/MobileApp';
@@ -320,6 +321,9 @@ function App() {
 
         {/* Elite Trader Leaderboard & Live Real-Time Wins */}
         <Leaderboard onScrollToArena={handleScrollToArena} />
+
+        {/* 8-Year Capital Protection Guarantee & Solvency Warranty Section */}
+        <CapitalWarrantySection onOpenAuth={handleOpenAuth} />
 
         {/* 3D Tilt Feature Highlights */}
         <Features />

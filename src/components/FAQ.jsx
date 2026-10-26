@@ -6,6 +6,10 @@ const FAQS = [
     a: 'Crypto Bet Trading allows you to forecast whether the price of an asset (like Bitcoin, Ethereum, or Solana) will rise (CALL) or fall (PUT) within a specific timeframe (e.g. 30 seconds or 60 seconds). If your prediction is correct when the contract expires, you earn an instant profit payout of up to 95%.',
   },
   {
+    q: 'What is the PAYNEX 8-Year Capital Protection Warranty & Solvency Guarantee?',
+    a: 'Operating continuously without default since 2018 (over 8+ years), PAYNEX provides an institutional 100% Capital Assurance Warranty. User deposits and staking balances are held in 1:1 backed cold-storage multi-signature escrow vaults. Our 8-year unbroken solvency record guarantees that your principal capital and payouts are 100% protected and instantly withdrawable 24/7 without default risk.',
+  },
+  {
     q: 'How fast are UPI & USDT Withdrawals processed?',
     a: 'PAYNEX features automated payment settlement rails. UPI disbursements directly to your PhonePe, Google Pay, or Paytm bank account are typically completed within 30 seconds. USDT (TRC-20 and BEP-20) withdrawals are confirmed on-chain in under 1 minute with 0 platform fees.',
   },

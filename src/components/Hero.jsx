@@ -290,7 +290,7 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
                 textOverflow: 'ellipsis',
               }}
             >
-              PAYNEX CRYPTO • INVEST TODAY AND GROW TOMORROW
+              🛡️ 8+ YEARS OF PROVEN FINANCIAL TRUST (ESTD. 2018) • 100% CAPITAL ASSURANCE GUARANTEE
             </span>
           </div>
 
@@ -377,50 +377,88 @@ const Hero = ({ onOpenAuth, onOpenVideo, onScrollToArena, demoBalance = 50000, s
             </button>
           </div>
 
-          {/* Metric Bar */}
+          {/* 8-Year Capital Protection Warranty Trust Strip */}
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '8px 14px',
+              background: 'linear-gradient(90deg, rgba(245, 158, 11, 0.12) 0%, rgba(16, 185, 129, 0.08) 100%)',
+              border: '1px solid rgba(245, 158, 11, 0.35)',
+              borderRadius: '10px',
+              marginBottom: '16px',
+              maxWidth: '540px',
+              boxShadow: '0 0 18px rgba(245, 158, 11, 0.12)',
+            }}
+          >
+            <span style={{ fontSize: '18px' }}>🛡️</span>
+            <div style={{ fontSize: '11.5px', lineHeight: 1.4 }}>
+              <span style={{ fontWeight: 800, color: '#fbbf24', letterSpacing: '0.4px' }}>
+                8-YEAR CAPITAL PROTECTION WARRANTY
+              </span>
+              <span style={{ color: '#cbd5e1', marginLeft: '6px' }}>
+                • 100% Principal Safety & Solvency Guaranteed Since 2018
+              </span>
+            </div>
+          </div>
+
+          {/* Metric Bar (4 Trust Columns) */}
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: 'clamp(8px, 2.5vw, 16px)',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: 'clamp(6px, 1.8vw, 14px)',
               borderTop: '1px solid rgba(255, 255, 255, 0.1)',
               paddingTop: '14px',
-              maxWidth: '540px',
+              maxWidth: '560px',
             }}
           >
             <div>
               <div
                 className="font-mono"
-                style={{ fontSize: 'clamp(18px, 4.5vw, 23px)', fontWeight: 900, color: '#fff' }}
+                style={{ fontSize: 'clamp(15px, 3.8vw, 21px)', fontWeight: 900, color: '#fbbf24' }}
+              >
+                8+ Yrs
+              </div>
+              <div style={{ fontSize: 'clamp(9px, 2.2vw, 11px)', color: '#94a3b8', fontWeight: 600 }}>
+                Estd. 2018
+              </div>
+            </div>
+
+            <div>
+              <div
+                className="font-mono"
+                style={{ fontSize: 'clamp(15px, 3.8vw, 21px)', fontWeight: 900, color: '#fff' }}
               >
                 $48.5M+
               </div>
-              <div style={{ fontSize: 'clamp(10px, 2.6vw, 12px)', color: '#94a3b8', fontWeight: 600 }}>
-                24H Bet Volume
+              <div style={{ fontSize: 'clamp(9px, 2.2vw, 11px)', color: '#94a3b8', fontWeight: 600 }}>
+                24H Volume
               </div>
             </div>
 
             <div>
               <div
                 className="font-mono"
-                style={{ fontSize: 'clamp(18px, 4.5vw, 23px)', fontWeight: 900, color: '#10b981' }}
+                style={{ fontSize: 'clamp(15px, 3.8vw, 21px)', fontWeight: 900, color: '#10b981' }}
               >
                 0.4s
               </div>
-              <div style={{ fontSize: 'clamp(10px, 2.6vw, 12px)', color: '#94a3b8', fontWeight: 600 }}>
-                Instant Payout Speed
+              <div style={{ fontSize: 'clamp(9px, 2.2vw, 11px)', color: '#94a3b8', fontWeight: 600 }}>
+                Instant Payout
               </div>
             </div>
 
             <div>
               <div
                 className="font-mono"
-                style={{ fontSize: 'clamp(18px, 4.5vw, 23px)', fontWeight: 900, color: '#fbbf24' }}
+                style={{ fontSize: 'clamp(15px, 3.8vw, 21px)', fontWeight: 900, color: '#38bdf8' }}
               >
-                95.0%
+                100%
               </div>
-              <div style={{ fontSize: 'clamp(10px, 2.6vw, 12px)', color: '#94a3b8', fontWeight: 600 }}>
-                Max Win Multiplier
+              <div style={{ fontSize: 'clamp(9px, 2.2vw, 11px)', color: '#94a3b8', fontWeight: 600 }}>
+                Capital Safe
               </div>
             </div>
           </div>

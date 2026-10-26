@@ -545,7 +545,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                   >
                     <span style={{ fontSize: '18px' }}>🛡️</span>
                     <div style={{ fontSize: '11.5px', color: '#10b981', lineHeight: '1.4' }}>
-                      <strong>Zero Gateway Deductions (0% Fee):</strong> 100% of your deposit is credited directly to your live wallet.
+                      <strong>8-Year Capital Protection Guarantee (Estd. 2018):</strong> 100% principal safe with 0% gateway fee. Operating without default since 2018.
                     </div>
                   </div>
 

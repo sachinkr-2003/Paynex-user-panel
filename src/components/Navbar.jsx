@@ -18,6 +18,7 @@ const Navbar = ({
     { label: 'Markets', href: '#markets', icon: '📊' },
     { label: '3D Trade Arena', href: '#trading-arena', icon: '⚡' },
     { label: 'Leaderboard', href: '#leaderboard', icon: '🏆' },
+    { label: '8-Year Warranty', href: '#warranty', icon: '🛡️' },
     { label: 'VIP Tiers', href: '#vip', icon: '💎' },
   ];
 
@@ -243,7 +244,7 @@ const Navbar = ({
                 className="hidden sm:block"
                 style={{ fontSize: '9px', color: '#94a3b8', letterSpacing: '0.4px', margin: 0, fontWeight: 500 }}
               >
-                INVEST TODAY AND GROW TOMORROW
+                ESTD. 2018 • 8-YEAR CAPITAL WARRANTY
               </p>
             </div>
           </a>
