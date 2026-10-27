@@ -436,6 +436,8 @@ const UserTradingPortal = ({
   // Persistent User Contracts State (Tracks all contracts purchased/taken by user)
   const [userContracts, setUserContracts] = useState(() => {
     try {
+      const token = localStorage.getItem('paynex_user_token') || localStorage.getItem('paynex_token');
+      if (!token) return [];
       const saved = localStorage.getItem('paynex_user_contracts');
       if (saved) {
         const parsed = JSON.parse(saved);
