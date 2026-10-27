@@ -285,19 +285,28 @@ const UserTradingPortal = ({
           const map = {};
           const savedQrs = getSavedGroupQrs();
           const savedRates = getSavedGroupInterestRates();
+          const masterEngineRate = Number(res.defaultGameProfitPercent) || 12;
           res.assets.forEach((a) => {
             const grp = getStockGroup(a);
             const groupQr = (res.groupQrs && res.groupQrs[grp]) || (savedQrs && savedQrs[grp]) || '';
-            // Group Interest Rate is 100% authoritative: all companies in the same group have identical rates
-            const rawGroupRate = (res.groupInterestRates && res.groupInterestRates[grp] !== undefined && res.groupInterestRates[grp] !== null)
+            const custom = getCustomQrOverride(a);
+            const groupRate = (res.groupInterestRates && res.groupInterestRates[grp] !== undefined && res.groupInterestRates[grp] !== null)
               ? Number(res.groupInterestRates[grp])
               : ((savedRates && savedRates[grp] !== undefined && savedRates[grp] !== null)
                 ? Number(savedRates[grp])
-                : (DEFAULT_GROUP_INTEREST[grp] || 5));
-            const custom = getCustomQrOverride(a);
+                : null);
+            const assetBackendRate = (a.returnPercent !== undefined && a.returnPercent !== null && Number(a.returnPercent) > 0)
+              ? Number(a.returnPercent)
+              : null;
+            const customRate = (custom?.returnPercent !== undefined && custom?.returnPercent !== null)
+              ? Number(custom.returnPercent)
+              : null;
+
+            // Admin Full Control: Group Rate > Individual DB Rate > Master Staking Engine Rate
+            const rawRate = customRate ?? groupRate ?? assetBackendRate ?? masterEngineRate;
+            const effectiveReturn = Math.min(12, Math.max(2, Number(rawRate)));
             const effectiveEnabled = custom?.isEnabled !== undefined ? Boolean(custom.isEnabled) : (a.isEnabled !== false);
             const effectiveQr = groupQr || a.qrCode || (custom?.qrCode !== undefined ? custom.qrCode : '');
-            const effectiveReturn = Math.min(12, Math.max(2, rawGroupRate));
             const enriched = {
               id: a.id,
               name: a.name,
