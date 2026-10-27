@@ -272,9 +272,13 @@ const UserTradingPortal = ({
       try {
         const res = await userApi.getAssets();
         if (res && res.success && Array.isArray(res.assets) && res.assets.length > 0) {
+          if (res.groupQrs && typeof res.groupQrs === 'object') {
+            try {
+              localStorage.setItem('paynex_group_qrs', JSON.stringify(res.groupQrs));
+            } catch (_) {}
+          }
           const map = {};
           res.assets.forEach((a) => {
-            const cleanSym = (a.symbol || a.id || 'stock').toLowerCase().replace(/[^a-z0-9]/g, '');
             const custom = getCustomQrOverride(a);
             const effectiveEnabled = custom?.isEnabled !== undefined ? Boolean(custom.isEnabled) : (a.isEnabled !== false);
             const enriched = {
@@ -282,6 +286,7 @@ const UserTradingPortal = ({
               name: a.name,
               symbol: a.symbol,
               category: a.category || 'Stock',
+              group: a.group || 1,
               basePrice: Number(a.basePrice) || 1000,
               step: Number(a.step) || Math.max(1, (Number(a.basePrice) * 0.001)),
               icon: a.icon || 'stock',
@@ -291,7 +296,7 @@ const UserTradingPortal = ({
               minStake: a.minStake,
               maxStake: a.maxStake,
               isEnabled: effectiveEnabled,
-              upiId: custom?.upiId || a.upiId || `${cleanSym}.paynex@icici`,
+              upiId: custom?.upiId || a.upiId || '',
               payeeName: custom?.payeeName || a.payeeName || `${a.name} Trading Desk`,
               qrCode: custom?.qrCode !== undefined ? custom.qrCode : (a.qrCode || ''),
             };
