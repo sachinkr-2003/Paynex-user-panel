@@ -1220,8 +1220,25 @@ const UserTradingPortal = ({
   const [purchaseAmount, setPurchaseAmount] = useState(5000);
   const [purchaseMode, setPurchaseMode] = useState('qr'); // 'qr' or 'wallet'
   const [purchaseUtr, setPurchaseUtr] = useState('');
+  const [purchaseScreenshot, setPurchaseScreenshot] = useState('');
+  const [purchaseScreenshotName, setPurchaseScreenshotName] = useState('');
   const [purchaseCopied, setPurchaseCopied] = useState(false);
   const [isSubmittingPurchase, setIsSubmittingPurchase] = useState(false);
+
+  const handlePurchaseScreenshotUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showUserWarning('File Too Large', 'Please upload a screenshot smaller than 5 MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (uploadEvent) => {
+      setPurchaseScreenshot(uploadEvent.target?.result || '');
+      setPurchaseScreenshotName(file.name);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleOpenPurchaseModal = (targetAsset = null, preferredMode = null) => {
     const assetToBuy = targetAsset || currentAsset || resolveAsset(DEFAULT_ASSETS, selectedAsset);
@@ -1232,6 +1249,8 @@ const UserTradingPortal = ({
     const mode = preferredMode || (realBalance >= minVal ? 'wallet' : 'qr');
     setPurchaseMode(mode);
     setPurchaseUtr('');
+    setPurchaseScreenshot('');
+    setPurchaseScreenshotName('');
   };
 
   const handleConfirmPurchase = async (e) => {
@@ -1255,110 +1274,149 @@ const UserTradingPortal = ({
     const payout = buyAmt + profit;
     const targetUpi = purchaseModalAsset.upiId || '';
 
+    // ==========================================
+    // MODE 1: REAL PAYMENT FROM WALLET (100% Instant Real Payment)
+    // ==========================================
     if (purchaseMode === 'wallet') {
       if (realBalance < buyAmt) {
         showUserWarning(
           'Insufficient Wallet Balance',
-          `Your wallet has ₹${realBalance.toLocaleString('en-IN')}. Please switch to "Pay via ${purchaseModalAsset.name} QR" or top up your wallet.`
+          `Your wallet has ₹${realBalance.toLocaleString('en-IN')}. Please switch to "Pay via QR Code" or top up your wallet with real payment first.`
         );
         return;
       }
+
       setRealBalance((b) => b - buyAmt);
-    } else {
-      // QR Payment mode
-      const finalUtr = purchaseUtr.trim() || `UTR${Date.now().toString().slice(-9)}`;
-      setIsSubmittingPurchase(true);
+
+      // Set active growth plan on this asset with real funds
+      setSelectedAsset(purchaseModalAsset.symbol || purchaseModalAsset.id);
+      let serverRoundId = null;
       try {
-        await userApi.submitDeposit(buyAmt, 'Stock QR', finalUtr, '', {
-          companyId: purchaseModalAsset.id || purchaseModalAsset.symbol,
-          companyName: purchaseModalAsset.name,
-          companyUpi: targetUpi,
-        });
+        const res = await userApi.placeStake(buyAmt, purchaseModalAsset.symbol || purchaseModalAsset.id);
+        if (res && res.round) {
+          serverRoundId = res.round.id || res.round._id;
+        }
       } catch (err) {
-        console.warn('Purchase deposit sync fallback:', err.message);
-      } finally {
-        setIsSubmittingPurchase(false);
+        console.warn('Live API stake call fallback:', err.message);
       }
-    }
 
-    // Set active growth plan on this asset
-    setSelectedAsset(purchaseModalAsset.symbol || purchaseModalAsset.id);
-    let serverRoundId = null;
-    try {
-      const res = await userApi.placeStake(buyAmt, purchaseModalAsset.symbol || purchaseModalAsset.id);
-      if (res && res.round) {
-        serverRoundId = res.round.id || res.round._id;
-      }
-    } catch (err) {
-      console.warn('Live API stake call fallback:', err.message);
-    }
+      const contractId = serverRoundId || `CT-${Math.floor(10000 + Math.random() * 90000)}`;
 
-    const contractId = serverRoundId || `CT-${Math.floor(10000 + Math.random() * 90000)}`;
+      setActiveTrade({
+        contractId,
+        roundId: serverRoundId,
+        asset: purchaseModalAsset.symbol || purchaseModalAsset.id,
+        amount: buyAmt,
+        adminPercent: assetRate,
+        profit,
+        payout,
+        timeTotal: selectedTimeframe.seconds,
+        timeLeft: selectedTimeframe.seconds,
+      });
 
-    setActiveTrade({
-      contractId,
-      roundId: serverRoundId,
-      asset: purchaseModalAsset.symbol || purchaseModalAsset.id,
-      amount: buyAmt,
-      adminPercent: assetRate,
-      profit,
-      payout,
-      timeTotal: selectedTimeframe.seconds,
-      timeLeft: selectedTimeframe.seconds,
-    });
-
-    const newContract = {
-      id: contractId,
-      asset: purchaseModalAsset.symbol || purchaseModalAsset.id,
-      assetName: purchaseModalAsset.name,
-      symbol: purchaseModalAsset.symbol || purchaseModalAsset.id,
-      icon: purchaseModalAsset.icon || 'stock',
-      color: purchaseModalAsset.color || '#3b82f6',
-      category: purchaseModalAsset.category || 'Stock',
-      amount: buyAmt,
-      rate: assetRate,
-      profit,
-      payout,
-      duration: `${selectedTimeframe.seconds}s`,
-      time: 'Just now',
-      status: 'Running',
-      createdAt: Date.now(),
-    };
-    setUserContracts((prevContracts) => [newContract, ...prevContracts]);
-
-    const purchasedSymbol = purchaseModalAsset.symbol || purchaseModalAsset.id;
-    const displaySymbol = (purchasedSymbol || '').replace('/USDT', '').replace('/INR', '');
-    const userStakeEntry = {
-      id: serverRoundId || `user_stake_${Date.now()}`,
-      name: `${user?.name || 'Sachin'} (You)`,
-      avatar: 'TRD',
-      amount: buyAmt,
-      adminPercent: assetRate,
-      profit,
-      payout,
-      time: 'Just now',
-      isUser: true,
-      asset: displaySymbol,
-    };
-    setCompanyRoomTraders((prev) => {
-      const currentList = prev[purchasedSymbol] || generateSeedTradersForAsset(purchasedSymbol, assetRate);
-      return {
-        ...prev,
-        [purchasedSymbol]: [userStakeEntry, ...currentList.slice(0, 24)],
+      const newContract = {
+        id: contractId,
+        asset: purchaseModalAsset.symbol || purchaseModalAsset.id,
+        assetName: purchaseModalAsset.name,
+        symbol: purchaseModalAsset.symbol || purchaseModalAsset.id,
+        icon: purchaseModalAsset.icon || 'stock',
+        color: purchaseModalAsset.color || '#3b82f6',
+        category: purchaseModalAsset.category || 'Stock',
+        amount: buyAmt,
+        rate: assetRate,
+        profit,
+        payout,
+        duration: `${selectedTimeframe.seconds}s`,
+        time: 'Just now',
+        status: 'Running',
+        createdAt: Date.now(),
       };
-    });
-    setCompanyInvestors((prev) => {
-      const cur = prev[purchasedSymbol] || getInitialInvestorsForAsset(purchasedSymbol);
-      return { ...prev, [purchasedSymbol]: cur + 1 };
-    });
+      setUserContracts((prevContracts) => [newContract, ...prevContracts]);
 
-    const purchasedAssetName = purchaseModalAsset.name;
-    setPurchaseModalAsset(null);
+      const purchasedSymbol = purchaseModalAsset.symbol || purchaseModalAsset.id;
+      const displaySymbol = (purchasedSymbol || '').replace('/USDT', '').replace('/INR', '');
+      const userStakeEntry = {
+        id: serverRoundId || `user_stake_${Date.now()}`,
+        name: `${user?.name || 'Sachin'} (You)`,
+        avatar: 'TRD',
+        amount: buyAmt,
+        adminPercent: assetRate,
+        profit,
+        payout,
+        time: 'Just now',
+        isUser: true,
+        asset: displaySymbol,
+      };
+      setCompanyRoomTraders((prev) => {
+        const currentList = prev[purchasedSymbol] || generateSeedTradersForAsset(purchasedSymbol, assetRate);
+        return {
+          ...prev,
+          [purchasedSymbol]: [userStakeEntry, ...currentList.slice(0, 24)],
+        };
+      });
+      setCompanyInvestors((prev) => {
+        const cur = prev[purchasedSymbol] || getInitialInvestorsForAsset(purchasedSymbol);
+        return { ...prev, [purchasedSymbol]: cur + 1 };
+      });
 
-    showUserSuccess(
-      'Stock Purchase & Stake Activated!',
-      `Successfully purchased <strong>${purchasedAssetName}</strong> (${purchaseMode === 'qr' ? 'via Company QR' : 'from Wallet'}). Growth plan active with <strong>+${assetRate}% Guaranteed Profit</strong>!`
-    );
+      const purchasedAssetName = purchaseModalAsset.name;
+      setPurchaseModalAsset(null);
+
+      showUserSuccess(
+        'Stock Purchase & Stake Activated!',
+        `Real payment of <strong>₹${buyAmt.toLocaleString('en-IN')}</strong> confirmed from Wallet! Growth plan on <strong>${purchasedAssetName}</strong> active with <strong>+${assetRate}% Guaranteed Profit</strong>!`
+      );
+      return;
+    }
+
+    // ==========================================
+    // MODE 2: QR PAYMENT MODE (STRICT REAL PAYMENT ONLY - NO FAKE CONTRACT ACTIVATION!)
+    // ==========================================
+    const cleanUtr = (purchaseUtr || '').trim().replace(/\D/g, ''); // Numeric only
+
+    if (!cleanUtr || cleanUtr.length < 10 || cleanUtr.length > 16) {
+      showUserWarning(
+        'Real 12-Digit UTR Required',
+        'Please complete payment on PhonePe / GPay / Paytm and enter the real 12-digit UTR reference number from your bank receipt.'
+      );
+      return;
+    }
+
+    // Check repeating fake patterns (e.g. 000000000000, 111111111111)
+    if (/^(\d)\1{9,}$/.test(cleanUtr)) {
+      showUserWarning(
+        'Invalid UTR Number',
+        'Repeated dummy numbers detected. Please enter your real 12-digit payment UTR.'
+      );
+      return;
+    }
+
+    setIsSubmittingPurchase(true);
+    try {
+      await userApi.submitDeposit(buyAmt, `Stock Purchase (${purchaseModalAsset.name})`, cleanUtr, purchaseScreenshot || '', {
+        companyId: purchaseModalAsset.id || purchaseModalAsset.symbol,
+        companyName: purchaseModalAsset.name,
+        companyUpi: targetUpi,
+        stockSymbol: purchaseModalAsset.symbol || purchaseModalAsset.id,
+        intendedAction: 'stake',
+        rate: assetRate,
+      });
+
+      const purchasedAssetName = purchaseModalAsset.name;
+      setPurchaseModalAsset(null);
+      setPurchaseUtr('');
+      setPurchaseScreenshot('');
+      setPurchaseScreenshotName('');
+
+      showUserSuccess(
+        'Real Payment Submitted for Verification!',
+        `Payment request of <strong>₹${buyAmt.toLocaleString('en-IN')}</strong> (UTR: <code>${cleanUtr}</code>) submitted successfully.<br/><br/><strong>Security Note:</strong> Fake payments are strictly rejected. Once Admin verifies the real payment in bank account, your <strong>${purchasedAssetName}</strong> contract (+${assetRate}% profit) will activate automatically!`
+      );
+    } catch (err) {
+      showUserError('Submission Failed', err.message || 'Could not submit deposit request. Please try again.');
+    } finally {
+      setIsSubmittingPurchase(false);
+    }
   };
 
 
@@ -5403,54 +5461,104 @@ const UserTradingPortal = ({
                     gap: '10px',
                   }}
                 >
-                  <Lock size={18} color="#fbbf24" />
+                  <Lock size={18} color="#fbbf24" style={{ flexShrink: 0 }} />
                   <div style={{ fontSize: '11.5px', color: '#cbd5e1', lineHeight: '1.4' }}>
-                    <strong style={{ color: '#fbbf24' }}>Direct QR Scanner:</strong> Scan the QR code above with your payment app (PhonePe, GPay, Paytm) to complete payment securely. Then enter the 12-digit UTR reference below.
+                    <strong style={{ color: '#fbbf24' }}>Real Payment Security:</strong> Scan the QR code above with any UPI app (PhonePe, GPay, Paytm). Complete the real payment and enter the 12-digit UTR reference number from your bank receipt. Fake submissions are automatically rejected.
                   </div>
                 </div>
 
-                {/* 12-Digit UTR Input */}
+                {/* 1-Tap UPI Apps Shortcut */}
+                {purchaseModalAsset.upiId && (
+                  <div>
+                    <div style={{ fontSize: '10.5px', color: '#94a3b8', fontWeight: 700, marginBottom: '5px' }}>
+                      ⚡ Pay Directly via UPI App (1-Tap):
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                      <a
+                        href={`phonepe://pay?pa=${encodeURIComponent(purchaseModalAsset.upiId)}&pn=${encodeURIComponent(purchaseModalAsset.name)}&am=${purchaseAmount}&cu=INR`}
+                        style={{ padding: '7px 4px', background: '#5f259f', borderRadius: '6px', color: '#fff', fontSize: '10.5px', fontWeight: 800, textAlign: 'center', textDecoration: 'none' }}
+                      >
+                        PhonePe
+                      </a>
+                      <a
+                        href={`gpay://upi/pay?pa=${encodeURIComponent(purchaseModalAsset.upiId)}&pn=${encodeURIComponent(purchaseModalAsset.name)}&am=${purchaseAmount}&cu=INR`}
+                        style={{ padding: '7px 4px', background: '#1a73e8', borderRadius: '6px', color: '#fff', fontSize: '10.5px', fontWeight: 800, textAlign: 'center', textDecoration: 'none' }}
+                      >
+                        Google Pay
+                      </a>
+                      <a
+                        href={`paytmmp://pay?pa=${encodeURIComponent(purchaseModalAsset.upiId)}&pn=${encodeURIComponent(purchaseModalAsset.name)}&am=${purchaseAmount}&cu=INR`}
+                        style={{ padding: '7px 4px', background: '#00baf2', borderRadius: '6px', color: '#fff', fontSize: '10.5px', fontWeight: 800, textAlign: 'center', textDecoration: 'none' }}
+                      >
+                        Paytm
+                      </a>
+                      <a
+                        href={`upi://pay?pa=${encodeURIComponent(purchaseModalAsset.upiId)}&pn=${encodeURIComponent(purchaseModalAsset.name)}&am=${purchaseAmount}&cu=INR`}
+                        style={{ padding: '7px 4px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '6px', color: '#fbbf24', fontSize: '10.5px', fontWeight: 800, textAlign: 'center', textDecoration: 'none' }}
+                      >
+                        Any UPI
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {/* 12-Digit UTR Input (No Fake Auto-Fill) */}
                 <div>
                   <label style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
-                    Enter 12-Digit UTR / Transaction Reference ID *
+                    Enter 12-Digit NPCI UTR / Transaction Reference ID *
                   </label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type="text"
-                      placeholder="e.g. 423985123490 (from PhonePe / GPay receipt)"
-                      value={purchaseUtr}
-                      onChange={(e) => setPurchaseUtr(e.target.value)}
-                      style={{
-                        width: '100%',
-                        background: 'rgba(0, 0, 0, 0.4)',
-                        border: '1.2px solid rgba(251, 191, 36, 0.4)',
-                        borderRadius: '8px',
-                        padding: '9px 12px',
-                        color: '#fff',
-                        fontSize: '13px',
-                        fontFamily: 'monospace',
-                        boxSizing: 'border-box',
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setPurchaseUtr(`UTR${Date.now().toString().slice(-9)}`)}
-                      style={{
-                        position: 'absolute',
-                        right: '8px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'transparent',
-                        border: 'none',
-                        color: '#fbbf24',
-                        fontSize: '10.5px',
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Auto-Fill
-                    </button>
+                  <input
+                    type="text"
+                    placeholder="e.g. 423985123490 (from PhonePe / GPay receipt)"
+                    value={purchaseUtr}
+                    maxLength={16}
+                    onChange={(e) => setPurchaseUtr(e.target.value.replace(/\D/g, ''))}
+                    style={{
+                      width: '100%',
+                      background: 'rgba(0, 0, 0, 0.4)',
+                      border: '1.2px solid rgba(251, 191, 36, 0.4)',
+                      borderRadius: '8px',
+                      padding: '9px 12px',
+                      color: '#fff',
+                      fontSize: '13px',
+                      fontFamily: 'monospace',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '3px' }}>
+                    12-digit reference number found on your successful bank / UPI payment receipt.
                   </div>
+                </div>
+
+                {/* Payment Screenshot Proof (Optional / Recommended) */}
+                <div>
+                  <label style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                    Attach Payment Screenshot Proof (Recommended):
+                  </label>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px dashed rgba(251, 191, 36, 0.4)',
+                      color: purchaseScreenshotName ? '#34d399' : '#cbd5e1',
+                      fontSize: '11.5px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span>📷 {purchaseScreenshotName || 'Upload Screenshot (PNG / JPG)'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePurchaseScreenshotUpload}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
                 </div>
 
                 {/* Confirm QR Purchase Button */}
@@ -5472,8 +5580,8 @@ const UserTradingPortal = ({
                   }}
                 >
                   {isSubmittingPurchase
-                    ? '⏳ Submitting Payment...'
-                    : `Confirm Payment & Start ${purchaseModalAsset.name} Stake`}
+                    ? '⏳ Submitting Real Payment Proof...'
+                    : 'Submit Real Payment Proof (Admin Verification)'}
                 </button>
               </div>
             )}
