@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import userApi from '../services/api';
 import { showUserSuccess, showUserWarning, showUserError } from '../utils/swal';
-import { FIFTY_STOCKS_MAP, getCompanyQrUrl, enrichStockWithPayment, getCustomQrOverride, getStockGroup } from '../data/stocksData';
+import { FIFTY_STOCKS_MAP, getCompanyQrUrl, enrichStockWithPayment, getCustomQrOverride, getStockGroup, getSavedGroupQrs } from '../data/stocksData';
 import AssetIcon from './AssetIcon';
 import {
   Zap,
@@ -278,9 +278,10 @@ const UserTradingPortal = ({
             } catch (_) {}
           }
           const map = {};
+          const savedQrs = getSavedGroupQrs();
           res.assets.forEach((a) => {
             const grp = getStockGroup(a);
-            const groupQr = (res.groupQrs && res.groupQrs[grp]) || '';
+            const groupQr = (res.groupQrs && res.groupQrs[grp]) || (savedQrs && savedQrs[grp]) || '';
             const custom = getCustomQrOverride(a);
             const effectiveEnabled = custom?.isEnabled !== undefined ? Boolean(custom.isEnabled) : (a.isEnabled !== false);
             const effectiveQr = groupQr || a.qrCode || (custom?.qrCode !== undefined ? custom.qrCode : '');
