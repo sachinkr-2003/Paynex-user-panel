@@ -174,7 +174,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
     } catch (err) {
       // Offline / network fallback with direct dynamic URI
       const dummyId = `PAYNEX-ORDER-${Date.now().toString().slice(-6)}`;
-      const compUpi = currentCompany.upiId || 'paynex@icici';
+      const compUpi = currentCompany.upiId || '';
       const encodedMerchant = encodeURIComponent(`${currentCompany.name} Desk`);
       const baseUpi = `pa=${compUpi}&pn=${encodedMerchant}&am=${numAmount}&tr=${dummyId}&cu=INR&tn=Recharge_${dummyId}`;
 

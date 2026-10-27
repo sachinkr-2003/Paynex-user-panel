@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import userApi from '../services/api';
 import { showUserSuccess, showUserWarning, showUserError } from '../utils/swal';
-import { FIFTY_STOCKS_MAP, getCompanyQrUrl, enrichStockWithPayment, getCustomQrOverride } from '../data/stocksData';
+import { FIFTY_STOCKS_MAP, getCompanyQrUrl, enrichStockWithPayment, getCustomQrOverride, getStockGroup } from '../data/stocksData';
 import AssetIcon from './AssetIcon';
 import {
   Zap,
@@ -62,7 +62,7 @@ const FALLBACK_ASSET = {
   minStake: 500,
   maxStake: 2000000,
   isEnabled: true,
-  upiId: 'btc.paynex@icici',
+  upiId: '',
   payeeName: 'Bitcoin Trading Desk',
   qrCode: '',
 };
@@ -279,14 +279,17 @@ const UserTradingPortal = ({
           }
           const map = {};
           res.assets.forEach((a) => {
+            const grp = getStockGroup(a);
+            const groupQr = (res.groupQrs && res.groupQrs[grp]) || '';
             const custom = getCustomQrOverride(a);
             const effectiveEnabled = custom?.isEnabled !== undefined ? Boolean(custom.isEnabled) : (a.isEnabled !== false);
+            const effectiveQr = groupQr || a.qrCode || (custom?.qrCode !== undefined ? custom.qrCode : '');
             const enriched = {
               id: a.id,
               name: a.name,
               symbol: a.symbol,
               category: a.category || 'Stock',
-              group: a.group || 1,
+              group: grp,
               basePrice: Number(a.basePrice) || 1000,
               step: Number(a.step) || Math.max(1, (Number(a.basePrice) * 0.001)),
               icon: a.icon || 'stock',
@@ -298,7 +301,7 @@ const UserTradingPortal = ({
               isEnabled: effectiveEnabled,
               upiId: custom?.upiId || a.upiId || '',
               payeeName: custom?.payeeName || a.payeeName || `${a.name} Trading Desk`,
-              qrCode: custom?.qrCode !== undefined ? custom.qrCode : (a.qrCode || ''),
+              qrCode: effectiveQr,
             };
             if (a.id) map[a.id] = enriched;
             if (a.symbol) map[a.symbol] = enriched;
@@ -1156,8 +1159,7 @@ const UserTradingPortal = ({
     const assetRate = purchaseModalAsset.returnPercent ?? currentAssetRate;
     const profit = Math.round((buyAmt * assetRate) / 100);
     const payout = buyAmt + profit;
-    const cleanSym = (purchaseModalAsset.symbol || purchaseModalAsset.id || 'stock').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const targetUpi = purchaseModalAsset.upiId || `${cleanSym}.paynex@icici`;
+    const targetUpi = purchaseModalAsset.upiId || '';
 
     if (purchaseMode === 'wallet') {
       if (realBalance < buyAmt) {
