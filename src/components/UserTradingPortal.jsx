@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import userApi from '../services/api';
 import { showUserSuccess, showUserWarning, showUserError } from '../utils/swal';
-import { FIFTY_STOCKS_MAP, getCompanyQrUrl, enrichStockWithPayment, getCustomQrOverride, getStockGroup, getSavedGroupQrs, getSavedGroupInterestRates } from '../data/stocksData';
+import { FIFTY_STOCKS_MAP, getCompanyQrUrl, enrichStockWithPayment, getCustomQrOverride, getStockGroup, getSavedGroupQrs, getSavedGroupInterestRates, DEFAULT_GROUP_INTEREST } from '../data/stocksData';
 import AssetIcon from './AssetIcon';
 import {
   Zap,
@@ -288,12 +288,16 @@ const UserTradingPortal = ({
           res.assets.forEach((a) => {
             const grp = getStockGroup(a);
             const groupQr = (res.groupQrs && res.groupQrs[grp]) || (savedQrs && savedQrs[grp]) || '';
-            const groupRate = (res.groupInterestRates && res.groupInterestRates[grp]) || (savedRates && savedRates[grp]) || null;
+            // Group Interest Rate is 100% authoritative: all companies in the same group have identical rates
+            const rawGroupRate = (res.groupInterestRates && res.groupInterestRates[grp] !== undefined && res.groupInterestRates[grp] !== null)
+              ? Number(res.groupInterestRates[grp])
+              : ((savedRates && savedRates[grp] !== undefined && savedRates[grp] !== null)
+                ? Number(savedRates[grp])
+                : (DEFAULT_GROUP_INTEREST[grp] || 5));
             const custom = getCustomQrOverride(a);
             const effectiveEnabled = custom?.isEnabled !== undefined ? Boolean(custom.isEnabled) : (a.isEnabled !== false);
             const effectiveQr = groupQr || a.qrCode || (custom?.qrCode !== undefined ? custom.qrCode : '');
-            const rawRet = groupRate || Number(custom?.returnPercent ?? a.returnPercent ?? 5);
-            const effectiveReturn = Math.min(12, Math.max(2, Number(rawRet) || 5));
+            const effectiveReturn = Math.min(12, Math.max(2, rawGroupRate));
             const enriched = {
               id: a.id,
               name: a.name,
