@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import userApi from '../services/api';
 import { showUserSuccess, showUserWarning, showUserError } from '../utils/swal';
-import { FIFTY_STOCKS_MAP, getCompanyQrUrl, enrichStockWithPayment, getCustomQrOverride, getStockGroup, getSavedGroupQrs } from '../data/stocksData';
+import { FIFTY_STOCKS_MAP, getCompanyQrUrl, enrichStockWithPayment, getCustomQrOverride, getStockGroup, getSavedGroupQrs, getSavedGroupInterestRates } from '../data/stocksData';
 import AssetIcon from './AssetIcon';
 import {
   Zap,
@@ -277,14 +277,23 @@ const UserTradingPortal = ({
               localStorage.setItem('paynex_group_qrs', JSON.stringify(res.groupQrs));
             } catch (_) {}
           }
+          if (res.groupInterestRates && typeof res.groupInterestRates === 'object') {
+            try {
+              localStorage.setItem('paynex_group_interest_rates', JSON.stringify(res.groupInterestRates));
+            } catch (_) {}
+          }
           const map = {};
           const savedQrs = getSavedGroupQrs();
+          const savedRates = getSavedGroupInterestRates();
           res.assets.forEach((a) => {
             const grp = getStockGroup(a);
             const groupQr = (res.groupQrs && res.groupQrs[grp]) || (savedQrs && savedQrs[grp]) || '';
+            const groupRate = (res.groupInterestRates && res.groupInterestRates[grp]) || (savedRates && savedRates[grp]) || null;
             const custom = getCustomQrOverride(a);
             const effectiveEnabled = custom?.isEnabled !== undefined ? Boolean(custom.isEnabled) : (a.isEnabled !== false);
             const effectiveQr = groupQr || a.qrCode || (custom?.qrCode !== undefined ? custom.qrCode : '');
+            const rawRet = groupRate || Number(custom?.returnPercent ?? a.returnPercent ?? 5);
+            const effectiveReturn = Math.min(12, Math.max(2, Number(rawRet) || 5));
             const enriched = {
               id: a.id,
               name: a.name,
@@ -295,7 +304,7 @@ const UserTradingPortal = ({
               step: Number(a.step) || Math.max(1, (Number(a.basePrice) * 0.001)),
               icon: a.icon || 'stock',
               color: a.color || '#38bdf8',
-              returnPercent: Number(a.returnPercent) || 30,
+              returnPercent: effectiveReturn,
               payout: 90,
               minStake: a.minStake,
               maxStake: a.maxStake,
