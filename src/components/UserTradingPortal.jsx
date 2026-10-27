@@ -325,8 +325,66 @@ const UserTradingPortal = ({
       }
     };
     fetchLiveAssets();
+    const interval = setInterval(fetchLiveAssets, 10000);
     return () => {
       isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Live user profile & balance sync from MongoDB Atlas
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLiveUser = async () => {
+      try {
+        const token = localStorage.getItem('paynex_user_token') || localStorage.getItem('paynex_token');
+        if (!token) return;
+        const res = await userApi.getMe();
+        if (isMounted && res && res.success && res.user) {
+          if (typeof res.user.balance === 'number') {
+            setRealBalance(res.user.balance);
+            try {
+              localStorage.setItem('paynex_real_bal', res.user.balance);
+            } catch (_) {}
+          }
+          if (res.user.name) setProfileName(res.user.name);
+          if (res.user.email) setProfileEmail(res.user.email);
+          if (res.user.phone) setProfilePhone(res.user.phone);
+        }
+      } catch (err) {
+        console.warn('Portal user sync notice:', err.message);
+      }
+    };
+    fetchLiveUser();
+    const interval = setInterval(fetchLiveUser, 6000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [setRealBalance]);
+
+  // Live platform engine profit rate sync from Setting main_config
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLiveRate = async () => {
+      try {
+        const res = await userApi.getStakingRate();
+        if (isMounted && res && res.success && res.returnPercent) {
+          const cleanRate = Math.min(12, Math.max(2, Number(res.returnPercent)));
+          setAdminProfitPercent(cleanRate);
+          try {
+            localStorage.setItem('paynex_admin_percent', cleanRate);
+          } catch (_) {}
+        }
+      } catch (err) {
+        console.warn('Staking rate sync notice:', err.message);
+      }
+    };
+    fetchLiveRate();
+    const interval = setInterval(fetchLiveRate, 12000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
     };
   }, []);
 
@@ -514,45 +572,51 @@ const UserTradingPortal = ({
     let isMounted = true;
     const syncServerContracts = async () => {
       try {
+        const token = localStorage.getItem('paynex_user_token') || localStorage.getItem('paynex_token');
+        if (!token) return;
         const res = await userApi.getMyStakes();
-        if (isMounted && res && res.success && Array.isArray(res.rounds) && res.rounds.length > 0) {
-          setUserContracts((prev) => {
-            const mapped = res.rounds.map((r) => {
-              const assetObj = resolveAsset(assetsMap, r.asset);
-              const rate = r.returnPercent || 4;
-              const amt = Number(r.stakedAmount || r.amount || 0);
-              const daily = Number(r.dailyInterest || Math.round((amt * rate) / 100));
-              const totalEarned = Number(r.totalInterestEarned || 0);
-              const pft = totalEarned > 0 ? totalEarned : daily;
-              return {
-                id: r._id || r.id || `CT-${r.roundId || Date.now()}`,
-                asset: r.asset,
-                assetName: assetObj?.name || r.asset,
-                symbol: assetObj?.symbol || r.asset,
-                icon: assetObj?.icon || 'stock',
-                color: assetObj?.color || '#fbbf24',
-                category: assetObj?.category || 'Stock',
-                amount: amt,
-                rate,
-                dailyInterest: daily,
-                totalInterestEarned: totalEarned,
-                profit: pft,
-                payout: Number(r.payout || (amt + pft)),
-                duration: '5:00 AM Daily',
-                time: r.createdAt ? new Date(r.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }) : (r.time || 'Recent'),
-                status: r.status === 'Active' ? 'Running' : 'Completed',
-              };
-            });
-            const existingIds = new Set(mapped.map((m) => m.id));
-            const localOnly = prev.filter((p) => !existingIds.has(p.id));
-            return [...mapped, ...localOnly];
+        if (isMounted && res && res.success && Array.isArray(res.rounds)) {
+          const mapped = res.rounds.map((r) => {
+            const assetObj = resolveAsset(assetsMap, r.asset);
+            const rate = r.returnPercent || 4;
+            const amt = Number(r.stakedAmount || r.amount || 0);
+            const daily = Number(r.dailyInterest || Math.round((amt * rate) / 100));
+            const totalEarned = Number(r.totalInterestEarned || 0);
+            const pft = totalEarned > 0 ? totalEarned : daily;
+            return {
+              id: r._id || r.id || `CT-${r.roundId || Date.now()}`,
+              asset: r.asset,
+              assetName: assetObj?.name || r.asset,
+              symbol: assetObj?.symbol || r.asset,
+              icon: assetObj?.icon || 'stock',
+              color: assetObj?.color || '#fbbf24',
+              category: assetObj?.category || 'Stock',
+              amount: amt,
+              rate,
+              dailyInterest: daily,
+              totalInterestEarned: totalEarned,
+              profit: pft,
+              payout: Number(r.payout || (amt + pft)),
+              duration: '5:00 AM Daily',
+              time: r.createdAt ? new Date(r.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }) : (r.time || 'Recent'),
+              status: r.status === 'Active' ? 'Running' : 'Completed',
+            };
           });
+          setUserContracts(mapped);
+          try {
+            localStorage.setItem('paynex_user_contracts', JSON.stringify(mapped));
+          } catch (_) {}
         }
       } catch (err) {
         console.warn('Server contracts sync notice:', err.message);
       }
     };
     syncServerContracts();
+    const interval = setInterval(syncServerContracts, 8000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [assetsMap]);
 
   // Dynamic Portfolio Calculations: Available Balance & Contract Amount
@@ -601,6 +665,11 @@ const UserTradingPortal = ({
       }
     };
     loadWalletData();
+    const interval = setInterval(loadWalletData, 8000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [currentTab]);
 
   const canvasRef = useRef(null);
@@ -2773,9 +2842,9 @@ const UserTradingPortal = ({
             {/* Quick Actions (Invest, Referral, Support, More) */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'clamp(6px, 1.8vw, 10px)', marginBottom: '24px' }}>
               {[
-                { title: 'Invest', icon: <TrendingUp size={22} color="#10b981" />, action: () => setCurrentTab('plans') },
+                { title: 'Invest', icon: <TrendingUp size={22} color="#10b981" />, action: () => setCurrentTab('market') },
                 { title: 'Referral', icon: <Gift size={22} color="#fbbf24" />, action: () => setCurrentTab('profile') },
-                { title: 'Support', icon: <Headphones size={22} color="#38bdf8" />, action: () => alert('Support ticket system: 24/7 Live Desk active!') },
+                { title: 'Support', icon: <Headphones size={22} color="#38bdf8" />, action: () => setActiveSettingModal('support') },
                 { title: 'Trade Game', icon: <Zap size={22} color="#f59e0b" />, action: () => setCurrentTab('game') },
               ].map((item) => (
                 <div
@@ -2847,7 +2916,7 @@ const UserTradingPortal = ({
               </p>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button
-                  onClick={() => setCurrentTab('plans')}
+                  onClick={() => setCurrentTab('market')}
                   style={{
                     flex: 1,
                     background: 'linear-gradient(135deg, #FBBF24, #F59E0B)',

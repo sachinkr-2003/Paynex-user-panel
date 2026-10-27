@@ -108,14 +108,20 @@ function App() {
     let isMounted = true;
     const syncLiveProfile = async () => {
       try {
-        const token = localStorage.getItem('paynex_user_token');
+        const token = localStorage.getItem('paynex_user_token') || localStorage.getItem('paynex_token');
         if (!token) return;
         const res = await userApi.getMe();
         if (!isMounted) return;
         if (res.success && res.user) {
           setCurrentUser(res.user);
+          try {
+            localStorage.setItem('paynex_user', JSON.stringify(res.user));
+          } catch (_) {}
           if (typeof res.user.balance === 'number') {
             setRealBalance(res.user.balance);
+            try {
+              localStorage.setItem('paynex_real_bal', res.user.balance);
+            } catch (_) {}
           }
         }
       } catch (err) {
@@ -123,7 +129,7 @@ function App() {
       }
     };
     syncLiveProfile();
-    const interval = setInterval(syncLiveProfile, 10000);
+    const interval = setInterval(syncLiveProfile, 5000);
     return () => {
       isMounted = false;
       clearInterval(interval);

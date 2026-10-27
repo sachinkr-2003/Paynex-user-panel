@@ -4,7 +4,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://paynex-backend-hsi
  * Universal request wrapper for User Panel with JWT Bearer auth
  */
 async function request(endpoint, options = {}) {
-  const token = localStorage.getItem('paynex_user_token');
+  const token = localStorage.getItem('paynex_user_token') || localStorage.getItem('paynex_token');
   const headers = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
