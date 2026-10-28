@@ -8,7 +8,7 @@ import { FIFTY_STOCKS, enrichStockWithPayment } from '../data/stocksData';
 const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany = null }) => {
   // Navigation Steps: 'input' -> 'checkout' -> 'under_review' -> 'success' | 'expired'
   const [step, setStep] = useState('input');
-  const [amount, setAmount] = useState(100);
+  const [amount, setAmount] = useState(1000);
   const [loading, setLoading] = useState(false);
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(false);
@@ -151,8 +151,8 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
   // Step 1: Initialize Gateway Order
   const handleInitiatePayment = async () => {
     const numAmount = Number(amount);
-    if (!numAmount || numAmount < 100) {
-      showUserWarning('Invalid Amount', 'Minimum recharge amount is ₹100.');
+    if (!numAmount || numAmount < 1000) {
+      showUserWarning('Invalid Amount', 'Minimum recharge amount is ₹1,000.');
       return;
     }
 
@@ -484,7 +484,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                       </span>
                       <input
                         type="number"
-                        min="100"
+                        min="1000"
                         step="500"
                         value={amount}
                         onChange={(e) => setAmount(Number(e.target.value))}
@@ -505,7 +505,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
 
                   {/* Predefined Quick Chips */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px', marginBottom: '20px' }}>
-                    {[100, 500, 1000, 2000, 5000, 10000].map((amt) => {
+                    {[1000, 2000, 5000, 10000, 25000, 50000].map((amt) => {
                       const isSelected = Number(amount) === amt;
                       return (
                         <button
@@ -553,7 +553,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                   <button
                     type="button"
                     onClick={handleInitiatePayment}
-                    disabled={loading || Number(amount) < 100}
+                    disabled={loading || Number(amount) < 1000}
                     style={{
                       width: '100%',
                       padding: '14px',

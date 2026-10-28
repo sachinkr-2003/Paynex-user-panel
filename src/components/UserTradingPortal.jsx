@@ -202,7 +202,7 @@ const formatTimeLabel = (timestamp, tfId) => {
   return d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
 };
 
-const BET_PRESETS = [100, 500, 1000, 2500, 5000, 10000];
+const BET_PRESETS = [1000, 2000, 5000, 10000, 25000, 50000];
 const ADMIN_RETURN_TIERS = [2, 4, 6, 8, 10, 12];
 
 const UserTradingPortal = ({
@@ -221,7 +221,7 @@ const UserTradingPortal = ({
   const [selectedAsset, setSelectedAsset] = useState('BTC/USDT');
   const [chartTimeframe, setChartTimeframe] = useState('1S');
   const [selectedTimeframe, setSelectedTimeframe] = useState(TIMEFRAMES[1]);
-  const [betAmount, setBetAmount] = useState(100); // Default ₹100 min
+  const [betAmount, setBetAmount] = useState(1000); // Default ₹1000 min
   const [currentPrice, setCurrentPrice] = useState(() => {
     const initial = resolveAsset(DEFAULT_ASSETS, 'BTC/USDT');
     return initial?.basePrice ?? 5524321;
@@ -251,7 +251,7 @@ const UserTradingPortal = ({
 
   // Auto-adjust bet amount when asset changes if below min limit
   useEffect(() => {
-    const minReq = Number(currentAsset?.minStake) || 100;
+    const minReq = Math.max(1000, Number(currentAsset?.minStake) || 1000);
     setBetAmount((prev) => (prev < minReq ? minReq : prev));
   }, [selectedAsset, currentAsset]);
 
@@ -319,7 +319,7 @@ const UserTradingPortal = ({
               color: a.color || '#38bdf8',
               returnPercent: effectiveReturn,
               payout: 90,
-              minStake: a.minStake,
+              minStake: Math.max(1000, Number(a.minStake) || 1000),
               maxStake: a.maxStake,
               isEnabled: effectiveEnabled,
               upiId: custom?.upiId || a.upiId || '',
@@ -1130,6 +1130,11 @@ const UserTradingPortal = ({
   }, [chartHeight, currentPrice, priceHistory, activeTrade, windowWidth, chartTimeframe]);
 
   const handleStakeGrowth = async () => {
+    const minRequired = Math.max(1000, Number(currentAsset?.minStake) || 1000);
+    if (!betAmount || betAmount < minRequired) {
+      showUserWarning('Minimum Investment Required', `Minimum investment amount is ₹${minRequired.toLocaleString('en-IN')}.`);
+      return;
+    }
     if (realBalance < betAmount) {
       showUserWarning('Insufficient Balance', 'Please top up your wallet using Deposit to continue staking.');
       return;
@@ -1242,7 +1247,7 @@ const UserTradingPortal = ({
 
   const handleOpenPurchaseModal = (targetAsset = null, preferredMode = null) => {
     const assetToBuy = targetAsset || currentAsset || resolveAsset(DEFAULT_ASSETS, selectedAsset);
-    const minVal = Number(assetToBuy?.minStake) || 100;
+    const minVal = Math.max(1000, Number(assetToBuy?.minStake) || 1000);
     setPurchaseModalAsset(assetToBuy);
     setPurchaseAmount(minVal);
     // If user has balance >= minVal, default to wallet for 1-click purchase! Otherwise QR
@@ -1263,7 +1268,7 @@ const UserTradingPortal = ({
     }
 
     const buyAmt = Number(purchaseAmount);
-    const minRequired = Number(purchaseModalAsset.minStake) || 100;
+    const minRequired = Math.max(1000, Number(purchaseModalAsset.minStake) || 1000);
     if (!buyAmt || buyAmt < minRequired) {
       showUserWarning('Minimum Investment Required', `Minimum investment for ${purchaseModalAsset.name} is ₹${minRequired.toLocaleString('en-IN')}.`);
       return;
@@ -2265,7 +2270,7 @@ const UserTradingPortal = ({
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#94a3b8' }}>
-                      <span>Min Buy: <strong style={{ color: '#fff' }}>₹{(assetInfo.minStake || 100).toLocaleString('en-IN')}</strong></span>
+                      <span>Min Buy: <strong style={{ color: '#fff' }}>₹{Math.max(1000, Number(assetInfo.minStake) || 1000).toLocaleString('en-IN')}</strong></span>
                       <span>•</span>
                       <span>Vol: <strong style={{ color: '#fff' }}>₹14.8M</strong></span>
                     </div>
@@ -2468,7 +2473,7 @@ const UserTradingPortal = ({
                       INVESTMENT AMOUNT (₹)
                     </label>
                     <span style={{ fontSize: '10.5px', color: '#fbbf24', fontWeight: 700 }}>
-                      Min Limit: ₹{(assetInfo.minStake || 100).toLocaleString('en-IN')}
+                      Min Limit: ₹{Math.max(1000, Number(assetInfo.minStake) || 1000).toLocaleString('en-IN')}
                     </span>
                   </div>
                   <div style={{ position: 'relative' }}>
@@ -2487,10 +2492,10 @@ const UserTradingPortal = ({
                     </span>
                     <input
                       type="number"
-                      min={assetInfo.minStake || 100}
-                      step="100"
+                      min={Math.max(1000, Number(assetInfo.minStake) || 1000)}
+                      step="500"
                       value={betAmount}
-                      onChange={(e) => setBetAmount(Math.max(1, Number(e.target.value)))}
+                      onChange={(e) => setBetAmount(Math.max(1000, Number(e.target.value)))}
                       style={{
                         width: '100%',
                         background: 'rgba(255, 255, 255, 0.05)',
@@ -2509,10 +2514,8 @@ const UserTradingPortal = ({
                   {/* Quick Preset Chips */}
                   <div className="bet-presets-grid" style={{ marginTop: '8px' }}>
                     {(() => {
-                      const minReq = Number(assetInfo.minStake) || 100;
-                      const dynamicPresets = minReq >= 500
-                        ? [minReq, minReq * 2, minReq * 5, 5000, 10000, 25000]
-                        : [100, 500, 1000, 2500, 5000, 10000];
+                      const minReq = Math.max(1000, Number(assetInfo.minStake) || 1000);
+                      const dynamicPresets = [minReq, minReq * 2, minReq * 5, 10000, 25000, 50000];
                       return dynamicPresets.map((amt) => (
                         <button
                           key={amt}
@@ -5307,7 +5310,7 @@ const UserTradingPortal = ({
             <div style={{ marginBottom: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                 <label style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>
-                  INVESTMENT AMOUNT (Min ₹{purchaseModalAsset.minStake || 100})
+                  INVESTMENT AMOUNT (Min ₹{Math.max(1000, Number(purchaseModalAsset.minStake) || 1000).toLocaleString('en-IN')})
                 </label>
                 <span style={{ fontSize: '10.5px', color: '#10b981', fontWeight: 700 }}>
                   Wallet Balance: ₹{realBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -5315,8 +5318,8 @@ const UserTradingPortal = ({
               </div>
               <input
                 type="number"
-                min={purchaseModalAsset.minStake || 100}
-                step="50"
+                min={Math.max(1000, Number(purchaseModalAsset.minStake) || 1000)}
+                step="500"
                 value={purchaseAmount}
                 onChange={(e) => setPurchaseAmount(Number(e.target.value))}
                 style={{
@@ -5335,11 +5338,12 @@ const UserTradingPortal = ({
               />
               <div style={{ display: 'flex', gap: '5px', marginTop: '6px', flexWrap: 'wrap' }}>
                 {[
-                  Number(purchaseModalAsset.minStake) || 100,
-                  (Number(purchaseModalAsset.minStake) || 100) * 2,
-                  (Number(purchaseModalAsset.minStake) || 100) * 5,
-                  5000,
+                  Math.max(1000, Number(purchaseModalAsset.minStake) || 1000),
+                  Math.max(1000, Number(purchaseModalAsset.minStake) || 1000) * 2,
+                  Math.max(1000, Number(purchaseModalAsset.minStake) || 1000) * 5,
                   10000,
+                  25000,
+                  50000,
                 ].filter((v, i, a) => a.indexOf(v) === i).map((amt) => (
                   <button
                     key={amt}
