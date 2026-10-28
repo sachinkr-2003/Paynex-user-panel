@@ -4,3 +4,4 @@ Disallow: /api/
 Disallow: /admin/
 
 Sitemap: https://www.paynex.co.in/sitemap.xml
+
