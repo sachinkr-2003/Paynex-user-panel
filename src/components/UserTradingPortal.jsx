@@ -3042,70 +3042,83 @@ const UserTradingPortal = ({
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {[
-                  { name: 'Bitcoin', symbol: 'BTC', price: '₹ 55,24,321', change: '+2.56%', color: '#f7931a', icon: '₿' },
-                  { name: 'Ethereum', symbol: 'ETH', price: '₹ 2,48,762', change: '+1.83%', color: '#627eea', icon: 'Ξ' },
-                  { name: 'Solana', symbol: 'SOL', price: '₹ 12,450', change: '+3.21%', color: '#9945ff', icon: '◎' },
-                  { name: 'BNB', symbol: 'BNB', price: '₹ 37,820', change: '+1.12%', color: '#f3ba2f', icon: 'bnb' },
-                ].map((c) => (
-                  <div
-                    key={c.symbol}
-                    onClick={() => {
-                      setSelectedAsset(`${c.symbol}/USDT`);
-                      setCurrentTab('game');
-                    }}
-                    style={{
-                      background: '#14151f',
-                      border: '1px solid rgba(245, 158, 11, 0.22)',
-                      borderRadius: '16px',
-                      padding: '14px 16px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div
-                        style={{
-                          width: '42px',
-                          height: '42px',
-                          borderRadius: '50%',
-                          background: c.color,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '18px',
-                          fontWeight: 900,
-                          color: '#fff',
-                        }}
-                      >
-                        <AssetIcon symbol={c.symbol} iconName={c.icon} category={c.category} size={18} color="#fff" />
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '15px', fontWeight: 800, color: '#fff' }}>{c.name}</div>
-                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>{c.symbol}</div>
-                      </div>
-                    </div>
+                  { key: 'BTC/USDT', defaultSymbol: 'BTC', defaultName: 'Bitcoin', defaultPrice: 5524321, color: '#f7931a', icon: '₿' },
+                  { key: 'ETH/USDT', defaultSymbol: 'ETH', defaultName: 'Ethereum', defaultPrice: 248762, color: '#627eea', icon: 'Ξ' },
+                  { key: 'SOL/USDT', defaultSymbol: 'SOL', defaultName: 'Solana', defaultPrice: 12450, color: '#9945ff', icon: '◎' },
+                  { key: 'BNB/USDT', defaultSymbol: 'BNB', defaultName: 'BNB', defaultPrice: 37820, color: '#f3ba2f', icon: 'bnb' },
+                ].map((item) => {
+                  const asset = resolveAsset(assetsMap, item.key) || resolveAsset(assetsMap, item.defaultSymbol);
+                  const rate = asset?.returnPercent ?? currentAssetRate;
+                  const displayName = asset?.name || item.defaultName;
+                  const displaySymbol = asset?.symbol || item.defaultSymbol;
+                  const displayPrice = asset?.basePrice
+                    ? `₹ ${Number(asset.basePrice).toLocaleString('en-IN')}`
+                    : `₹ ${Number(item.defaultPrice).toLocaleString('en-IN')}`;
 
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '15px', fontWeight: 800, color: '#fff', fontFamily: 'monospace' }}>
-                        {c.price}
+                  return (
+                    <div
+                      key={item.defaultSymbol}
+                      onClick={() => {
+                        setSelectedAsset(asset?.symbol ? (asset.symbol.includes('/') ? asset.symbol : `${asset.symbol}/USDT`) : item.key);
+                        setCurrentTab('game');
+                      }}
+                      style={{
+                        background: '#14151f',
+                        border: '1px solid rgba(245, 158, 11, 0.22)',
+                        borderRadius: '16px',
+                        padding: '14px 16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div
+                          style={{
+                            width: '42px',
+                            height: '42px',
+                            borderRadius: '50%',
+                            background: item.color,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '18px',
+                            fontWeight: 900,
+                            color: '#fff',
+                          }}
+                        >
+                          <AssetIcon symbol={item.defaultSymbol} iconName={item.icon} category="Crypto" size={18} color="#fff" />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '15px', fontWeight: 800, color: '#fff' }}>{displayName}</div>
+                          <div style={{ fontSize: '12px', color: '#94a3b8' }}>{displaySymbol}</div>
+                        </div>
                       </div>
-                      <span
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          background: 'rgba(16, 185, 129, 0.16)',
-                          color: '#10b981',
-                          padding: '2px 8px',
-                          borderRadius: '6px',
-                        }}
-                      >
-                        {c.change}
-                      </span>
+
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '15px', fontWeight: 800, color: '#fff', fontFamily: 'monospace' }}>
+                          {displayPrice}
+                        </div>
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            background: 'rgba(16, 185, 129, 0.18)',
+                            border: '1px solid rgba(16, 185, 129, 0.4)',
+                            color: '#10b981',
+                            padding: '3px 9px',
+                            borderRadius: '6px',
+                            display: 'inline-block',
+                          }}
+                        >
+                          +{rate}% Guaranteed
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
