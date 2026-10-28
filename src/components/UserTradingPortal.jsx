@@ -44,6 +44,7 @@ import {
   ChevronRight,
   Edit3,
   LogOut,
+  Plus,
 } from 'lucide-react';
 
 
@@ -461,6 +462,9 @@ const UserTradingPortal = ({
     return [];
   });
   const [exitingContractId, setExitingContractId] = useState(null);
+  const [topUpModalContract, setTopUpModalContract] = useState(null);
+  const [topUpAmount, setTopUpAmount] = useState(1000);
+  const [isSubmittingTopUp, setIsSubmittingTopUp] = useState(false);
 
   // AI Live Support Chat State
   const [supportTab, setSupportTab] = useState('chat'); // 'chat' or 'help'
@@ -1264,11 +1268,6 @@ const UserTradingPortal = ({
     e?.preventDefault();
     if (!purchaseModalAsset) return;
 
-    if (activeTrade) {
-      showUserWarning('Active Plan in Progress', 'A growth plan is already active! Please wait for it to mature.');
-      return;
-    }
-
     const buyAmt = Number(purchaseAmount);
     const minRequired = Math.max(1000, Number(purchaseModalAsset.minStake) || 1000);
     if (!buyAmt || buyAmt < minRequired) {
@@ -1454,6 +1453,62 @@ const UserTradingPortal = ({
       showUserError('Exit Error', err.message || 'Failed to exit contract.');
     } finally {
       setExitingContractId(null);
+    }
+  };
+
+  const handleOpenTopUp = (contract) => {
+    setTopUpModalContract(contract);
+    setTopUpAmount(1000);
+  };
+
+  const handleConfirmTopUp = async () => {
+    if (!topUpModalContract) return;
+    const addAmt = Number(topUpAmount);
+    if (!addAmt || addAmt <= 0) {
+      showUserWarning('Invalid Amount', 'Please enter a valid amount to add.');
+      return;
+    }
+    if (realBalance < addAmt) {
+      showUserWarning(
+        'Insufficient Balance',
+        `Your Available Balance is ₹${realBalance.toLocaleString('en-IN')}. Please add funds to your wallet first.`
+      );
+      return;
+    }
+
+    setIsSubmittingTopUp(true);
+    try {
+      const res = await userApi.topUpStake(topUpModalContract.id, addAmt);
+      if (res && res.success) {
+        showUserSuccess(
+          'Capital Added Successfully!',
+          `₹${addAmt.toLocaleString('en-IN')} added to your ${topUpModalContract.assetName || topUpModalContract.asset} contract!`
+        );
+        if (typeof res.newBalance === 'number') {
+          setRealBalance(res.newBalance);
+        } else {
+          setRealBalance((b) => Math.max(0, b - addAmt));
+        }
+        setUserContracts((prev) =>
+          prev.map((c) =>
+            c.id === topUpModalContract.id
+              ? {
+                  ...c,
+                  amount: Number(res.newStakedAmount || (c.amount + addAmt)),
+                  dailyInterest: Math.max(1, Math.round(((c.amount + addAmt) * c.rate) / 100)),
+                  payout: Number((c.amount + addAmt) + (c.totalInterestEarned || 0)),
+                }
+              : c
+          )
+        );
+        setTopUpModalContract(null);
+      } else {
+        showUserError('Top-up Failed', res?.message || 'Could not add capital.');
+      }
+    } catch (err) {
+      showUserError('Top-up Error', err.message || 'Failed to add capital.');
+    } finally {
+      setIsSubmittingTopUp(false);
     }
   };
 
@@ -1696,8 +1751,8 @@ const UserTradingPortal = ({
                       </div>
                     </div>
 
-                    {/* Status Pill */}
-                    <div>
+                    {/* Status Pill & 1-Row Action Buttons */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                       {isRunning ? (
                         <div
                           style={{
@@ -1712,7 +1767,7 @@ const UserTradingPortal = ({
                         >
                           <span className="live-pulse-dot" />
                           <span style={{ fontSize: '11px', fontWeight: 800, color: '#fbbf24' }}>
-                            Active ({activeTrade ? `${activeTrade.timeLeft}s left` : `${c.duration || '30s'}`})
+                            Active ({activeTrade ? `${activeTrade.timeLeft}s left` : `${c.duration || '5:00 AM Daily'}`})
                           </span>
                         </div>
                       ) : (
@@ -1732,6 +1787,74 @@ const UserTradingPortal = ({
                             Completed & Credited
                           </span>
                         </div>
+                      )}
+
+                      {/* 1 Row Action Buttons: Add Capital + Exit Contract */}
+                      {isRunning && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenTopUp(c)}
+                            style={{
+                              background: 'rgba(16, 185, 129, 0.15)',
+                              border: '1px solid rgba(16, 185, 129, 0.5)',
+                              color: '#34d399',
+                              borderRadius: '8px',
+                              padding: '5px 11px',
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              transition: 'all 0.15s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(16, 185, 129, 0.28)';
+                              e.currentTarget.style.borderColor = '#10b981';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'rgba(16, 185, 129, 0.15)';
+                              e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.5)';
+                            }}
+                          >
+                            <Plus size={12} />
+                            <span>Add Capital</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleExitContract(c)}
+                            disabled={exitingContractId === c.id}
+                            style={{
+                              background: 'rgba(239, 68, 68, 0.12)',
+                              border: '1px solid rgba(239, 68, 68, 0.45)',
+                              color: '#f87171',
+                              borderRadius: '8px',
+                              padding: '5px 11px',
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              cursor: exitingContractId === c.id ? 'not-allowed' : 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              transition: 'all 0.15s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              if (exitingContractId !== c.id) {
+                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)';
+                                e.currentTarget.style.borderColor = '#ef4444';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)';
+                              e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.45)';
+                            }}
+                          >
+                            <LogOut size={12} />
+                            <span>{exitingContractId === c.id ? 'Exiting...' : 'Exit & Refund'}</span>
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -1773,44 +1896,6 @@ const UserTradingPortal = ({
                       </div>
                     </div>
                   </div>
-
-                  {/* Exit Contract Action Button */}
-                  {isRunning && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '2px' }}>
-                      <button
-                        type="button"
-                        onClick={() => handleExitContract(c)}
-                        disabled={exitingContractId === c.id}
-                        style={{
-                          background: 'rgba(239, 68, 68, 0.12)',
-                          border: '1px solid rgba(239, 68, 68, 0.45)',
-                          color: '#f87171',
-                          borderRadius: '8px',
-                          padding: '6px 14px',
-                          fontSize: '11.5px',
-                          fontWeight: 800,
-                          cursor: exitingContractId === c.id ? 'not-allowed' : 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          transition: 'all 0.2s',
-                        }}
-                        onMouseEnter={(e) => {
-                          if (exitingContractId !== c.id) {
-                            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)';
-                            e.currentTarget.style.borderColor = '#ef4444';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)';
-                          e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.45)';
-                        }}
-                      >
-                        <LogOut size={13} />
-                        <span>{exitingContractId === c.id ? 'Exiting Contract...' : 'Exit Contract & Refund'}</span>
-                      </button>
-                    </div>
-                  )}
                 </div>
               );
             })}
@@ -5715,6 +5800,234 @@ const UserTradingPortal = ({
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Top-Up / Add More Capital Modal */}
+      {topUpModalContract && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '460px',
+              background: 'linear-gradient(145deg, #131422, #0c0d16)',
+              border: '1.5px solid rgba(16, 185, 129, 0.5)',
+              borderRadius: '20px',
+              padding: '24px',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8)',
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    border: '1px solid rgba(16, 185, 129, 0.4)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Plus size={20} color="#34d399" />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#fff', margin: 0 }}>
+                    Add More Capital
+                  </h3>
+                  <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                    {topUpModalContract.assetName || topUpModalContract.asset} • Yield: +{topUpModalContract.rate}% Daily
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTopUpModalContract(null)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: 'none',
+                  color: '#94a3b8',
+                  borderRadius: '50%',
+                  width: '30px',
+                  height: '30px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Current Contract Status Banner */}
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '12px',
+                padding: '10px 14px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '16px',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>Current Investment</div>
+                <div style={{ fontSize: '16px', fontWeight: 900, color: '#fbbf24' }}>
+                  ₹{Number(topUpModalContract.amount || 0).toLocaleString('en-IN')}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>Available Wallet Balance</div>
+                <div style={{ fontSize: '14px', fontWeight: 800, color: '#10b981' }}>
+                  ₹{Number(realBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </div>
+              </div>
+            </div>
+
+            {/* Input Amount */}
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
+                ENTER AMOUNT TO ADD (₹):
+              </label>
+              <input
+                type="number"
+                min="100"
+                step="500"
+                value={topUpAmount}
+                onChange={(e) => setTopUpAmount(Math.max(0, Number(e.target.value)))}
+                style={{
+                  width: '100%',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1.5px solid rgba(16, 185, 129, 0.5)',
+                  borderRadius: '10px',
+                  padding: '10px 14px',
+                  color: '#fff',
+                  fontSize: '18px',
+                  fontWeight: 900,
+                  outline: 'none',
+                  fontFamily: 'monospace',
+                  boxSizing: 'border-box',
+                }}
+              />
+
+              {/* Quick Chips */}
+              <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
+                {[100, 500, 1000, 2000, 5000, 10000].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setTopUpAmount(amt)}
+                    style={{
+                      background: topUpAmount === amt ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                      border: `1px solid ${topUpAmount === amt ? '#10b981' : 'rgba(255, 255, 255, 0.1)'}`,
+                      borderRadius: '6px',
+                      color: topUpAmount === amt ? '#34d399' : '#cbd5e1',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '4px 8px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    +₹{amt.toLocaleString('en-IN')}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Projection Summary Card */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(245, 158, 11, 0.1))',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                borderRadius: '12px',
+                padding: '12px 14px',
+                marginBottom: '18px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', color: '#94a3b8', marginBottom: '4px' }}>
+                <span>New Total Investment:</span>
+                <strong style={{ color: '#fff', fontFamily: 'monospace' }}>
+                  ₹{(Number(topUpModalContract.amount || 0) + Number(topUpAmount || 0)).toLocaleString('en-IN')}
+                </strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#94a3b8', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '6px', marginTop: '4px' }}>
+                <span>New Daily Interest (5:00 AM):</span>
+                <strong style={{ color: '#10b981', fontFamily: 'monospace' }}>
+                  +₹{Math.max(1, Math.round(((Number(topUpModalContract.amount || 0) + Number(topUpAmount || 0)) * topUpModalContract.rate) / 100)).toLocaleString('en-IN')} / Day
+                </strong>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={handleConfirmTopUp}
+                disabled={isSubmittingTopUp || !topUpAmount || topUpAmount <= 0}
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '12px',
+                  color: '#fff',
+                  fontSize: '13.5px',
+                  fontWeight: 900,
+                  cursor: isSubmittingTopUp ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  boxShadow: '0 6px 20px rgba(16, 185, 129, 0.35)',
+                }}
+              >
+                <Plus size={16} />
+                <span>
+                  {isSubmittingTopUp ? 'Adding Funds...' : `Add ₹${Number(topUpAmount || 0).toLocaleString('en-IN')} from Wallet`}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const targetAsset = resolveAsset(assetsMap, topUpModalContract.symbol || topUpModalContract.asset);
+                  setTopUpModalContract(null);
+                  handleOpenPurchaseModal(targetAsset, 'qr');
+                }}
+                style={{
+                  width: '100%',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  borderRadius: '10px',
+                  padding: '10px',
+                  color: '#94a3b8',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Or Pay via UPI / QR Code (PhonePe, GPay, Paytm)
+              </button>
+            </div>
           </div>
         </div>
       )}

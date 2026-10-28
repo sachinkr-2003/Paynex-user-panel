@@ -116,6 +116,11 @@ export const userApi = {
     request(`/staking/exit/${roundId}`, {
       method: 'POST',
     }),
+  topUpStake: (roundId, amount) =>
+    request(`/staking/topup/${roundId}`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    }),
   getMyStakes: () => request('/staking/my-rounds'),
   getLivePool: () => request('/staking/live-pool'),
 
