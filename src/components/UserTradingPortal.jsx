@@ -5415,7 +5415,7 @@ const UserTradingPortal = ({
                   }}
                 >
                   <Smartphone size={14} color="#38bdf8" />
-                  <span>{purchaseModalAsset.name.split(' ')[0]} QR Code</span>
+                  <span>UPI / QR Code</span>
                 </button>
                 <button
                   type="button"

@@ -10,7 +10,7 @@ export const FIFTY_STOCKS = [
     icon: 'car',
     color: '#38bdf8',
     returnPercent: 40,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 500000,
   },
   {
@@ -23,7 +23,7 @@ export const FIFTY_STOCKS = [
     icon: 'building',
     color: '#10b981',
     returnPercent: 22,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 1000000,
   },
   {
@@ -36,7 +36,7 @@ export const FIFTY_STOCKS = [
     icon: 'laptop',
     color: '#6366f1',
     returnPercent: 25,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 1000000,
   },
   {
@@ -49,7 +49,7 @@ export const FIFTY_STOCKS = [
     icon: 'globe',
     color: '#0ea5e9',
     returnPercent: 28,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 500000,
   },
   {
@@ -62,7 +62,7 @@ export const FIFTY_STOCKS = [
     icon: 'landmark',
     color: '#3b82f6',
     returnPercent: 20,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 1000000,
   },
   {
@@ -75,7 +75,7 @@ export const FIFTY_STOCKS = [
     icon: 'landmark',
     color: '#f59e0b',
     returnPercent: 22,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 500000,
   },
   {
@@ -88,7 +88,7 @@ export const FIFTY_STOCKS = [
     icon: 'landmark',
     color: '#0284c7',
     returnPercent: 25,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 500000,
   },
   {
@@ -114,7 +114,7 @@ export const FIFTY_STOCKS = [
     icon: 'hammer',
     color: '#ca8a04',
     returnPercent: 26,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 800000,
   },
   {
@@ -127,7 +127,7 @@ export const FIFTY_STOCKS = [
     icon: 'radio',
     color: '#ef4444',
     returnPercent: 24,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 500000,
   },
   {
@@ -140,7 +140,7 @@ export const FIFTY_STOCKS = [
     icon: 'shopping-bag',
     color: '#06b6d4',
     returnPercent: 19,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 500000,
   },
   {
@@ -153,7 +153,7 @@ export const FIFTY_STOCKS = [
     icon: 'credit-card',
     color: '#9333ea',
     returnPercent: 21,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 500000,
   },
   {
@@ -166,7 +166,7 @@ export const FIFTY_STOCKS = [
     icon: 'coins',
     color: '#dc2626',
     returnPercent: 20,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 500000,
   },
   {
@@ -205,7 +205,7 @@ export const FIFTY_STOCKS = [
     icon: 'pill',
     color: '#e11d48',
     returnPercent: 22,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 500000,
   },
   {
@@ -218,7 +218,7 @@ export const FIFTY_STOCKS = [
     icon: 'zap',
     color: '#d97706',
     returnPercent: 45,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 1000000,
   },
   {
@@ -231,7 +231,7 @@ export const FIFTY_STOCKS = [
     icon: 'ship',
     color: '#059669',
     returnPercent: 35,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 500000,
   },
   {
@@ -257,7 +257,7 @@ export const FIFTY_STOCKS = [
     icon: 'watch',
     color: '#eab308',
     returnPercent: 26,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 800000,
   },
   {
@@ -270,7 +270,7 @@ export const FIFTY_STOCKS = [
     icon: 'palette',
     color: '#f97316',
     returnPercent: 21,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 500000,
   },
   {
@@ -322,7 +322,7 @@ export const FIFTY_STOCKS = [
     icon: 'tractor',
     color: '#b91c1c',
     returnPercent: 32,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 600000,
   },
   {
@@ -361,7 +361,7 @@ export const FIFTY_STOCKS = [
     icon: 'dollar-sign',
     color: '#1d4ed8',
     returnPercent: 27,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 500000,
   },
   {
@@ -387,7 +387,7 @@ export const FIFTY_STOCKS = [
     icon: 'coffee',
     color: '#92400e',
     returnPercent: 18,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 500000,
   },
   {
@@ -400,7 +400,7 @@ export const FIFTY_STOCKS = [
     icon: 'settings',
     color: '#0f766e',
     returnPercent: 26,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 500000,
   },
   {
@@ -413,7 +413,7 @@ export const FIFTY_STOCKS = [
     icon: 'smartphone',
     color: '#7c3aed',
     returnPercent: 28,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 500000,
   },
   {
@@ -426,7 +426,7 @@ export const FIFTY_STOCKS = [
     icon: 'landmark',
     color: '#be123c',
     returnPercent: 25,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 500000,
   },
   {
@@ -439,7 +439,7 @@ export const FIFTY_STOCKS = [
     icon: 'coffee',
     color: '#15803d',
     returnPercent: 22,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 400000,
   },
   {
@@ -465,7 +465,7 @@ export const FIFTY_STOCKS = [
     icon: 'flask',
     color: '#0369a1',
     returnPercent: 21,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 500000,
   },
   {
@@ -491,7 +491,7 @@ export const FIFTY_STOCKS = [
     icon: 'scissors',
     color: '#a16207',
     returnPercent: 23,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 500000,
   },
   {
@@ -504,7 +504,7 @@ export const FIFTY_STOCKS = [
     icon: 'shield',
     color: '#1e40af',
     returnPercent: 20,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 500000,
   },
   {
@@ -543,7 +543,7 @@ export const FIFTY_STOCKS = [
     icon: 'bike',
     color: '#4d7c0f',
     returnPercent: 30,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 700000,
   },
   {
@@ -556,7 +556,7 @@ export const FIFTY_STOCKS = [
     icon: 'microscope',
     color: '#0e7490',
     returnPercent: 24,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 600000,
   },
   {
@@ -569,7 +569,7 @@ export const FIFTY_STOCKS = [
     icon: 'bike',
     color: '#c026d3',
     returnPercent: 25,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 800000,
   },
   {
@@ -595,7 +595,7 @@ export const FIFTY_STOCKS = [
     icon: 'utensils',
     color: '#f59e0b',
     returnPercent: 20,
-    minStake: 100,
+    minStake: 1000,
     maxStake: 600000,
   },
   {
