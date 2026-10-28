@@ -2,28 +2,36 @@ import { useState } from 'react';
 
 const FAQS = [
   {
-    q: 'What is Crypto Bet Trading on PAYNEX?',
-    a: 'Crypto Bet Trading allows you to forecast whether the price of an asset (like Bitcoin, Ethereum, or Solana) will rise (CALL) or fall (PUT) within a specific timeframe (e.g. 30 seconds or 60 seconds). If your prediction is correct when the contract expires, you earn an instant profit payout of up to 95%.',
+    q: 'What is PAYNEX Trading & Staking Exchange?',
+    a: 'PAYNEX is a next-generation high-speed stock and cryptocurrency trading platform in India. Users can trade and stake on over 50+ leading Indian equities (like Tata Motors, Reliance, Bajaj Finance, Infosys) and global cryptocurrencies (Bitcoin, Ethereum, Solana) starting from just ₹100 with automated daily yields and instant payouts.',
   },
   {
-    q: 'What is the PAYNEX 8-Year Capital Protection Warranty & Solvency Guarantee?',
-    a: 'Operating continuously without default since 2018 (over 8+ years), PAYNEX provides an institutional 100% Capital Assurance Warranty. User deposits and staking balances are held in 1:1 backed cold-storage multi-signature escrow vaults. Our 8-year unbroken solvency record guarantees that your principal capital and payouts are 100% protected and instantly withdrawable 24/7 without default risk.',
+    q: 'How do I download the official PAYNEX Android APK and iOS Web App?',
+    a: 'You can download the official PAYNEX Android APK directly from our website by clicking "Android APK (54MB)" in the header or Mobile App section. For iPhone users, tap "Download for iPhone" to install the official iOS Web App profile or tap Safari Share (⎋) → "Add to Home Screen" to install it instantly in 5 seconds.',
   },
   {
-    q: 'How fast are UPI & USDT Withdrawals processed?',
-    a: 'PAYNEX features automated payment settlement rails. UPI disbursements directly to your PhonePe, Google Pay, or Paytm bank account are typically completed within 30 seconds. USDT (TRC-20 and BEP-20) withdrawals are confirmed on-chain in under 1 minute with 0 platform fees.',
+    q: 'How do I deposit funds using PhonePe, Google Pay, Paytm, or UPI QR?',
+    a: 'Depositing on PAYNEX is 100% seamless and instant. Tap "Deposit" or "Add Cash", choose your preferred amount (from ₹100), and tap PhonePe, GPay, or Paytm for 1-click automatic app payment, or scan the official dynamic UPI QR code. Submit your 12-digit UTR reference number, and your available balance will be credited promptly.',
   },
   {
-    q: 'Can I practice with Demo Funds before risking real money?',
-    a: 'Yes! Every new trader is automatically credited with ₹50,000 in free Demo Practice Credits. You can execute simulated Call and Put trades, test indicator strategies, and reset your balance anytime without risking real funds.',
+    q: 'Can I exit an active stock contract and refund my capital anytime?',
+    a: 'Yes! PAYNEX features a transparent 1-Click "Exit & Refund" mechanism. If you decide to cancel or exit an active stock or crypto contract before maturity, 100% of your invested principal capital is instantly refunded directly back into your Available Balance.',
   },
   {
-    q: 'What is the minimum deposit and minimum trade size?',
-    a: 'You can begin with as low as ₹200 for UPI deposits and as little as ₹100 per bet contract. This allows beginners to start comfortably and scale their volume over time.',
+    q: 'How fast are bank withdrawals processed to Indian Bank Accounts?',
+    a: 'Withdrawals are processed 24/7 via automated IMPS and NEFT direct bank settlement rails. Simply enter your Bank Account Number and IFSC Code in the Withdraw tab. Once approved, funds are typically credited to your bank account (SBI, HDFC, ICICI, PNB, Paytm Payments Bank, etc.) within 5 to 15 minutes.',
   },
   {
-    q: 'How does PAYNEX guarantee fairness and zero manipulation?',
-    a: 'PAYNEX aggregates direct price feeds from Binance, Bybit, and OKX via WebSocket API. All contract expiry prices are cryptographically verifiable and locked by immutable smart-order match engines.',
+    q: 'What is the 5:00 AM Daily Yield Engine and how are profits credited?',
+    a: 'All active stock and crypto staking contracts participate in our institutional yield matching protocol. Every day at 5:00 AM IST, your guaranteed daily return (ranging from +2% to +12% based on asset Tier) is automatically calculated and credited directly to your platform earnings.',
+  },
+  {
+    q: 'Which Indian stocks and global crypto assets are tradable on PAYNEX?',
+    a: 'PAYNEX supports 50+ top NSE/BSE blue-chip equities including Tata Motors, Reliance Industries, Bajaj Finance, Infosys, TCS, HDFC Bank, ICICI Bank, State Bank of India, ITC, L&T, Zomato, and Jio Financial, alongside top cryptos like BTC/USDT, ETH/USDT, SOL/USDT, and commodities like Gold and Silver.',
+  },
+  {
+    q: 'Is my invested capital secure with PAYNEX?',
+    a: 'Yes. Operating continuously with an institutional solvency guarantee, all user deposits and staking pools are held in 1:1 backed secure treasury vaults. Contract rules, payout multipliers, and settlements are transparent and verifiable with zero hidden charges.',
   },
 ];
 
@@ -67,7 +75,7 @@ const FAQ = () => {
           Everything You <span className="gradient-text-gold">Need to Know</span>
         </h2>
         <p style={{ fontSize: '15px', color: '#94a3b8' }}>
-          Clear answers about trading, contract payouts, deposit gateways, and account security.
+          Clear answers about UPI deposits, 1-click stock exits, 5:00 AM daily yield engine, and instant bank withdrawals.
         </p>
       </div>
 

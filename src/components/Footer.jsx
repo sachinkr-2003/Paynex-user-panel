@@ -357,6 +357,12 @@ const Footer = () => {
           </div>
         </div>
 
+        {/* Popular Markets & Indian Trading Searches (SEO Indexing) */}
+        <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '14px', marginBottom: '14px', fontSize: '11px', color: '#64748b', lineHeight: '1.8' }}>
+          <span style={{ color: '#fbbf24', fontWeight: 700, marginRight: '6px' }}>POPULAR MARKETS &amp; SEARCHES:</span>
+          <span>Tata Motors • Reliance Industries • Bajaj Finance • Infosys • State Bank of India • HDFC Bank • ICICI Bank • ITC • Zomato • Jio Financial • Bitcoin (BTC) • Ethereum (ETH) • Solana (SOL) • Instant UPI Deposit Trading Platform • 1-Click Stock Exit Refund • 5:00 AM Daily Yield Engine • Zero Brokerage Staking • PAYNEX Android APK &amp; iOS App</span>
+        </div>
+
         {/* Simple Bottom Copyright Bar (No Regulatory Wall) */}
         <div
           style={{

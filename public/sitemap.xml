@@ -30,6 +30,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://www.paynex.co.in/#faq</loc>
+    <lastmod>2026-10-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://www.paynex.co.in/PAYNEX_Release_v1.0.apk</loc>
     <lastmod>2026-10-29</lastmod>
     <changefreq>weekly</changefreq>
