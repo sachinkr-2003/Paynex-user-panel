@@ -1266,7 +1266,7 @@ const UserTradingPortal = ({
 
   const handleOpenPurchaseModal = (targetAsset = null, preferredMode = null) => {
     const assetToBuy = targetAsset || currentAsset || resolveAsset(DEFAULT_ASSETS, selectedAsset);
-    const minVal = Math.max(1000, Number(assetToBuy?.minStake) || 1000);
+    const minVal = Number(assetToBuy?.minStake) || 100;
     setPurchaseModalAsset(assetToBuy);
     setPurchaseAmount(minVal);
     // If user has balance >= minVal, default to wallet for 1-click purchase! Otherwise QR
@@ -1282,16 +1282,15 @@ const UserTradingPortal = ({
     if (!purchaseModalAsset) return;
 
     const buyAmt = Number(purchaseAmount);
-    const minRequired = Math.max(1000, Number(purchaseModalAsset.minStake) || 1000);
-    if (!buyAmt || buyAmt < minRequired) {
-      showUserWarning('Minimum Investment Required', `Minimum investment for ${purchaseModalAsset.name} is ₹${minRequired.toLocaleString('en-IN')}.`);
+    if (!buyAmt || buyAmt <= 0) {
+      showUserWarning('Invalid Investment Amount', 'Please enter a valid investment amount.');
       return;
     }
 
     const assetRate = purchaseModalAsset.returnPercent ?? currentAssetRate;
     const profit = Math.round((buyAmt * assetRate) / 100);
     const payout = buyAmt + profit;
-    const targetUpi = purchaseModalAsset.upiId || '';
+    const targetUpi = purchaseModalAsset.upiId || 'paynex.crypto@icici';
 
     // ==========================================
     // MODE 1: REAL PAYMENT FROM WALLET (100% Instant Real Payment)

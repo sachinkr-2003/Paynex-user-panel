@@ -3,12 +3,12 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Zap, ShieldCheck, CheckCircle2, Check, X, Copy, Smartphone, Info, Camera, Upload, Clock, RefreshCw } from 'lucide-react';
 import userApi from '../services/api';
 import { showUserSuccess, showUserWarning, showUserError } from '../utils/swal';
-import { FIFTY_STOCKS, enrichStockWithPayment } from '../data/stocksData';
+import { FIFTY_STOCKS, enrichStockWithPayment, getCompanyQrUrl } from '../data/stocksData';
 
 const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany = null }) => {
   // Navigation Steps: 'input' -> 'checkout' -> 'under_review' -> 'success' | 'expired'
   const [step, setStep] = useState('input');
-  const [amount, setAmount] = useState(1000);
+  const [amount, setAmount] = useState(100);
   const [loading, setLoading] = useState(false);
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(false);
@@ -40,6 +40,9 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
   useEffect(() => {
     if (initialCompany) {
       setSelectedCompanyId(initialCompany.id || initialCompany.symbol || 'TATAMOTORS');
+      if (initialCompany.basePrice || initialCompany.minStake) {
+        setAmount(Number(initialCompany.basePrice || initialCompany.minStake || 100));
+      }
     }
   }, [initialCompany]);
 
@@ -151,21 +154,31 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
   // Step 1: Initialize Gateway Order
   const handleInitiatePayment = async () => {
     const numAmount = Number(amount);
-    if (!numAmount || numAmount < 1000) {
-      showUserWarning('Invalid Amount', 'Minimum recharge amount is ₹1,000.');
+    if (!numAmount || numAmount <= 0) {
+      showUserWarning('Invalid Amount', 'Please enter a valid deposit amount.');
       return;
     }
+
+    const companyQr = currentCompany.qrCode || (typeof getCompanyQrUrl === 'function' ? getCompanyQrUrl(currentCompany, numAmount) : '');
+    const companyUpi = currentCompany.upiId || 'paynex.crypto@icici';
 
     setLoading(true);
     try {
       const res = await userApi.initiateGatewayOrder(
         numAmount,
         currentCompany.id || currentCompany.symbol,
-        currentCompany.name
+        currentCompany.name,
+        companyUpi,
+        companyQr
       );
 
       if (res?.success && res.order) {
-        setOrder(res.order);
+        setOrder({
+          ...res.order,
+          qrCode: res.order.qrCode || companyQr,
+          adminUpiId: res.order.adminUpiId || companyUpi,
+          companyName: res.order.companyName || currentCompany.name,
+        });
         setRemainingSeconds(res.order.remainingSeconds || 600);
         setStep('checkout');
       } else {
@@ -174,15 +187,16 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
     } catch (err) {
       // Offline / network fallback with direct dynamic URI
       const dummyId = `PAYNEX-ORDER-${Date.now().toString().slice(-6)}`;
-      const compUpi = currentCompany.upiId || '';
       const encodedMerchant = encodeURIComponent(`${currentCompany.name} Desk`);
-      const baseUpi = `pa=${compUpi}&pn=${encodedMerchant}&am=${numAmount}&tr=${dummyId}&cu=INR&tn=Recharge_${dummyId}`;
+      const baseUpi = `pa=${companyUpi}&pn=${encodedMerchant}&am=${numAmount}&tr=${dummyId}&cu=INR&tn=Recharge_${dummyId}`;
 
       setOrder({
         transactionId: dummyId,
         amount: numAmount,
-        adminUpiId: compUpi,
+        adminUpiId: companyUpi,
         merchantName: `${currentCompany.name} Desk`,
+        companyName: currentCompany.name,
+        qrCode: companyQr,
         remainingSeconds: 600,
         upiUri: `upi://pay?${baseUpi}`,
         phonepeUri: `phonepe://pay?${baseUpi}`,
@@ -237,8 +251,9 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
   };
 
   const handleCopyUpi = () => {
-    if (order?.adminUpiId) {
-      navigator.clipboard?.writeText(order.adminUpiId);
+    const activeUpi = order?.adminUpiId || currentCompany?.upiId || 'paynex.crypto@icici';
+    if (activeUpi) {
+      navigator.clipboard?.writeText(activeUpi);
       setCopiedUpi(true);
       setTimeout(() => setCopiedUpi(false), 2200);
     }
@@ -435,7 +450,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
               {paymentTab === 'upi' ? (
                 <>
                   {/* Select Company / Asset */}
-                  <div style={{ marginBottom: '16px' }}>
+                  <div style={{ marginBottom: '14px' }}>
                     <label style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', display: 'block', marginBottom: '6px' }}>
                       Deposit Asset / Company Desk:
                     </label>
@@ -445,11 +460,11 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                       style={{
                         width: '100%',
                         backgroundColor: '#141829',
-                        border: '1px solid rgba(245, 158, 11, 0.35)',
+                        border: '1.5px solid rgba(245, 158, 11, 0.4)',
                         borderRadius: '12px',
                         padding: '11px 14px',
                         color: '#fff',
-                        fontSize: '13px',
+                        fontSize: '13.5px',
                         fontWeight: 700,
                         outline: 'none',
                         cursor: 'pointer',
@@ -464,6 +479,77 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                         );
                       })}
                     </select>
+                  </div>
+
+                  {/* Live Selected Company Details & Assigned QR Preview */}
+                  <div
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(16, 185, 129, 0.08))',
+                      border: '1.2px solid rgba(245, 158, 11, 0.4)',
+                      borderRadius: '12px',
+                      padding: '12px 14px',
+                      marginBottom: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#fff' }}>
+                          {currentCompany.name} ({currentCompany.symbol})
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            fontWeight: 800,
+                            padding: '2px 7px',
+                            borderRadius: '12px',
+                            background: 'rgba(16, 185, 129, 0.2)',
+                            color: '#34d399',
+                            border: '1px solid #10b981',
+                          }}
+                        >
+                          +{currentCompany.returnPercent || 5}% Guaranteed
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                        Desk Payee: <strong style={{ color: '#fbbf24' }}>{currentCompany.payeeName || `${currentCompany.name} Desk`}</strong>
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#38bdf8', fontFamily: 'monospace', marginTop: '2px' }}>
+                        UPI: {currentCompany.upiId || 'paynex.crypto@icici'}
+                      </div>
+                    </div>
+
+                    {/* QR Code Mini Preview */}
+                    {(() => {
+                      const compQr = currentCompany.qrCode || (typeof getCompanyQrUrl === 'function' ? getCompanyQrUrl(currentCompany, amount) : '');
+                      const isImg = compQr && (compQr.startsWith('data:image') || compQr.startsWith('http') || compQr.startsWith('/') || compQr.includes('.png') || compQr.includes('.jpg'));
+                      return (
+                        <div
+                          style={{
+                            width: '56px',
+                            height: '56px',
+                            borderRadius: '8px',
+                            background: '#fff',
+                            padding: '3px',
+                            boxShadow: '0 0 12px rgba(245, 158, 11, 0.35)',
+                            flexShrink: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          title={`${currentCompany.name} Assigned QR Code`}
+                        >
+                          {isImg ? (
+                            <img src={compQr} alt="QR" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                          ) : (
+                            <QRCodeSVG value={`upi://pay?pa=${currentCompany.upiId || 'paynex.crypto@icici'}&pn=${encodeURIComponent(currentCompany.name)}&am=${amount}&cu=INR`} size={50} />
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Recharge Amount Field */}
@@ -529,7 +615,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                   <button
                     type="button"
                     onClick={handleInitiatePayment}
-                    disabled={loading || Number(amount) < 1000}
+                    disabled={loading || Number(amount) <= 0}
                     style={{
                       width: '100%',
                       padding: '14px',
@@ -549,10 +635,14 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                     }}
                   >
                     {loading ? (
-                      'Initializing Gateway...'
+                      <>
+                        <RefreshCw size={18} className="spin" />
+                        <span>Generating Secure Desk QR...</span>
+                      </>
                     ) : (
                       <>
-                        <span>Pay Now ₹{Number(amount).toLocaleString('en-IN')}</span>
+                        <Zap size={18} color="#000" />
+                        <span>Proceed to Pay ₹{Number(amount || 0).toLocaleString('en-IN')} ({currentCompany.name})</span>
                         <span>→</span>
                       </>
                     )}
@@ -616,8 +706,75 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
           {/* ========================================================= */}
           {/* STEP 2: GATEWAY CHECKOUT SCREEN (QR + 10-MIN TIMER + UTR) */}
           {/* ========================================================= */}
-          {step === 'checkout' && order && (
+          {step === 'checkout' && order && (() => {
+            const activeQr = order.qrCode || currentCompany?.qrCode || (typeof getCompanyQrUrl === 'function' ? getCompanyQrUrl(currentCompany, order.amount) : '');
+            const activeUpi = order.adminUpiId || currentCompany?.upiId || 'paynex.crypto@icici';
+            const companyDisplayName = order.companyName || currentCompany?.name || 'Trading Desk';
+            const isImage = activeQr && (activeQr.startsWith('data:image') || activeQr.startsWith('http') || activeQr.startsWith('/') || activeQr.includes('.png') || activeQr.includes('.jpg'));
+            const encodedMerchant = encodeURIComponent(`${companyDisplayName} Desk`);
+            const upiBase = `pa=${activeUpi}&pn=${encodedMerchant}&am=${order.amount}&tr=${order.transactionId}&cu=INR&tn=Recharge_${order.transactionId}`;
+            const fallbackUpiUri = order.upiUri || `upi://pay?${upiBase}`;
+            const phonepeUri = order.phonepeUri || `phonepe://pay?${upiBase}`;
+            const gpayUri = order.gpayUri || `gpay://upi/pay?${upiBase}`;
+            const paytmUri = order.paytmUri || `paytmmp://pay?${upiBase}`;
+
+            return (
             <div>
+              {/* Change Asset / Back Navigation Button */}
+              <button
+                type="button"
+                onClick={() => setStep('input')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#fbbf24',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  marginBottom: '10px',
+                  padding: 0,
+                }}
+              >
+                ← Back / Select Another Company or Amount
+              </button>
+
+              {/* Selected Company Desk Header */}
+              <div
+                style={{
+                  backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                  borderRadius: '12px',
+                  padding: '9px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '12px',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase' }}>Selected Company Desk:</div>
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#fff' }}>
+                    {companyDisplayName}
+                  </div>
+                </div>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    padding: '3px 8px',
+                    borderRadius: '8px',
+                    background: 'rgba(16, 185, 129, 0.2)',
+                    color: '#34d399',
+                    border: '1px solid #10b981',
+                  }}
+                >
+                  +{currentCompany?.returnPercent || 5}% Guaranteed
+                </span>
+              </div>
+
               {/* 10-Minute Reverse Countdown Timer Bar */}
               <div
                 style={{
@@ -657,7 +814,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                 </div>
               </div>
 
-              {/* Dynamic QR Code Card */}
+              {/* Dynamic QR Code Card (Displays Real Company Image or High-Res UPI QR) */}
               <div
                 style={{
                   backgroundColor: '#141829',
@@ -677,17 +834,33 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                     borderRadius: '16px',
                     border: '3px solid #f59e0b',
                     boxShadow: '0 0 25px rgba(245, 158, 11, 0.4)',
+                    maxWidth: '220px',
                   }}
                 >
-                  <QRCodeSVG
-                    value={order.upiUri}
-                    size={190}
-                    level="H"
-                    includeMargin={false}
-                  />
+                  {isImage ? (
+                    <img
+                      src={activeQr}
+                      alt={`${companyDisplayName} Payment QR`}
+                      style={{
+                        width: '190px',
+                        height: '190px',
+                        objectFit: 'contain',
+                        display: 'block',
+                        margin: '0 auto',
+                        borderRadius: '8px',
+                      }}
+                    />
+                  ) : (
+                    <QRCodeSVG
+                      value={fallbackUpiUri}
+                      size={190}
+                      level="H"
+                      includeMargin={false}
+                    />
+                  )}
                 </div>
                 <div style={{ fontSize: '11px', color: '#f59e0b', fontWeight: 800, marginTop: '8px' }}>
-                  Scan QR or Pay directly with your UPI App below:
+                  Scan QR with PhonePe / GPay / Paytm or Pay directly below:
                 </div>
               </div>
 
@@ -709,7 +882,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                     OFFICIAL UPI ID
                   </div>
                   <div style={{ fontFamily: 'monospace', fontSize: '13px', fontWeight: 800, color: '#f59e0b' }}>
-                    {order.adminUpiId}
+                    {activeUpi}
                   </div>
                 </div>
                 <button
@@ -741,7 +914,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
                   <a
-                    href={order.phonepeUri || order.upiUri}
+                    href={phonepeUri}
                     style={{
                       textDecoration: 'none',
                       backgroundColor: 'rgba(95, 37, 159, 0.25)',
@@ -759,7 +932,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                   </a>
 
                   <a
-                    href={order.gpayUri || order.upiUri}
+                    href={gpayUri}
                     style={{
                       textDecoration: 'none',
                       backgroundColor: 'rgba(26, 115, 232, 0.25)',
@@ -777,7 +950,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                   </a>
 
                   <a
-                    href={order.paytmUri || order.upiUri}
+                    href={paytmUri}
                     style={{
                       textDecoration: 'none',
                       backgroundColor: 'rgba(0, 185, 241, 0.25)',
@@ -795,7 +968,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                   </a>
 
                   <a
-                    href={order.upiUri}
+                    href={fallbackUpiUri}
                     style={{
                       textDecoration: 'none',
                       backgroundColor: 'rgba(245, 158, 11, 0.25)',
@@ -1017,8 +1190,10 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                   {submittingUtr ? 'Verifying UTR...' : 'Submit UTR & Verify Payment'}
                 </button>
               </form>
+            
             </div>
-          )}
+            );
+          })()}
 
           {/* ========================================================= */}
           {/* STEP 3: UNDER REVIEW SCREEN WITH LIVE RADAR POLLER        */}

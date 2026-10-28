@@ -84,10 +84,10 @@ export const userApi = {
       method: 'POST',
       body: JSON.stringify({ amount, method, utr, screenshotUrl, ...extraData }),
     }),
-  initiateGatewayOrder: (amount, companyId = '', companyName = '') =>
+  initiateGatewayOrder: (amount, companyId = '', companyName = '', companyUpi = '', qrCode = '') =>
     request('/gateway/initiate', {
       method: 'POST',
-      body: JSON.stringify({ amount, companyId, companyName }),
+      body: JSON.stringify({ amount, companyId, companyName, companyUpi, qrCode }),
     }),
   getGatewayOrder: (transactionId) => request(`/gateway/orders/${transactionId}`),
   submitGatewayUtr: (transactionId, utr, screenshotProof = '') =>
