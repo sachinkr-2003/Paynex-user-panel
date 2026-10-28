@@ -43,6 +43,7 @@ import {
   CreditCard,
   ChevronRight,
   Edit3,
+  LogOut,
 } from 'lucide-react';
 
 
@@ -459,6 +460,7 @@ const UserTradingPortal = ({
     } catch {}
     return [];
   });
+  const [exitingContractId, setExitingContractId] = useState(null);
 
   // AI Live Support Chat State
   const [supportTab, setSupportTab] = useState('chat'); // 'chat' or 'help'
@@ -1424,6 +1426,36 @@ const UserTradingPortal = ({
     }
   };
 
+  const handleExitContract = async (contract) => {
+    if (!contract || !contract.id) return;
+    const confirmMsg = `Are you sure you want to exit your ${contract.assetName || contract.asset} contract?\n\nYour invested capital of ₹${Number(contract.amount || 0).toLocaleString('en-IN')} will be instantly refunded to your Available Balance.`;
+    if (!window.confirm(confirmMsg)) return;
+
+    setExitingContractId(contract.id);
+    try {
+      const res = await userApi.exitStake(contract.id);
+      if (res && res.success) {
+        showUserSuccess(
+          'Contract Exited Successfully!',
+          `₹${(res.refundAmount || contract.amount).toLocaleString('en-IN')} has been returned to your Available Balance!`
+        );
+        if (typeof res.newBalance === 'number') {
+          setRealBalance(res.newBalance);
+        } else {
+          setRealBalance((prev) => prev + Number(contract.amount || 0));
+        }
+        setUserContracts((prev) =>
+          prev.map((c) => (c.id === contract.id ? { ...c, status: 'Completed' } : c))
+        );
+      } else {
+        showUserError('Exit Failed', res?.message || 'Could not exit contract.');
+      }
+    } catch (err) {
+      showUserError('Exit Error', err.message || 'Failed to exit contract.');
+    } finally {
+      setExitingContractId(null);
+    }
+  };
 
   // Render Rich Contracts History Section
   const renderContractsHistorySection = ({ title = 'My Contracts & Holdings History', subtitle = null }) => {
@@ -1741,6 +1773,44 @@ const UserTradingPortal = ({
                       </div>
                     </div>
                   </div>
+
+                  {/* Exit Contract Action Button */}
+                  {isRunning && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '2px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleExitContract(c)}
+                        disabled={exitingContractId === c.id}
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.12)',
+                          border: '1px solid rgba(239, 68, 68, 0.45)',
+                          color: '#f87171',
+                          borderRadius: '8px',
+                          padding: '6px 14px',
+                          fontSize: '11.5px',
+                          fontWeight: 800,
+                          cursor: exitingContractId === c.id ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (exitingContractId !== c.id) {
+                            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)';
+                            e.currentTarget.style.borderColor = '#ef4444';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)';
+                          e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.45)';
+                        }}
+                      >
+                        <LogOut size={13} />
+                        <span>{exitingContractId === c.id ? 'Exiting Contract...' : 'Exit Contract & Refund'}</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}

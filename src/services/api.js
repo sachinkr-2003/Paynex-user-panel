@@ -112,6 +112,10 @@ export const userApi = {
     request(`/staking/settle/${roundId}`, {
       method: 'POST',
     }),
+  exitStake: (roundId) =>
+    request(`/staking/exit/${roundId}`, {
+      method: 'POST',
+    }),
   getMyStakes: () => request('/staking/my-rounds'),
   getLivePool: () => request('/staking/live-pool'),
 
