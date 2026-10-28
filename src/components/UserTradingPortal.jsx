@@ -618,7 +618,8 @@ const UserTradingPortal = ({
             const amt = Number(r.stakedAmount || r.amount || 0);
             const daily = Number(r.dailyInterest || Math.round((amt * rate) / 100));
             const totalEarned = Number(r.totalInterestEarned || 0);
-            const pft = totalEarned > 0 ? totalEarned : daily;
+            // Profit is strictly what has been credited so far at 5:00 AM (0 before 5:00 AM)
+            const pft = r.status === 'Active' ? totalEarned : (Number(r.profit) || totalEarned);
             return {
               id: r._id || r.id || `CT-${r.roundId || Date.now()}`,
               asset: r.asset,
@@ -632,7 +633,7 @@ const UserTradingPortal = ({
               dailyInterest: daily,
               totalInterestEarned: totalEarned,
               profit: pft,
-              payout: Number(r.payout || (amt + pft)),
+              payout: amt + pft,
               duration: '5:00 AM Daily',
               time: r.createdAt ? new Date(r.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }) : (r.time || 'Recent'),
               status: r.status === 'Active' ? 'Running' : 'Completed',
@@ -1903,14 +1904,19 @@ const UserTradingPortal = ({
                     </div>
                     <div>
                       <div style={{ fontSize: '10px', color: '#94a3b8' }}>Profit Return</div>
-                      <div style={{ fontSize: '13px', fontWeight: 800, color: '#10b981', fontFamily: 'monospace' }}>
+                      <div style={{ fontSize: '13px', fontWeight: 800, color: c.profit > 0 ? '#10b981' : '#8b9bb4', fontFamily: 'monospace' }}>
                         +₹{Number(c.profit || 0).toLocaleString('en-IN')}
                       </div>
+                      {Number(c.profit || 0) === 0 && (
+                        <div style={{ fontSize: '9px', color: '#f59e0b', marginTop: '1px' }}>
+                          5:00 AM: +₹{c.dailyInterest || 0}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <div style={{ fontSize: '10px', color: '#94a3b8' }}>Total Payout</div>
                       <div style={{ fontSize: '13px', fontWeight: 900, color: '#60a5fa', fontFamily: 'monospace' }}>
-                        ₹{Number(c.payout || 0).toLocaleString('en-IN')}
+                        ₹{Number(c.payout || c.amount || 0).toLocaleString('en-IN')}
                       </div>
                     </div>
                   </div>
