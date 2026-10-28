@@ -622,6 +622,7 @@ const UserTradingPortal = ({
             const pft = r.status === 'Active' ? totalEarned : (Number(r.profit) || totalEarned);
             return {
               id: r._id || r.id || `CT-${r.roundId || Date.now()}`,
+              roundId: r._id || r.id,
               asset: r.asset,
               assetName: assetObj?.name || r.asset,
               symbol: assetObj?.symbol || r.asset,
@@ -1150,7 +1151,7 @@ const UserTradingPortal = ({
   }, [chartHeight, currentPrice, priceHistory, activeTrade, windowWidth, chartTimeframe]);
 
   const handleStakeGrowth = async () => {
-    const minRequired = Math.max(1000, Number(currentAsset?.minStake) || 1000);
+    const minRequired = Math.max(100, Number(currentAsset?.minStake) || 100);
     if (!betAmount || betAmount < minRequired) {
       showUserWarning('Minimum Investment Required', `Minimum investment amount is ₹${minRequired.toLocaleString('en-IN')}.`);
       return;
@@ -1159,85 +1160,88 @@ const UserTradingPortal = ({
       showUserWarning('Insufficient Balance', 'Please top up your wallet using Deposit to continue staking.');
       return;
     }
-    if (activeTrade) {
-      showUserWarning('Active Plan in Progress', 'A growth plan is already active! Please wait for it to mature.');
-      return;
-    }
 
-    const profit = Math.round((betAmount * currentAssetRate) / 100);
-    const payout = betAmount + profit;
-
-    setRealBalance((b) => b - betAmount);
-    setTradeResult(null);
-
-    let serverRoundId = null;
     try {
-      const res = await userApi.placeStake(betAmount, selectedAsset);
-      if (res && res.round) {
-        serverRoundId = res.round.id || res.round._id;
+      const targetSymbol = selectedAsset || currentAsset?.symbol || currentAsset?.id || 'BTC/USDT';
+      const res = await userApi.placeStake(betAmount, targetSymbol);
+      if (!res || !res.success) {
+        throw new Error(res?.message || 'Failed to place stake on server.');
       }
-    } catch (err) {
-      console.warn('Live API stake call fallback (offline mode):', err.message);
-    }
 
-    const contractId = serverRoundId || `CT-${Math.floor(10000 + Math.random() * 90000)}`;
+      const newBal = typeof res.newBalance === 'number' ? res.newBalance : Math.max(0, realBalance - betAmount);
+      setRealBalance(newBal);
+      try {
+        localStorage.setItem('paynex_real_bal', String(newBal));
+      } catch (_) {}
 
-    setActiveTrade({
-      contractId,
-      roundId: serverRoundId,
-      asset: selectedAsset,
-      amount: betAmount,
-      adminPercent: currentAssetRate,
-      profit,
-      payout,
-      timeTotal: selectedTimeframe.seconds,
-      timeLeft: selectedTimeframe.seconds,
-    });
+      const serverRound = res.round || {};
+      const contractId = serverRound._id || serverRound.id || `CT-${Math.floor(10000 + Math.random() * 90000)}`;
+      const actualRate = serverRound.returnPercent || currentAssetRate;
+      const actualDaily = serverRound.dailyInterest || Math.max(1, Math.round((betAmount * actualRate) / 100));
 
-    const newContract = {
-      id: contractId,
-      asset: selectedAsset,
-      assetName: currentAsset?.name || selectedAsset,
-      symbol: currentAsset?.symbol || selectedAsset,
-      icon: currentAsset?.icon || 'stock',
-      color: currentAsset?.color || '#fbbf24',
-      category: currentAsset?.category || 'Asset',
-      amount: betAmount,
-      rate: currentAssetRate,
-      profit,
-      payout,
-      duration: `${selectedTimeframe.seconds}s`,
-      time: 'Just now',
-      status: 'Running',
-      createdAt: Date.now(),
-    };
-    setUserContracts((prevContracts) => [newContract, ...prevContracts]);
-
-    // Add user's real stake into the live room participants feed
-    const displayAsset = (selectedAsset || '').replace('/USDT', '').replace('/INR', '');
-    const userStakeEntry = {
-      id: serverRoundId || `user_stake_${Date.now()}`,
-      name: `${user?.name || 'Sachin'} (You)`,
-      avatar: 'TRD',
-      amount: betAmount,
-      adminPercent: currentAssetRate,
-      profit,
-      payout,
-      time: 'Just now',
-      isUser: true,
-      asset: displayAsset,
-    };
-    setCompanyRoomTraders((prev) => {
-      const currentList = prev[selectedAsset] || generateSeedTradersForAsset(selectedAsset, currentAssetRate);
-      return {
-        ...prev,
-        [selectedAsset]: [userStakeEntry, ...currentList.slice(0, 24)],
+      const newContract = {
+        id: contractId,
+        roundId: serverRound._id || serverRound.id || contractId,
+        asset: serverRound.asset || currentAsset?.name || selectedAsset,
+        assetName: currentAsset?.name || serverRound.asset || selectedAsset,
+        symbol: currentAsset?.symbol || selectedAsset,
+        icon: currentAsset?.icon || 'stock',
+        color: currentAsset?.color || '#fbbf24',
+        category: currentAsset?.category || 'Stock',
+        amount: betAmount,
+        rate: actualRate,
+        dailyInterest: actualDaily,
+        totalInterestEarned: 0,
+        profit: 0,
+        payout: betAmount,
+        duration: '5:00 AM Daily',
+        time: 'Just now',
+        status: 'Running',
+        createdAt: Date.now(),
       };
-    });
-    setCompanyInvestors((prev) => {
-      const cur = prev[selectedAsset] || getInitialInvestorsForAsset(selectedAsset);
-      return { ...prev, [selectedAsset]: cur + 1 };
-    });
+
+      setUserContracts((prevContracts) => {
+        const filtered = prevContracts.filter((c) => c.id !== contractId && c.roundId !== contractId);
+        const updated = [newContract, ...filtered];
+        try {
+          localStorage.setItem('paynex_user_contracts', JSON.stringify(updated));
+        } catch (_) {}
+        return updated;
+      });
+
+      // Add user's real stake into the live room participants feed
+      const displayAsset = (selectedAsset || '').replace('/USDT', '').replace('/INR', '');
+      const userStakeEntry = {
+        id: serverRound._id || serverRound.id || `user_stake_${Date.now()}`,
+        name: `${currentUser?.name || user?.name || 'Trader'} (You)`,
+        avatar: 'TRD',
+        amount: betAmount,
+        adminPercent: actualRate,
+        profit: 0,
+        payout: betAmount,
+        time: 'Just now',
+        isUser: true,
+        asset: displayAsset,
+      };
+      setCompanyRoomTraders((prev) => {
+        const currentList = prev[selectedAsset] || generateSeedTradersForAsset(selectedAsset, actualRate);
+        return {
+          ...prev,
+          [selectedAsset]: [userStakeEntry, ...currentList.slice(0, 24)],
+        };
+      });
+      setCompanyInvestors((prev) => {
+        const cur = prev[selectedAsset] || getInitialInvestorsForAsset(selectedAsset);
+        return { ...prev, [selectedAsset]: cur + 1 };
+      });
+
+      showUserSuccess(
+        'Stock Growth Contract Active!',
+        `Real stake of <strong>₹${betAmount.toLocaleString('en-IN')}</strong> activated on <strong>${currentAsset?.name || selectedAsset}</strong>! Earning +${actualRate}% Daily Return (Credited 5:00 AM Daily).`
+      );
+    } catch (err) {
+      showUserError('Investment Failed', err.message || 'Unable to place stake. Please check your balance or try again.');
+    }
   };
 
   // Dedicated Stock Purchase & QR Payment Modal State
@@ -1305,86 +1309,93 @@ const UserTradingPortal = ({
         return;
       }
 
-      setRealBalance((b) => b - buyAmt);
-
-      // Set active growth plan on this asset with real funds
-      setSelectedAsset(purchaseModalAsset.symbol || purchaseModalAsset.id);
-      let serverRoundId = null;
+      setIsSubmittingPurchase(true);
       try {
-        const res = await userApi.placeStake(buyAmt, purchaseModalAsset.symbol || purchaseModalAsset.id);
-        if (res && res.round) {
-          serverRoundId = res.round.id || res.round._id;
+        const targetAssetSymbol = purchaseModalAsset.symbol || purchaseModalAsset.id || purchaseModalAsset.name;
+        const res = await userApi.placeStake(buyAmt, targetAssetSymbol);
+        if (!res || !res.success) {
+          throw new Error(res?.message || 'Failed to place stock stake.');
         }
-      } catch (err) {
-        console.warn('Live API stake call fallback:', err.message);
-      }
 
-      const contractId = serverRoundId || `CT-${Math.floor(10000 + Math.random() * 90000)}`;
+        const newBal = typeof res.newBalance === 'number' ? res.newBalance : Math.max(0, realBalance - buyAmt);
+        setRealBalance(newBal);
+        try {
+          localStorage.setItem('paynex_real_bal', String(newBal));
+        } catch (_) {}
 
-      setActiveTrade({
-        contractId,
-        roundId: serverRoundId,
-        asset: purchaseModalAsset.symbol || purchaseModalAsset.id,
-        amount: buyAmt,
-        adminPercent: assetRate,
-        profit,
-        payout,
-        timeTotal: selectedTimeframe.seconds,
-        timeLeft: selectedTimeframe.seconds,
-      });
+        const serverRound = res.round || {};
+        const contractId = serverRound._id || serverRound.id || `CT-${Math.floor(10000 + Math.random() * 90000)}`;
+        const actualRate = serverRound.returnPercent || assetRate;
+        const actualDaily = serverRound.dailyInterest || Math.max(1, Math.round((buyAmt * actualRate) / 100));
 
-      const newContract = {
-        id: contractId,
-        asset: purchaseModalAsset.symbol || purchaseModalAsset.id,
-        assetName: purchaseModalAsset.name,
-        symbol: purchaseModalAsset.symbol || purchaseModalAsset.id,
-        icon: purchaseModalAsset.icon || 'stock',
-        color: purchaseModalAsset.color || '#3b82f6',
-        category: purchaseModalAsset.category || 'Stock',
-        amount: buyAmt,
-        rate: assetRate,
-        profit,
-        payout,
-        duration: `${selectedTimeframe.seconds}s`,
-        time: 'Just now',
-        status: 'Running',
-        createdAt: Date.now(),
-      };
-      setUserContracts((prevContracts) => [newContract, ...prevContracts]);
-
-      const purchasedSymbol = purchaseModalAsset.symbol || purchaseModalAsset.id;
-      const displaySymbol = (purchasedSymbol || '').replace('/USDT', '').replace('/INR', '');
-      const userStakeEntry = {
-        id: serverRoundId || `user_stake_${Date.now()}`,
-        name: `${user?.name || 'Sachin'} (You)`,
-        avatar: 'TRD',
-        amount: buyAmt,
-        adminPercent: assetRate,
-        profit,
-        payout,
-        time: 'Just now',
-        isUser: true,
-        asset: displaySymbol,
-      };
-      setCompanyRoomTraders((prev) => {
-        const currentList = prev[purchasedSymbol] || generateSeedTradersForAsset(purchasedSymbol, assetRate);
-        return {
-          ...prev,
-          [purchasedSymbol]: [userStakeEntry, ...currentList.slice(0, 24)],
+        const newContract = {
+          id: contractId,
+          roundId: serverRound._id || serverRound.id || contractId,
+          asset: serverRound.asset || purchaseModalAsset.name || targetAssetSymbol,
+          assetName: purchaseModalAsset.name || serverRound.asset || targetAssetSymbol,
+          symbol: purchaseModalAsset.symbol || targetAssetSymbol,
+          icon: purchaseModalAsset.icon || 'stock',
+          color: purchaseModalAsset.color || '#3b82f6',
+          category: purchaseModalAsset.category || 'Stock',
+          amount: buyAmt,
+          rate: actualRate,
+          dailyInterest: actualDaily,
+          totalInterestEarned: 0,
+          profit: 0,
+          payout: buyAmt,
+          duration: '5:00 AM Daily',
+          time: 'Just now',
+          status: 'Running',
+          createdAt: Date.now(),
         };
-      });
-      setCompanyInvestors((prev) => {
-        const cur = prev[purchasedSymbol] || getInitialInvestorsForAsset(purchasedSymbol);
-        return { ...prev, [purchasedSymbol]: cur + 1 };
-      });
 
-      const purchasedAssetName = purchaseModalAsset.name;
-      setPurchaseModalAsset(null);
+        setUserContracts((prevContracts) => {
+          const filtered = prevContracts.filter((c) => c.id !== contractId && c.roundId !== contractId);
+          const updated = [newContract, ...filtered];
+          try {
+            localStorage.setItem('paynex_user_contracts', JSON.stringify(updated));
+          } catch (_) {}
+          return updated;
+        });
 
-      showUserSuccess(
-        'Stock Purchase & Stake Activated!',
-        `Real payment of <strong>₹${buyAmt.toLocaleString('en-IN')}</strong> confirmed from Wallet! Growth plan on <strong>${purchasedAssetName}</strong> active with <strong>+${assetRate}% Guaranteed Profit</strong>!`
-      );
+        const purchasedSymbol = purchaseModalAsset.symbol || purchaseModalAsset.id;
+        const displaySymbol = (purchasedSymbol || '').replace('/USDT', '').replace('/INR', '');
+        const userStakeEntry = {
+          id: serverRound._id || serverRound.id || `user_stake_${Date.now()}`,
+          name: `${currentUser?.name || user?.name || 'Trader'} (You)`,
+          avatar: 'TRD',
+          amount: buyAmt,
+          adminPercent: actualRate,
+          profit: 0,
+          payout: buyAmt,
+          time: 'Just now',
+          isUser: true,
+          asset: displaySymbol,
+        };
+        setCompanyRoomTraders((prev) => {
+          const currentList = prev[purchasedSymbol] || generateSeedTradersForAsset(purchasedSymbol, actualRate);
+          return {
+            ...prev,
+            [purchasedSymbol]: [userStakeEntry, ...currentList.slice(0, 24)],
+          };
+        });
+        setCompanyInvestors((prev) => {
+          const cur = prev[purchasedSymbol] || getInitialInvestorsForAsset(purchasedSymbol);
+          return { ...prev, [purchasedSymbol]: cur + 1 };
+        });
+
+        const purchasedAssetName = purchaseModalAsset.name;
+        setPurchaseModalAsset(null);
+
+        showUserSuccess(
+          'Stock Purchase & Stake Activated!',
+          `Real payment of <strong>₹${buyAmt.toLocaleString('en-IN')}</strong> confirmed from Wallet! Growth plan on <strong>${purchasedAssetName}</strong> active with <strong>+${actualRate}% Guaranteed Daily Return</strong> (Credited 5:00 AM Daily)!`
+        );
+      } catch (err) {
+        showUserError('Stock Purchase Failed', err.message || 'Unable to place stake from wallet balance. Please try again.');
+      } finally {
+        setIsSubmittingPurchase(false);
+      }
       return;
     }
 
@@ -1445,7 +1456,8 @@ const UserTradingPortal = ({
 
     setExitingContractId(contract.id);
     try {
-      const res = await userApi.exitStake(contract.id);
+      const exitTargetId = contract.roundId || contract.id;
+      const res = await userApi.exitStake(exitTargetId);
       if (res && res.success) {
         showUserSuccess(
           'Contract Exited Successfully!',
@@ -1497,7 +1509,8 @@ const UserTradingPortal = ({
 
     setIsSubmittingTopUp(true);
     try {
-      const res = await userApi.topUpStake(topUpModalContract.id, addAmt);
+      const topUpTargetId = topUpModalContract.roundId || topUpModalContract.id;
+      const res = await userApi.topUpStake(topUpTargetId, addAmt);
       if (res && res.success) {
         showUserSuccess(
           'Capital Added Successfully!',
@@ -5615,29 +5628,56 @@ const UserTradingPortal = ({
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
                       <a
-                        href={`phonepe://pay?pa=${encodeURIComponent(purchaseModalAsset.upiId)}&pn=${encodeURIComponent(purchaseModalAsset.name)}&am=${purchaseAmount}&cu=INR`}
+                        href={`phonepe://pay?pa=${purchaseModalAsset.upiId}&pn=${encodeURIComponent((purchaseModalAsset.name || 'Stock Desk').replace(/[^a-zA-Z0-9 ]/g, ''))}&am=${purchaseAmount}&cu=INR`}
+                        onClick={() => {
+                          try {
+                            navigator.clipboard?.writeText(purchaseModalAsset.upiId);
+                            showUserToast('UPI ID copied! Opening PhonePe...', 'info');
+                          } catch (_) {}
+                        }}
                         style={{ padding: '7px 4px', background: '#5f259f', borderRadius: '6px', color: '#fff', fontSize: '10.5px', fontWeight: 800, textAlign: 'center', textDecoration: 'none' }}
                       >
                         PhonePe
                       </a>
                       <a
-                        href={`gpay://upi/pay?pa=${encodeURIComponent(purchaseModalAsset.upiId)}&pn=${encodeURIComponent(purchaseModalAsset.name)}&am=${purchaseAmount}&cu=INR`}
+                        href={`gpay://upi/pay?pa=${purchaseModalAsset.upiId}&pn=${encodeURIComponent((purchaseModalAsset.name || 'Stock Desk').replace(/[^a-zA-Z0-9 ]/g, ''))}&am=${purchaseAmount}&cu=INR`}
+                        onClick={() => {
+                          try {
+                            navigator.clipboard?.writeText(purchaseModalAsset.upiId);
+                            showUserToast('UPI ID copied! Opening Google Pay...', 'info');
+                          } catch (_) {}
+                        }}
                         style={{ padding: '7px 4px', background: '#1a73e8', borderRadius: '6px', color: '#fff', fontSize: '10.5px', fontWeight: 800, textAlign: 'center', textDecoration: 'none' }}
                       >
                         Google Pay
                       </a>
                       <a
-                        href={`paytmmp://pay?pa=${encodeURIComponent(purchaseModalAsset.upiId)}&pn=${encodeURIComponent(purchaseModalAsset.name)}&am=${purchaseAmount}&cu=INR`}
+                        href={`paytmmp://pay?pa=${purchaseModalAsset.upiId}&pn=${encodeURIComponent((purchaseModalAsset.name || 'Stock Desk').replace(/[^a-zA-Z0-9 ]/g, ''))}&am=${purchaseAmount}&cu=INR`}
+                        onClick={() => {
+                          try {
+                            navigator.clipboard?.writeText(purchaseModalAsset.upiId);
+                            showUserToast('UPI ID copied! Opening Paytm...', 'info');
+                          } catch (_) {}
+                        }}
                         style={{ padding: '7px 4px', background: '#00baf2', borderRadius: '6px', color: '#fff', fontSize: '10.5px', fontWeight: 800, textAlign: 'center', textDecoration: 'none' }}
                       >
                         Paytm
                       </a>
                       <a
-                        href={`upi://pay?pa=${encodeURIComponent(purchaseModalAsset.upiId)}&pn=${encodeURIComponent(purchaseModalAsset.name)}&am=${purchaseAmount}&cu=INR`}
+                        href={`upi://pay?pa=${purchaseModalAsset.upiId}&pn=${encodeURIComponent((purchaseModalAsset.name || 'Stock Desk').replace(/[^a-zA-Z0-9 ]/g, ''))}&am=${purchaseAmount}&cu=INR`}
+                        onClick={() => {
+                          try {
+                            navigator.clipboard?.writeText(purchaseModalAsset.upiId);
+                            showUserToast('UPI ID copied! Opening UPI app...', 'info');
+                          } catch (_) {}
+                        }}
                         style={{ padding: '7px 4px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '6px', color: '#fbbf24', fontSize: '10.5px', fontWeight: 800, textAlign: 'center', textDecoration: 'none' }}
                       >
                         Any UPI
                       </a>
+                    </div>
+                    <div style={{ fontSize: '10.5px', color: '#cbd5e1', marginTop: '6px', background: 'rgba(251, 191, 36, 0.08)', border: '1px solid rgba(251, 191, 36, 0.25)', borderRadius: '6px', padding: '5px 8px', lineHeight: '1.3' }}>
+                      <strong style={{ color: '#fbbf24' }}>💡 PhonePe Tip:</strong> Agar PhonePe app me <em>"Verification Failed"</em> aaye, to UPI ID Copy karke PhonePe app me <strong>"To UPI ID"</strong> me paste karein ya <strong>QR Code scan</strong> karein.
                     </div>
                   </div>
                 )}

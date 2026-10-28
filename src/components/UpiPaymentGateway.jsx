@@ -187,8 +187,9 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
     } catch (err) {
       // Offline / network fallback with direct dynamic URI
       const dummyId = `PAYNEX-ORDER-${Date.now().toString().slice(-6)}`;
-      const encodedMerchant = encodeURIComponent(`${currentCompany.name} Desk`);
-      const baseUpi = `pa=${companyUpi}&pn=${encodedMerchant}&am=${numAmount}&tr=${dummyId}&cu=INR&tn=Recharge_${dummyId}`;
+      const cleanMerchant = (currentCompany.name || 'Trading Desk').replace(/[^a-zA-Z0-9 ]/g, '');
+      const encodedMerchant = encodeURIComponent(cleanMerchant);
+      const baseUpi = `pa=${companyUpi}&pn=${encodedMerchant}&am=${numAmount}&cu=INR`;
 
       setOrder({
         transactionId: dummyId,
@@ -711,12 +712,13 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
             const activeUpi = order.adminUpiId || currentCompany?.upiId || 'paynex.crypto@icici';
             const companyDisplayName = order.companyName || currentCompany?.name || 'Trading Desk';
             const isImage = activeQr && (activeQr.startsWith('data:image') || activeQr.startsWith('http') || activeQr.startsWith('/') || activeQr.includes('.png') || activeQr.includes('.jpg'));
-            const encodedMerchant = encodeURIComponent(`${companyDisplayName} Desk`);
-            const upiBase = `pa=${activeUpi}&pn=${encodedMerchant}&am=${order.amount}&tr=${order.transactionId}&cu=INR&tn=Recharge_${order.transactionId}`;
-            const fallbackUpiUri = order.upiUri || `upi://pay?${upiBase}`;
-            const phonepeUri = order.phonepeUri || `phonepe://pay?${upiBase}`;
-            const gpayUri = order.gpayUri || `gpay://upi/pay?${upiBase}`;
-            const paytmUri = order.paytmUri || `paytmmp://pay?${upiBase}`;
+            const cleanCompanyName = (companyDisplayName || 'Trading Desk').replace(/[^a-zA-Z0-9 ]/g, '');
+            const encodedMerchant = encodeURIComponent(cleanCompanyName);
+            const upiBase = `pa=${activeUpi}&pn=${encodedMerchant}&am=${order.amount}&cu=INR`;
+            const fallbackUpiUri = `upi://pay?${upiBase}`;
+            const phonepeUri = `phonepe://pay?${upiBase}`;
+            const gpayUri = `gpay://upi/pay?${upiBase}`;
+            const paytmUri = `paytmmp://pay?${upiBase}`;
 
             return (
             <div>
@@ -915,6 +917,12 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
                   <a
                     href={phonepeUri}
+                    onClick={() => {
+                      try {
+                        navigator.clipboard?.writeText(activeUpi);
+                        showUserToast('UPI ID copied! Opening PhonePe...', 'info');
+                      } catch (_) {}
+                    }}
                     style={{
                       textDecoration: 'none',
                       backgroundColor: 'rgba(95, 37, 159, 0.25)',
@@ -933,6 +941,12 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
 
                   <a
                     href={gpayUri}
+                    onClick={() => {
+                      try {
+                        navigator.clipboard?.writeText(activeUpi);
+                        showUserToast('UPI ID copied! Opening Google Pay...', 'info');
+                      } catch (_) {}
+                    }}
                     style={{
                       textDecoration: 'none',
                       backgroundColor: 'rgba(26, 115, 232, 0.25)',
@@ -951,6 +965,12 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
 
                   <a
                     href={paytmUri}
+                    onClick={() => {
+                      try {
+                        navigator.clipboard?.writeText(activeUpi);
+                        showUserToast('UPI ID copied! Opening Paytm...', 'info');
+                      } catch (_) {}
+                    }}
                     style={{
                       textDecoration: 'none',
                       backgroundColor: 'rgba(0, 185, 241, 0.25)',
@@ -969,6 +989,12 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
 
                   <a
                     href={fallbackUpiUri}
+                    onClick={() => {
+                      try {
+                        navigator.clipboard?.writeText(activeUpi);
+                        showUserToast('UPI ID copied! Opening UPI app...', 'info');
+                      } catch (_) {}
+                    }}
                     style={{
                       textDecoration: 'none',
                       backgroundColor: 'rgba(245, 158, 11, 0.25)',
@@ -984,6 +1010,9 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                     <Zap size={16} color="#f59e0b" />
                     <div style={{ fontSize: '11px', fontWeight: 800, color: '#f59e0b', marginTop: '2px' }}>Any UPI</div>
                   </a>
+                </div>
+                <div style={{ fontSize: '11px', color: '#cbd5e1', marginTop: '8px', background: 'rgba(251, 191, 36, 0.08)', border: '1px solid rgba(251, 191, 36, 0.25)', borderRadius: '8px', padding: '6px 10px', lineHeight: '1.4' }}>
+                  <strong style={{ color: '#fbbf24' }}>💡 PhonePe & UPI Tip:</strong> Agar PhonePe app me <em>"Verification Failed"</em> aaye, to upar diya gaya <strong>"Copy UPI"</strong> button dabayein aur PhonePe me <strong>"To UPI ID"</strong> me paste karke pay karein, ya <strong>QR Code scan</strong> karein.
                 </div>
               </div>
 
