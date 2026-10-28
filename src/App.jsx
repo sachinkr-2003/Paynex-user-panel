@@ -54,14 +54,22 @@ function App() {
     }
   });
 
-  // View mode: 'website' (ALWAYS Default!), 'portal' (Trading Desk), 'app' (APK view)
+  // View mode: 'website', 'portal' (Trading Desk), 'app' (APK view)
+  // Persists across browser refresh so trader is never accidentally kicked to website!
   const [activeView, setActiveView] = useState(() => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('view') === 'portal') return 'portal';
       if (urlParams.get('view') === 'app' || urlParams.get('view') === 'apk') return 'app';
+      if (urlParams.get('view') === 'website') return 'website';
+
+      const savedUser = localStorage.getItem('paynex_user');
+      const savedToken = localStorage.getItem('paynex_user_token') || localStorage.getItem('paynex_token');
+      const savedView = localStorage.getItem('paynex_active_view');
+      if (savedView === 'portal' && (savedUser || savedToken)) return 'portal';
+      if (savedView === 'app') return 'app';
     } catch {}
-    return 'website'; // Website is ALWAYS the default open screen!
+    return 'website';
   });
   const [authScreen, setAuthScreen] = useState('login');
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -94,6 +102,12 @@ function App() {
       }
     } catch (_) {}
   };
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('paynex_active_view', activeView);
+    } catch (_) {}
+  }, [activeView]);
 
   useEffect(() => {
     localStorage.setItem('paynex_real_bal', realBalance);
@@ -145,6 +159,7 @@ function App() {
   const handleLoginSuccess = (userData) => {
     setCurrentUser(userData);
     localStorage.setItem('paynex_user', JSON.stringify(userData));
+    localStorage.setItem('paynex_active_view', 'portal');
     setAuthModalOpen(false);
     showUserToast(`Welcome back, ${userData?.name || 'Trader'}!`);
     setActiveView('portal'); // Direct dashboard on sign in!
@@ -164,6 +179,8 @@ function App() {
       localStorage.removeItem('paynex_user_token');
       localStorage.removeItem('paynex_token');
       localStorage.removeItem('paynex_real_bal');
+      localStorage.removeItem('paynex_active_view');
+      localStorage.removeItem('paynex_current_tab');
       setRealBalance(0);
       setActiveView('website'); // Direct website on logout!
       setAuthScreen('login');
@@ -212,6 +229,7 @@ function App() {
           onOpenWithdraw={() => setWithdrawModalOpen(true)}
           onLogout={handleLogout}
           onBackToWebsite={() => {
+            localStorage.setItem('paynex_active_view', 'website');
             setActiveView('website');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}

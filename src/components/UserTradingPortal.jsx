@@ -216,8 +216,23 @@ const UserTradingPortal = ({
   onLogout,
   onBackToWebsite,
 }) => {
-  // Navigation Tabs: 'home' (APK Screen 5), 'market', 'game' (3D Trade Arena), 'wallet', 'profile'
-  const [currentTab, setCurrentTab] = useState('home');
+  // Navigation Tabs: 'home' (APK Screen 5), 'market', 'game' (3D Trade Arena), 'contracts', 'wallet', 'profile'
+  // Persists across browser reload so user remains on their active screen
+  const [currentTab, setCurrentTab] = useState(() => {
+    try {
+      const savedTab = localStorage.getItem('paynex_current_tab');
+      if (savedTab && ['home', 'market', 'game', 'contracts', 'wallet', 'profile'].includes(savedTab)) {
+        return savedTab;
+      }
+    } catch {}
+    return 'home';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('paynex_current_tab', currentTab);
+    } catch {}
+  }, [currentTab]);
   const [assetsMap, setAssetsMap] = useState(DEFAULT_ASSETS);
   const ASSETS = assetsMap;
   const [selectedAsset, setSelectedAsset] = useState('BTC/USDT');
@@ -641,11 +656,9 @@ const UserTradingPortal = ({
   }, [assetsMap]);
 
   // Dynamic Portfolio Calculations: Available Balance & Contract Amount
-  const activeContractAmount = activeTrade
-    ? Number(activeTrade.amount || 0)
-    : userContracts
-        .filter((c) => c.status === 'Running')
-        .reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+  const activeContractAmount = userContracts
+    .filter((c) => c.status === 'Running')
+    .reduce((sum, c) => sum + (Number(c.amount) || 0), 0) + (activeTrade ? Number(activeTrade.amount || 0) : 0);
 
   const totalPortfolioValue = Number(realBalance || 0) + activeContractAmount;
   const activeContractsList = userContracts.filter((c) => c.status === 'Running');
@@ -1438,14 +1451,20 @@ const UserTradingPortal = ({
           'Contract Exited Successfully!',
           `₹${(res.refundAmount || contract.amount).toLocaleString('en-IN')} has been returned to your Available Balance!`
         );
-        if (typeof res.newBalance === 'number') {
-          setRealBalance(res.newBalance);
-        } else {
-          setRealBalance((prev) => prev + Number(contract.amount || 0));
-        }
-        setUserContracts((prev) =>
-          prev.map((c) => (c.id === contract.id ? { ...c, status: 'Completed' } : c))
-        );
+        const refAmt = Number(res.refundAmount || contract.amount || 0);
+        const newBal = typeof res.newBalance === 'number' ? res.newBalance : (Number(realBalance || 0) + refAmt);
+        setRealBalance(newBal);
+        try {
+          localStorage.setItem('paynex_real_bal', newBal);
+        } catch (_) {}
+
+        setUserContracts((prev) => {
+          const updated = prev.map((c) => (c.id === contract.id ? { ...c, status: 'Completed' } : c));
+          try {
+            localStorage.setItem('paynex_user_contracts', JSON.stringify(updated));
+          } catch (_) {}
+          return updated;
+        });
       } else {
         showUserError('Exit Failed', res?.message || 'Could not exit contract.');
       }
