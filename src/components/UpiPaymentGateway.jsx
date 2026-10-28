@@ -455,11 +455,14 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                         cursor: 'pointer',
                       }}
                     >
-                      {companies.map((c) => (
-                        <option key={c.id || c.symbol} value={c.id || c.symbol}>
-                          {c.name} ({c.symbol}) • Return: {c.return || '+30%'}
-                        </option>
-                      ))}
+                      {companies.map((c) => {
+                        const rate = c.returnPercent !== undefined && c.returnPercent !== null ? c.returnPercent : 5;
+                        return (
+                          <option key={c.id || c.symbol} value={c.id || c.symbol}>
+                            {c.name} ({c.symbol}) • Return: +{rate}% Guaranteed
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
 
