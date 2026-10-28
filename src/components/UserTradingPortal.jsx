@@ -2666,10 +2666,10 @@ const UserTradingPortal = ({
                     </span>
                     <input
                       type="number"
-                      min={Math.max(1000, Number(assetInfo.minStake) || 1000)}
-                      step="500"
+                      min={1}
                       value={betAmount}
-                      onChange={(e) => setBetAmount(Math.max(1000, Number(e.target.value)))}
+                      onChange={(e) => setBetAmount(Number(e.target.value))}
+                      placeholder="Enter amount (₹)"
                       style={{
                         width: '100%',
                         background: 'rgba(255, 255, 255, 0.05)',
@@ -2683,34 +2683,6 @@ const UserTradingPortal = ({
                         fontFamily: 'monospace',
                       }}
                     />
-                  </div>
-
-                  {/* Quick Preset Chips */}
-                  <div className="bet-presets-grid" style={{ marginTop: '8px' }}>
-                    {(() => {
-                      const minReq = Math.max(1000, Number(assetInfo.minStake) || 1000);
-                      const dynamicPresets = [minReq, minReq * 2, minReq * 5, 10000, 25000, 50000];
-                      return dynamicPresets.map((amt) => (
-                        <button
-                          key={amt}
-                          onClick={() => setBetAmount(amt)}
-                          style={{
-                            background: betAmount === amt ? 'rgba(245, 158, 11, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-                            border: `1px solid ${betAmount === amt ? '#fbbf24' : 'rgba(255, 255, 255, 0.1)'}`,
-                            borderRadius: '6px',
-                            color: betAmount === amt ? '#fbbf24' : '#cbd5e1',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            padding: '5px 4px',
-                            cursor: 'pointer',
-                            textAlign: 'center',
-                            transition: 'all 0.15s ease',
-                          }}
-                        >
-                          ₹{amt.toLocaleString('en-IN')}
-                        </button>
-                      ));
-                    })()}
                   </div>
                 </div>
 
@@ -5480,11 +5452,11 @@ const UserTradingPortal = ({
               </button>
             </div>
 
-            {/* Investment Amount Input & Chips */}
+            {/* Investment Amount Input */}
             <div style={{ marginBottom: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                 <label style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>
-                  INVESTMENT AMOUNT (Min ₹{Math.max(1000, Number(purchaseModalAsset.minStake) || 1000).toLocaleString('en-IN')})
+                  INVESTMENT AMOUNT
                 </label>
                 <span style={{ fontSize: '10.5px', color: '#10b981', fontWeight: 700 }}>
                   Wallet Balance: ₹{realBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -5492,10 +5464,10 @@ const UserTradingPortal = ({
               </div>
               <input
                 type="number"
-                min={Math.max(1000, Number(purchaseModalAsset.minStake) || 1000)}
-                step="500"
+                min={1}
                 value={purchaseAmount}
                 onChange={(e) => setPurchaseAmount(Number(e.target.value))}
+                placeholder="Enter investment amount (₹)"
                 style={{
                   width: '100%',
                   background: 'rgba(255, 255, 255, 0.05)',
@@ -5510,34 +5482,6 @@ const UserTradingPortal = ({
                   boxSizing: 'border-box',
                 }}
               />
-              <div style={{ display: 'flex', gap: '5px', marginTop: '6px', flexWrap: 'wrap' }}>
-                {[
-                  Math.max(1000, Number(purchaseModalAsset.minStake) || 1000),
-                  Math.max(1000, Number(purchaseModalAsset.minStake) || 1000) * 2,
-                  Math.max(1000, Number(purchaseModalAsset.minStake) || 1000) * 5,
-                  10000,
-                  25000,
-                  50000,
-                ].filter((v, i, a) => a.indexOf(v) === i).map((amt) => (
-                  <button
-                    key={amt}
-                    type="button"
-                    onClick={() => setPurchaseAmount(amt)}
-                    style={{
-                      background: purchaseAmount === amt ? '#fbbf24' : 'rgba(255, 255, 255, 0.05)',
-                      border: `1px solid ${purchaseAmount === amt ? '#fbbf24' : 'rgba(255, 255, 255, 0.1)'}`,
-                      borderRadius: '6px',
-                      color: purchaseAmount === amt ? '#000' : '#cbd5e1',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      padding: '3px 8px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    ₹{amt.toLocaleString('en-IN')}
-                  </button>
-                ))}
-              </div>
             </div>
 
             {/* Profit & Maturity Breakdown Banner */}
@@ -5929,10 +5873,10 @@ const UserTradingPortal = ({
               </label>
               <input
                 type="number"
-                min="100"
-                step="500"
+                min="1"
                 value={topUpAmount}
                 onChange={(e) => setTopUpAmount(Math.max(0, Number(e.target.value)))}
+                placeholder="Enter amount to add (₹)"
                 style={{
                   width: '100%',
                   background: 'rgba(255, 255, 255, 0.05)',
@@ -5947,29 +5891,6 @@ const UserTradingPortal = ({
                   boxSizing: 'border-box',
                 }}
               />
-
-              {/* Quick Chips */}
-              <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
-                {[100, 500, 1000, 2000, 5000, 10000].map((amt) => (
-                  <button
-                    key={amt}
-                    type="button"
-                    onClick={() => setTopUpAmount(amt)}
-                    style={{
-                      background: topUpAmount === amt ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-                      border: `1px solid ${topUpAmount === amt ? '#10b981' : 'rgba(255, 255, 255, 0.1)'}`,
-                      borderRadius: '6px',
-                      color: topUpAmount === amt ? '#34d399' : '#cbd5e1',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      padding: '4px 8px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    +₹{amt.toLocaleString('en-IN')}
-                  </button>
-                ))}
-              </div>
             </div>
 
             {/* Projection Summary Card */}

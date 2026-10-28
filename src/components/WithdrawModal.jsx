@@ -234,27 +234,8 @@ const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
                 outline: 'none',
               }}
             />
-            {/* Quick Chips */}
-            <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
-              {[100, 500, 1000, 2000, 5000].map((amt) => (
-                <button
-                  key={amt}
-                  type="button"
-                  onClick={() => setAmount(amt)}
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.06)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '6px',
-                    color: '#fbbf24',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    padding: '4px 8px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  ₹{amt}
-                </button>
-              ))}
+            {/* Max Balance Shortcut */}
+            <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
               <button
                 type="button"
                 onClick={() => setAmount(realBalance)}
@@ -265,11 +246,11 @@ const WithdrawModal = ({ isOpen, onClose, realBalance, onWithdrawSuccess }) => {
                   color: '#fbbf24',
                   fontSize: '11px',
                   fontWeight: 800,
-                  padding: '4px 8px',
+                  padding: '4px 10px',
                   cursor: 'pointer',
                 }}
               >
-                Max
+                Max Balance (₹{Number(realBalance || 0).toLocaleString('en-IN')})
               </button>
             </div>
           </div>

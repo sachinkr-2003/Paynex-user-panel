@@ -644,41 +644,29 @@ const TradingSimulator3D = ({ demoBalance, setDemoBalance }) => {
                   </span>
                 </div>
 
-                {/* Amount Chips */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '10px' }}>
-                  {BET_PRESETS.map((amt) => (
-                    <button
-                      key={amt}
-                      onClick={() => setBetAmount(amt)}
-                      style={{
-                        background: betAmount === amt ? 'rgba(245, 158, 11, 0.35)' : 'rgba(255, 255, 255, 0.05)',
-                        border: `1px solid ${betAmount === amt ? '#fbbf24' : 'rgba(255, 255, 255, 0.1)'}`,
-                        color: betAmount === amt ? '#fff' : '#cbd5e1',
-                        borderRadius: '8px',
-                        padding: '6px 0',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      ₹{amt}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => setBetAmount(10000)}
+                {/* Investment Input */}
+                <div style={{ position: 'relative', marginBottom: '10px' }}>
+                  <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#fbbf24', fontWeight: 800 }}>₹</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={betAmount}
+                    onChange={(e) => setBetAmount(Math.max(1, Number(e.target.value)))}
+                    placeholder="Enter bet amount"
                     style={{
-                      background: betAmount === 10000 ? 'rgba(245, 158, 11, 0.35)' : 'rgba(255, 255, 255, 0.05)',
-                      border: `1px solid ${betAmount === 10000 ? '#fbbf24' : 'rgba(255, 255, 255, 0.1)'}`,
-                      color: '#fbbf24',
-                      borderRadius: '8px',
-                      padding: '6px 0',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
+                      width: '100%',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1.5px solid rgba(245, 158, 11, 0.45)',
+                      borderRadius: '10px',
+                      padding: '10px 12px 10px 28px',
+                      color: '#fff',
+                      fontSize: '15px',
+                      fontWeight: 800,
+                      outline: 'none',
+                      fontFamily: 'monospace',
+                      boxSizing: 'border-box',
                     }}
-                  >
-                    ₹10K
-                  </button>
+                  />
                 </div>
               </div>
 

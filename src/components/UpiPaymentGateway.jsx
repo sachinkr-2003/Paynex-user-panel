@@ -487,10 +487,10 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                       </span>
                       <input
                         type="number"
-                        min="1000"
-                        step="500"
+                        min="1"
                         value={amount}
                         onChange={(e) => setAmount(Number(e.target.value))}
+                        placeholder="Enter deposit amount (₹)"
                         style={{
                           width: '100%',
                           backgroundColor: '#141829',
@@ -504,33 +504,6 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                         }}
                       />
                     </div>
-                  </div>
-
-                  {/* Predefined Quick Chips */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px', marginBottom: '20px' }}>
-                    {[1000, 2000, 5000, 10000, 25000, 50000].map((amt) => {
-                      const isSelected = Number(amount) === amt;
-                      return (
-                        <button
-                          key={amt}
-                          type="button"
-                          onClick={() => setAmount(amt)}
-                          style={{
-                            padding: '7px 4px',
-                            backgroundColor: isSelected ? 'rgba(245, 158, 11, 0.25)' : 'rgba(255, 255, 255, 0.04)',
-                            border: `1px solid ${isSelected ? '#f59e0b' : 'rgba(255, 255, 255, 0.08)'}`,
-                            borderRadius: '8px',
-                            color: isSelected ? '#f59e0b' : '#94a3b8',
-                            fontSize: '11px',
-                            fontWeight: 800,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s',
-                          }}
-                        >
-                          ₹{amt.toLocaleString('en-IN')}
-                        </button>
-                      );
-                    })}
                   </div>
 
                   {/* Security Guarantee Banner */}
