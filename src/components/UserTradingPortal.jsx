@@ -70,17 +70,73 @@ const FALLBACK_ASSET = {
 };
 
 const resolveAsset = (map, key) => {
-  if (map && key && map[key]) return map[key];
-  if (DEFAULT_ASSETS && key && DEFAULT_ASSETS[key]) return DEFAULT_ASSETS[key];
-  if (map && map['BTC/USDT']) return map['BTC/USDT'];
-  if (map && map['BTC']) return map['BTC'];
-  if (DEFAULT_ASSETS && DEFAULT_ASSETS['BTC/USDT']) return DEFAULT_ASSETS['BTC/USDT'];
-  if (DEFAULT_ASSETS && DEFAULT_ASSETS['BTC']) return DEFAULT_ASSETS['BTC'];
-  const firstInMap = map ? Object.values(map)[0] : null;
-  if (firstInMap) return firstInMap;
-  const firstInDefault = DEFAULT_ASSETS ? Object.values(DEFAULT_ASSETS)[0] : null;
-  if (firstInDefault) return firstInDefault;
-  return FALLBACK_ASSET;
+  if (!key) {
+    if (map && map['BTC/USDT']) return map['BTC/USDT'];
+    if (DEFAULT_ASSETS && DEFAULT_ASSETS['BTC/USDT']) return DEFAULT_ASSETS['BTC/USDT'];
+    const firstInMap = map ? Object.values(map)[0] : null;
+    if (firstInMap) return firstInMap;
+    const firstInDefault = DEFAULT_ASSETS ? Object.values(DEFAULT_ASSETS)[0] : null;
+    if (firstInDefault) return firstInDefault;
+    return FALLBACK_ASSET;
+  }
+
+  // 1. Direct key match (e.g. 'INFY', 'BTC/USDT', 'RELIANCE')
+  if (map && map[key]) return map[key];
+  if (DEFAULT_ASSETS && DEFAULT_ASSETS[key]) return DEFAULT_ASSETS[key];
+
+  const cleanKey = String(key).trim();
+  const normalizedKey = cleanKey.toUpperCase().replace('/USDT', '').replace('/INR', '');
+
+  // 2. Intelligent search by company name, symbol, or ID in dynamic map
+  if (map) {
+    const list = Object.values(map);
+    const found = list.find((a) => {
+      if (!a) return false;
+      const s = (a.symbol || a.id || '').toUpperCase().replace('/USDT', '').replace('/INR', '');
+      const n = (a.name || '').toLowerCase();
+      const k = cleanKey.toLowerCase();
+      return (
+        s === normalizedKey ||
+        n === k ||
+        (a.id && String(a.id).toLowerCase() === k) ||
+        (a.symbol && String(a.symbol).toLowerCase() === k) ||
+        (n && k && (n.includes(k) || k.includes(n)))
+      );
+    });
+    if (found) return found;
+  }
+
+  // 3. Intelligent search by company name, symbol, or ID in DEFAULT_ASSETS
+  if (DEFAULT_ASSETS) {
+    const list = Object.values(DEFAULT_ASSETS);
+    const found = list.find((a) => {
+      if (!a) return false;
+      const s = (a.symbol || a.id || '').toUpperCase().replace('/USDT', '').replace('/INR', '');
+      const n = (a.name || '').toLowerCase();
+      const k = cleanKey.toLowerCase();
+      return (
+        s === normalizedKey ||
+        n === k ||
+        (a.id && String(a.id).toLowerCase() === k) ||
+        (a.symbol && String(a.symbol).toLowerCase() === k) ||
+        (n && k && (n.includes(k) || k.includes(n)))
+      );
+    });
+    if (found) return found;
+  }
+
+  // 4. Strict real-name fallback - NEVER override user's company with Bitcoin!
+  return {
+    id: cleanKey,
+    symbol: normalizedKey || cleanKey,
+    name: cleanKey,
+    category: 'Stock',
+    color: '#fbbf24',
+    icon: 'stock',
+    basePrice: 1000,
+    returnPercent: 5,
+    minStake: 100,
+  };
 };
 
 const getInitialInvestorsForAsset = (assetKey) => {
@@ -322,7 +378,9 @@ const UserTradingPortal = ({
             // Admin Full Control: Group Rate > Individual DB Rate > Master Staking Engine Rate
             const rawRate = customRate ?? groupRate ?? assetBackendRate ?? masterEngineRate;
             const effectiveReturn = Math.min(12, Math.max(2, Number(rawRate)));
-            const effectiveEnabled = custom?.isEnabled !== undefined ? Boolean(custom.isEnabled) : (a.isEnabled !== false);
+            const effectiveEnabled = (a.isEnabled !== undefined && a.isEnabled !== null)
+              ? (a.isEnabled !== false)
+              : (custom?.isEnabled !== undefined ? Boolean(custom.isEnabled) : true);
             const effectiveQr = groupQr || a.qrCode || (custom?.qrCode !== undefined ? custom.qrCode : '');
             const enriched = {
               id: a.id,
@@ -624,8 +682,8 @@ const UserTradingPortal = ({
               id: r._id || r.id || `CT-${r.roundId || Date.now()}`,
               roundId: r._id || r.id,
               asset: r.asset,
-              assetName: assetObj?.name || r.asset,
-              symbol: assetObj?.symbol || r.asset,
+              assetName: r.asset || assetObj?.name,
+              symbol: assetObj?.symbol || (r.asset ? String(r.asset).replace('/USDT', '').replace('/INR', '').slice(0, 10).toUpperCase() : 'STOCK'),
               icon: assetObj?.icon || 'stock',
               color: assetObj?.color || '#fbbf24',
               category: assetObj?.category || 'Stock',
