@@ -272,6 +272,7 @@ const UserTradingPortal = ({
   onLogout,
   onBackToWebsite,
 }) => {
+  const currentUser = user;
   // Navigation Tabs: 'home' (APK Screen 5), 'market', 'game' (3D Trade Arena), 'contracts', 'wallet', 'profile'
   // Persists across browser reload so user remains on their active screen
   const [currentTab, setCurrentTab] = useState(() => {
@@ -1271,7 +1272,7 @@ const UserTradingPortal = ({
       const displayAsset = (selectedAsset || '').replace('/USDT', '').replace('/INR', '');
       const userStakeEntry = {
         id: serverRound._id || serverRound.id || `user_stake_${Date.now()}`,
-        name: `${currentUser?.name || user?.name || 'Trader'} (You)`,
+        name: `${user?.name || currentUser?.name || 'Trader'} (You)`,
         avatar: 'TRD',
         amount: betAmount,
         adminPercent: actualRate,
@@ -1420,7 +1421,7 @@ const UserTradingPortal = ({
         const displaySymbol = (purchasedSymbol || '').replace('/USDT', '').replace('/INR', '');
         const userStakeEntry = {
           id: serverRound._id || serverRound.id || `user_stake_${Date.now()}`,
-          name: `${currentUser?.name || user?.name || 'Trader'} (You)`,
+          name: `${user?.name || currentUser?.name || 'Trader'} (You)`,
           avatar: 'TRD',
           amount: buyAmt,
           adminPercent: actualRate,
