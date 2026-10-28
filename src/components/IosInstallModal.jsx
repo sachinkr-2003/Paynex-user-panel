@@ -8,18 +8,8 @@ export default function IosInstallModal({ isOpen, onClose }) {
 
   const handleDownloadProfile = () => {
     setDownloadTriggered(true);
-    // Direct trigger for Apple WebClip configuration profile
-    const link = document.createElement('a');
-    link.href = '/paynex.mobileconfig';
-    link.setAttribute('download', 'PAYNEX_iOS_App.mobileconfig');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    // Backup navigation for Safari/Chrome on iOS
-    setTimeout(() => {
-      window.location.href = '/paynex.mobileconfig';
-    }, 400);
+    // Direct trigger for Apple WebClip configuration profile on iOS Safari
+    window.location.href = '/paynex.mobileconfig';
   };
 
   const handleCopyLink = () => {
@@ -127,34 +117,83 @@ export default function IosInstallModal({ isOpen, onClose }) {
           </p>
         </div>
 
-        {/* MAIN ACTION: 1-Click Direct Download Button */}
-        <div style={{ marginBottom: '18px' }}>
+        {/* METHOD 1 (RECOMMENDED): Native Safari 1-Tap Add to Home Screen */}
+        <div
+          style={{
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.08) 100%)',
+            border: '1.5px solid rgba(16, 185, 129, 0.45)',
+            borderRadius: '16px',
+            padding: '14px',
+            marginBottom: '14px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 900, color: '#34d399', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+              ⚡ Method 1: Instant Safari Add (No Settings Needed)
+            </div>
+            <div style={{ background: '#10b981', color: '#000', fontSize: '9px', fontWeight: 900, padding: '2px 7px', borderRadius: '4px' }}>
+              RECOMMENDED
+            </div>
+          </div>
+          <div style={{ fontSize: '12px', color: '#e2e8f0', lineHeight: 1.5, marginBottom: '8px' }}>
+            1. Safari ke bilkul neeche <strong>Share <Share size={12} style={{ display: 'inline', verticalAlign: 'middle', color: '#38bdf8' }} /></strong> button (Square with Arrow) dabayein.<br />
+            2. Thoda neeche scroll karke <strong style={{ color: '#10b981' }}>"Add to Home Screen" (+)</strong> par tap karein.<br />
+            3. Upar right corner me <strong style={{ color: '#fbbf24' }}>"Add"</strong> dabayein. Done!
+          </div>
+          <button
+            onClick={handleCopyLink}
+            style={{
+              width: '100%',
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: '8px',
+              padding: '6px 10px',
+              color: '#38bdf8',
+              fontSize: '11px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+            }}
+          >
+            <Copy size={12} />
+            <span>Copy Website URL to open in Safari</span>
+          </button>
+        </div>
+
+        {/* METHOD 2: 1-Click Profile Download (.mobileconfig) */}
+        <div style={{ marginBottom: '14px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 900, color: '#fbbf24', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '8px' }}>
+            📲 Method 2: iOS Profile (.mobileconfig)
+          </div>
           <button
             onClick={handleDownloadProfile}
             style={{
               width: '100%',
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
               color: '#fff',
               border: 'none',
-              padding: '14px 18px',
-              borderRadius: '14px',
+              padding: '12px 16px',
+              borderRadius: '12px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '12px',
+              gap: '10px',
               cursor: 'pointer',
               fontWeight: 900,
-              fontSize: '15px',
-              boxShadow: '0 8px 25px rgba(16, 185, 129, 0.45)',
+              fontSize: '14px',
+              boxShadow: '0 6px 20px rgba(37, 99, 235, 0.4)',
               transition: 'transform 0.15s ease',
             }}
             onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')}
             onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
           >
-            <Download size={22} color="#fff" />
+            <Download size={18} color="#fff" />
             <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '10px', opacity: 0.9, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Direct 1-Click Download
+              <div style={{ fontSize: '9px', opacity: 0.9, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Download & Install WebClip
               </div>
               <div>Download iOS Profile (.mobileconfig)</div>
             </div>
@@ -166,22 +205,22 @@ export default function IosInstallModal({ isOpen, onClose }) {
           style={{
             background: 'rgba(255, 255, 255, 0.03)',
             border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '16px',
-            padding: '14px',
+            borderRadius: '14px',
+            padding: '12px',
             marginBottom: '16px',
           }}
         >
-          <div style={{ fontSize: '11px', fontWeight: 800, color: '#fbbf24', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '10px' }}>
-            Install Guide (After Downloading):
+          <div style={{ fontSize: '10.5px', fontWeight: 800, color: '#94a3b8', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '8px' }}>
+            Profile Download ke baad Kaise Install Karein:
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {/* Step 1 */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
               <div
                 style={{
-                  width: '26px',
-                  height: '26px',
+                  width: '22px',
+                  height: '22px',
                   borderRadius: '50%',
                   background: 'rgba(56, 189, 248, 0.2)',
                   color: '#38bdf8',
@@ -189,24 +228,24 @@ export default function IosInstallModal({ isOpen, onClose }) {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '12px',
+                  fontSize: '11px',
                   fontWeight: 900,
                   flexShrink: 0,
                 }}
               >
                 1
               </div>
-              <div style={{ fontSize: '12px', color: '#e2e8f0', lineHeight: 1.4 }}>
-                When iPhone prompts <span style={{ color: '#38bdf8', fontWeight: 700 }}>"Download configuration profile?"</span>, tap <strong style={{ color: '#10b981' }}>"Allow"</strong>.
+              <div style={{ fontSize: '11.5px', color: '#e2e8f0', lineHeight: 1.4 }}>
+                Jab Safari me <strong style={{ color: '#10b981' }}>"Profile Downloaded"</strong> popup aaye, to <strong style={{ color: '#38bdf8' }}>"Close"</strong> dabayein.
               </div>
             </div>
 
             {/* Step 2 */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
               <div
                 style={{
-                  width: '26px',
-                  height: '26px',
+                  width: '22px',
+                  height: '22px',
                   borderRadius: '50%',
                   background: 'rgba(245, 158, 11, 0.2)',
                   color: '#fbbf24',
@@ -214,58 +253,18 @@ export default function IosInstallModal({ isOpen, onClose }) {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '12px',
+                  fontSize: '11px',
                   fontWeight: 900,
                   flexShrink: 0,
                 }}
               >
                 2
               </div>
-              <div style={{ fontSize: '12px', color: '#e2e8f0', lineHeight: 1.4 }}>
-                Open iPhone <strong style={{ color: '#fbbf24' }}>Settings <Settings size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /></strong> → Tap <strong style={{ color: '#38bdf8' }}>"Profile Downloaded"</strong> (at the top) → Tap <strong style={{ color: '#10b981' }}>"Install"</strong>!
+              <div style={{ fontSize: '11.5px', color: '#e2e8f0', lineHeight: 1.4 }}>
+                iPhone ki <strong style={{ color: '#fbbf24' }}>Settings <Settings size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /></strong> app kholein → Sabse upar <strong style={{ color: '#38bdf8' }}>"Profile Downloaded"</strong> par tap karein → Top-right me <strong style={{ color: '#10b981' }}>"Install"</strong> dabayein!
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Alternative: Safari Add to Home Screen */}
-        <div
-          style={{
-            background: 'rgba(56, 189, 248, 0.05)',
-            border: '1px dashed rgba(56, 189, 248, 0.25)',
-            borderRadius: '12px',
-            padding: '10px 12px',
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '8px',
-          }}
-        >
-          <div style={{ fontSize: '11px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <Compass size={13} style={{ flexShrink: 0 }} />
-            <span>Or in Safari: Tap <strong style={{ color: '#38bdf8' }}>Share <Share size={11} style={{ display: 'inline', verticalAlign: 'middle' }} /></strong> → <strong style={{ color: '#10b981' }}>Add to Home Screen</strong></span>
-          </div>
-          <button
-            onClick={handleCopyLink}
-            style={{
-              background: 'rgba(255, 255, 255, 0.1)',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '5px 10px',
-              color: '#fff',
-              fontSize: '10.5px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}
-          >
-            <Copy size={11} />
-            <span>Copy URL</span>
-          </button>
         </div>
 
         {/* Close Button */}
