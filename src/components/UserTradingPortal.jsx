@@ -376,13 +376,15 @@ const UserTradingPortal = ({
               ? Number(custom.returnPercent)
               : null;
 
-            // Admin Full Control: Group Rate > Individual DB Rate > Master Staking Engine Rate
-            const rawRate = customRate ?? groupRate ?? assetBackendRate ?? masterEngineRate;
+            // Admin Live Control: Server Group Rate > Individual Asset DB Rate > Local Override > Master Engine Rate
+            const rawRate = groupRate ?? assetBackendRate ?? customRate ?? masterEngineRate;
             const effectiveReturn = Math.min(12, Math.max(2, Number(rawRate)));
             const effectiveEnabled = (a.isEnabled !== undefined && a.isEnabled !== null)
               ? (a.isEnabled !== false)
               : (custom?.isEnabled !== undefined ? Boolean(custom.isEnabled) : true);
             const effectiveQr = groupQr || a.qrCode || (custom?.qrCode !== undefined ? custom.qrCode : '');
+            const effectiveUpi = (a.upiId && a.upiId.trim()) ? a.upiId : (custom?.upiId || '');
+            const effectivePayee = (a.payeeName && a.payeeName.trim()) ? a.payeeName : (custom?.payeeName || `${a.name} Trading Desk`);
             const enriched = {
               id: a.id,
               name: a.name,
@@ -398,8 +400,8 @@ const UserTradingPortal = ({
               minStake: Math.max(1000, Number(a.minStake) || 1000),
               maxStake: a.maxStake,
               isEnabled: effectiveEnabled,
-              upiId: custom?.upiId || a.upiId || '',
-              payeeName: custom?.payeeName || a.payeeName || `${a.name} Trading Desk`,
+              upiId: effectiveUpi,
+              payeeName: effectivePayee,
               qrCode: effectiveQr,
             };
             if (a.id) map[a.id] = enriched;
