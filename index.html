@@ -79,12 +79,62 @@
         "name": "PAYNEX Trading App",
         "operatingSystem": "Android, iOS, Web",
         "applicationCategory": "FinanceApplication",
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.9",
+          "bestRating": "5",
+          "worstRating": "1",
+          "ratingCount": "18450"
+        },
         "offers": {
           "@type": "Offer",
           "price": "0",
           "priceCurrency": "INR"
         },
         "downloadUrl": "https://www.paynex.co.in/PAYNEX_Release_v1.0.apk"
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "FinancialProduct",
+        "name": "PAYNEX High-Yield Stock & Crypto Staking",
+        "description": "Institutional-grade daily yield matching protocol for top Indian equities and cryptocurrencies with 1-click UPI recharges and instant IMPS settlements.",
+        "provider": {
+          "@type": "Organization",
+          "name": "PAYNEX",
+          "url": "https://www.paynex.co.in/"
+        },
+        "annualPercentageRate": "12",
+        "feesAndCommissionsSpecification": "0% Brokerage on all deposits, staking yields, and bank withdrawals"
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": "https://www.paynex.co.in/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Live Markets & Indian Stocks",
+            "item": "https://www.paynex.co.in/#markets"
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": "Trading Arena",
+            "item": "https://www.paynex.co.in/#trading-arena"
+          },
+          {
+            "@type": "ListItem",
+            "position": 4,
+            "name": "Android APK Download",
+            "item": "https://www.paynex.co.in/PAYNEX_Release_v1.0.apk"
+          }
+        ]
       },
       {
         "@context": "https://schema.org",
@@ -165,7 +215,20 @@
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   </head>
   <body class="bg-[#05060e] text-white overflow-x-hidden antialiased selection:bg-amber-400 selection:text-black">
-    <div id="root"></div>
+    <div id="root">
+      <!-- Pre-rendered Semantic SEO Payload for Googlebot & Web Crawlers -->
+      <div style="display:none;" aria-hidden="true">
+        <h1>PAYNEX: India's #1 Stock &amp; Crypto Trading and Staking Platform</h1>
+        <h2>Instant UPI Deposits (PhonePe, Google Pay, Paytm) • 5:00 AM Daily Yield Engine • 24/7 IMPS Bank Withdrawals</h2>
+        <p>Trade 50+ Top Indian Equities including Tata Motors, Reliance Industries, Bajaj Finance, Infosys, TCS, HDFC Bank, ICICI Bank, State Bank of India, ITC, and Zomato alongside Bitcoin, Ethereum, and Solana starting with just ₹100 minimum deposit.</p>
+        <nav>
+          <a href="https://www.paynex.co.in/#markets">Live Indian Stock Markets</a>
+          <a href="https://www.paynex.co.in/#trading-arena">3D Trading Arena</a>
+          <a href="https://www.paynex.co.in/PAYNEX_Release_v1.0.apk">Download Android App APK</a>
+          <a href="https://www.paynex.co.in/#faq">Frequently Asked Questions</a>
+        </nav>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
