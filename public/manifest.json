@@ -3,13 +3,13 @@
   "name": "PAYNEX CRYPTO - Binary Trading & Staking Exchange",
   "icons": [
     {
-      "src": "/paynex-logo.jpg",
-      "type": "image/jpeg",
+      "src": "/favicon-192x192.png",
+      "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "/paynex-logo.jpg",
-      "type": "image/jpeg",
+      "src": "/favicon.png",
+      "type": "image/png",
       "sizes": "512x512"
     }
   ],

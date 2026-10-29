@@ -3,5 +3,7 @@ Allow: /
 Disallow: /api/
 Disallow: /admin/
 
-Sitemap: https://www.paynex.co.in/sitemap.xml
+User-agent: Googlebot-Image
+Allow: /
 
+Sitemap: https://www.paynex.co.in/sitemap.xml
