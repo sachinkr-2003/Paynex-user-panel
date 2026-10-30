@@ -362,12 +362,14 @@ const UserTradingPortal = ({
           const masterEngineRate = Number(res.defaultGameProfitPercent) || 12;
           res.assets.forEach((a) => {
             const grp = getStockGroup(a);
-            const groupQr = (res.groupQrs && res.groupQrs[grp]) || (savedQrs && savedQrs[grp]) || '';
+            const groupQr = (res.groupQrs && res.groupQrs[grp] && res.groupQrs[grp].trim())
+              ? res.groupQrs[grp].trim()
+              : ((savedQrs && savedQrs[grp] && savedQrs[grp].trim()) ? savedQrs[grp].trim() : '');
             const custom = getCustomQrOverride(a);
-            const groupRate = (res.groupInterestRates && res.groupInterestRates[grp] !== undefined && res.groupInterestRates[grp] !== null)
-              ? Number(res.groupInterestRates[grp])
-              : ((savedRates && savedRates[grp] !== undefined && savedRates[grp] !== null)
-                ? Number(savedRates[grp])
+            const groupRate = (res.groupInterestRates && (res.groupInterestRates[grp] !== undefined || res.groupInterestRates[String(grp)] !== undefined))
+              ? Number(res.groupInterestRates[grp] ?? res.groupInterestRates[String(grp)])
+              : ((savedRates && (savedRates[grp] !== undefined || savedRates[String(grp)] !== undefined))
+                ? Number(savedRates[grp] ?? savedRates[String(grp)])
                 : null);
             const assetBackendRate = (a.returnPercent !== undefined && a.returnPercent !== null && Number(a.returnPercent) > 0)
               ? Number(a.returnPercent)
@@ -376,13 +378,15 @@ const UserTradingPortal = ({
               ? Number(custom.returnPercent)
               : null;
 
-            // Admin Live Control: Server Group Rate > Individual Asset DB Rate > Local Override > Master Engine Rate
-            const rawRate = groupRate ?? assetBackendRate ?? customRate ?? masterEngineRate;
-            const effectiveReturn = Math.min(12, Math.max(2, Number(rawRate)));
+            // Admin Group Live Control: Group Rate (Groups 1..5) is authoritative
+            const defaultGroupRate = DEFAULT_GROUP_INTEREST[grp] || 5;
+            const rawRate = groupRate ?? assetBackendRate ?? customRate ?? defaultGroupRate;
+            const effectiveReturn = Math.max(1, Number(rawRate));
             const effectiveEnabled = (a.isEnabled !== undefined && a.isEnabled !== null)
               ? (a.isEnabled !== false)
               : (custom?.isEnabled !== undefined ? Boolean(custom.isEnabled) : true);
-            const effectiveQr = groupQr || a.qrCode || (custom?.qrCode !== undefined ? custom.qrCode : '');
+            // Priority: group QR (from server) > asset's own qrCode (from server) > local custom override
+            const effectiveQr = groupQr || (a.qrCode && a.qrCode.trim() ? a.qrCode.trim() : '') || (custom?.qrCode || '');
             const effectiveUpi = (a.upiId && a.upiId.trim()) ? a.upiId : (custom?.upiId || '');
             const effectivePayee = (a.payeeName && a.payeeName.trim()) ? a.payeeName : (custom?.payeeName || `${a.name} Trading Desk`);
             const enriched = {
@@ -5681,69 +5685,94 @@ const UserTradingPortal = ({
                   </div>
                 </div>
 
-                {/* 1-Tap UPI Apps Shortcut */}
-                {purchaseModalAsset.upiId && (
-                  <div>
-                    <div style={{ fontSize: '10.5px', color: '#94a3b8', fontWeight: 700, marginBottom: '5px' }}>
-                      ⚡ Pay Directly via UPI App (1-Tap):
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-                      <a
-                        href={`phonepe://pay?pa=${purchaseModalAsset.upiId}&pn=${encodeURIComponent((purchaseModalAsset.name || 'Stock Desk').replace(/[^a-zA-Z0-9 ]/g, ''))}&am=${purchaseAmount}&cu=INR`}
-                        onClick={() => {
-                          try {
-                            navigator.clipboard?.writeText(purchaseModalAsset.upiId);
-                            showUserToast('UPI ID copied! Opening PhonePe...', 'info');
-                          } catch (_) {}
-                        }}
-                        style={{ padding: '7px 4px', background: '#5f259f', borderRadius: '6px', color: '#fff', fontSize: '10.5px', fontWeight: 800, textAlign: 'center', textDecoration: 'none' }}
-                      >
-                        PhonePe
-                      </a>
-                      <a
-                        href={`gpay://upi/pay?pa=${purchaseModalAsset.upiId}&pn=${encodeURIComponent((purchaseModalAsset.name || 'Stock Desk').replace(/[^a-zA-Z0-9 ]/g, ''))}&am=${purchaseAmount}&cu=INR`}
-                        onClick={() => {
-                          try {
-                            navigator.clipboard?.writeText(purchaseModalAsset.upiId);
-                            showUserToast('UPI ID copied! Opening Google Pay...', 'info');
-                          } catch (_) {}
-                        }}
-                        style={{ padding: '7px 4px', background: '#1a73e8', borderRadius: '6px', color: '#fff', fontSize: '10.5px', fontWeight: 800, textAlign: 'center', textDecoration: 'none' }}
-                      >
-                        Google Pay
-                      </a>
-                      <a
-                        href={`paytmmp://pay?pa=${purchaseModalAsset.upiId}&pn=${encodeURIComponent((purchaseModalAsset.name || 'Stock Desk').replace(/[^a-zA-Z0-9 ]/g, ''))}&am=${purchaseAmount}&cu=INR`}
-                        onClick={() => {
-                          try {
-                            navigator.clipboard?.writeText(purchaseModalAsset.upiId);
-                            showUserToast('UPI ID copied! Opening Paytm...', 'info');
-                          } catch (_) {}
-                        }}
-                        style={{ padding: '7px 4px', background: '#00baf2', borderRadius: '6px', color: '#fff', fontSize: '10.5px', fontWeight: 800, textAlign: 'center', textDecoration: 'none' }}
-                      >
-                        Paytm
-                      </a>
-                      <a
-                        href={`upi://pay?pa=${purchaseModalAsset.upiId}&pn=${encodeURIComponent((purchaseModalAsset.name || 'Stock Desk').replace(/[^a-zA-Z0-9 ]/g, ''))}&am=${purchaseAmount}&cu=INR`}
-                        onClick={() => {
-                          try {
-                            navigator.clipboard?.writeText(purchaseModalAsset.upiId);
-                            showUserToast('UPI ID copied! Opening UPI app...', 'info');
-                          } catch (_) {}
-                        }}
-                        style={{ padding: '7px 4px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '6px', color: '#fbbf24', fontSize: '10.5px', fontWeight: 800, textAlign: 'center', textDecoration: 'none' }}
-                      >
-                        Any UPI
-                      </a>
-                    </div>
-                    <div style={{ fontSize: '10.5px', color: '#cbd5e1', marginTop: '6px', background: 'rgba(251, 191, 36, 0.08)', border: '1px solid rgba(251, 191, 36, 0.25)', borderRadius: '6px', padding: '5px 8px', lineHeight: '1.3' }}>
-                      <strong style={{ color: '#fbbf24' }}>💡 PhonePe Tip:</strong> Agar PhonePe app me <em>"Verification Failed"</em> aaye, to UPI ID Copy karke PhonePe app me <strong>"To UPI ID"</strong> me paste karein ya <strong>QR Code scan</strong> karein.
-                    </div>
-                  </div>
-                )}
 
-                {/* 12-Digit UTR Input (No Fake Auto-Fill) */}
+
+                {/* 1-Tap Direct UPI Apps (Instant Open) */}
+                {purchaseModalAsset.upiId && (() => {
+                  const cleanUpi = (purchaseModalAsset.upiId || '').trim();
+                  const cleanName = (purchaseModalAsset.name || 'Stock Desk').replace(/[^a-zA-Z0-9 ]/g, '').trim();
+                  const encodedName = encodeURIComponent(cleanName);
+                  const upiBase = `pa=${cleanUpi}&pn=${encodedName}&am=${purchaseAmount}&cu=INR`;
+                  const fallbackUri = `upi://pay?${upiBase}`;
+                  const phonepeUri = `phonepe://pay?${upiBase}`;
+                  const paytmUri = `paytmmp://pay?${upiBase}`;
+
+                  const handlePortalUpiLaunch = (e, appKey) => {
+                    if (cleanUpi) {
+                      try {
+                        navigator.clipboard?.writeText(cleanUpi);
+                      } catch (_) {}
+                    }
+                    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+                    const isAndroid = /Android/i.test(navigator.userAgent);
+
+                    if (!isMobile) {
+                      e.preventDefault();
+                      showUserWarning(
+                        'Scan QR on Mobile',
+                        `UPI Apps (PhonePe, GPay, Paytm) open directly on mobile devices.<br/><br/>UPI ID <strong>${cleanUpi}</strong> has been copied to clipboard! Please scan the QR code above with your mobile phone to complete payment.`
+                      );
+                      return;
+                    }
+
+                    let targetUrl = fallbackUri;
+                    if (appKey === 'phonepe') {
+                      targetUrl = isAndroid
+                        ? `intent://pay?${upiBase}#Intent;scheme=upi;package=com.phonepe.app;end`
+                        : phonepeUri;
+                    } else if (appKey === 'gpay') {
+                      targetUrl = isAndroid
+                        ? `intent://pay?${upiBase}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`
+                        : fallbackUri;
+                    } else if (appKey === 'paytm') {
+                      targetUrl = isAndroid
+                        ? `intent://pay?${upiBase}#Intent;scheme=upi;package=net.one97.paytm;end`
+                        : paytmUri;
+                    } else {
+                      targetUrl = fallbackUri;
+                    }
+
+                    window.location.href = targetUrl;
+                  };
+
+                  return (
+                    <div>
+                      <div style={{ fontSize: '11px', color: '#f1f5f9', fontWeight: 800, marginBottom: '6px' }}>
+                        ⚡ Tap to Pay via UPI App (Instant Open):
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                        <a
+                          href={phonepeUri}
+                          onClick={(e) => handlePortalUpiLaunch(e, 'phonepe')}
+                          style={{ padding: '8px 4px', background: '#5f259f', borderRadius: '8px', color: '#fff', fontSize: '11px', fontWeight: 800, textAlign: 'center', textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', cursor: 'pointer' }}
+                        >
+                          PhonePe
+                        </a>
+                        <a
+                          href={fallbackUri}
+                          onClick={(e) => handlePortalUpiLaunch(e, 'gpay')}
+                          style={{ padding: '8px 4px', background: '#1a73e8', borderRadius: '8px', color: '#fff', fontSize: '11px', fontWeight: 800, textAlign: 'center', textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', cursor: 'pointer' }}
+                        >
+                          Google Pay
+                        </a>
+                        <a
+                          href={paytmUri}
+                          onClick={(e) => handlePortalUpiLaunch(e, 'paytm')}
+                          style={{ padding: '8px 4px', background: '#00baf2', borderRadius: '8px', color: '#fff', fontSize: '11px', fontWeight: 800, textAlign: 'center', textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', cursor: 'pointer' }}
+                        >
+                          Paytm
+                        </a>
+                        <a
+                          href={fallbackUri}
+                          onClick={(e) => handlePortalUpiLaunch(e, 'other')}
+                          style={{ padding: '8px 4px', background: 'rgba(245, 158, 11, 0.25)', border: '1px solid #f59e0b', borderRadius: '8px', color: '#fbbf24', fontSize: '11px', fontWeight: 800, textAlign: 'center', textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', cursor: 'pointer' }}
+                        >
+                          Any UPI
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })()}
                 <div>
                   <label style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
                     Enter 12-Digit NPCI UTR / Transaction Reference ID *

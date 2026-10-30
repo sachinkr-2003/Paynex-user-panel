@@ -3,7 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Zap, ShieldCheck, CheckCircle2, Check, X, Copy, Smartphone, Info, Camera, Upload, Clock, RefreshCw } from 'lucide-react';
 import userApi from '../services/api';
 import { showUserSuccess, showUserWarning, showUserError } from '../utils/swal';
-import { FIFTY_STOCKS, enrichStockWithPayment, getCompanyQrUrl } from '../data/stocksData';
+import { FIFTY_STOCKS, getCompanyQrUrl, enrichStockWithPayment } from '../data/stocksData';
 
 const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany = null }) => {
   // Navigation Steps: 'input' -> 'checkout' -> 'under_review' -> 'success' | 'expired'
@@ -32,7 +32,8 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
   const [paymentTab, setPaymentTab] = useState('upi');
 
   // Company Catalog
-  const [companies, setCompanies] = useState(() => FIFTY_STOCKS.map(enrichStockWithPayment));
+  const [companies, setCompanies] = useState([]);
+  const [companiesLoaded, setCompaniesLoaded] = useState(false);
   const [selectedCompanyId, setSelectedCompanyId] = useState(
     initialCompany?.id || initialCompany?.symbol || 'TATAMOTORS'
   );
@@ -46,23 +47,43 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
     }
   }, [initialCompany]);
 
-  // Fetch live companies from backend
+  // Fetch live companies DIRECTLY from backend — no localStorage, always fresh
   useEffect(() => {
+    if (!isOpen) return;
     let isMounted = true;
     const loadAssets = async () => {
       try {
         const res = await userApi.getAssets();
-        if (isMounted && res.success && Array.isArray(res.assets) && res.assets.length > 0) {
-          setCompanies(res.assets.map(enrichStockWithPayment));
+        if (!isMounted) return;
+        if (res.success && Array.isArray(res.assets) && res.assets.length > 0) {
+          const groupQrs = res.groupQrs || {};
+          const groupRates = res.groupInterestRates || {};
+          const enriched = res.assets.map((a) => {
+            const grp = Number(a.group) || 1;
+            const qr = (groupQrs[grp] && groupQrs[grp].trim()) ? groupQrs[grp].trim() : (a.qrCode || '');
+            const rate = groupRates[grp] !== undefined ? Number(groupRates[grp]) : Number(a.returnPercent) || 5;
+            return {
+              ...a,
+              qrCode: qr,
+              returnPercent: rate,
+              upiId: (a.upiId && a.upiId.trim()) ? a.upiId.trim() : 'paynex.crypto@icici',
+              payeeName: (a.payeeName && a.payeeName.trim()) ? a.payeeName.trim() : `${a.name} Trading Desk`,
+              minStake: Number(a.minStake) || 100,
+            };
+          });
+          setCompanies(enriched);
+          setCompaniesLoaded(true);
         }
-      } catch (_) {}
+      } catch (_) {
+        // fallback to static data if API fails
+        if (isMounted && !companiesLoaded) {
+          setCompanies(FIFTY_STOCKS.map(enrichStockWithPayment));
+          setCompaniesLoaded(true);
+        }
+      }
     };
-    if (isOpen) {
-      loadAssets();
-    }
-    return () => {
-      isMounted = false;
-    };
+    loadAssets();
+    return () => { isMounted = false; };
   }, [isOpen]);
 
   // Reset state when opening/closing
@@ -76,6 +97,8 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
       setScreenshotFileName('');
       setLoading(false);
       setSubmittingUtr(false);
+      setCompanies([]);
+      setCompaniesLoaded(false);
       if (timerRef.current) clearInterval(timerRef.current);
       if (pollerRef.current) clearInterval(pollerRef.current);
     }
@@ -136,13 +159,23 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
 
   if (!isOpen) return null;
 
+  if (!companiesLoaded) {
+    return (
+      <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(5,7,15,0.85)', zIndex: 100000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ color: '#f59e0b', fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <RefreshCw size={20} className="spin" /> Loading payment options...
+        </div>
+      </div>
+    );
+  }
+
   const currentCompany =
     companies.find(
       (c) =>
         c.id === selectedCompanyId ||
         c.symbol === selectedCompanyId ||
         c._id === selectedCompanyId
-    ) || companies[0] || FIFTY_STOCKS[0];
+    ) || companies[0] || null;
 
   // Format mm:ss
   const formatTimer = (seconds) => {
@@ -717,8 +750,47 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
             const upiBase = `pa=${activeUpi}&pn=${encodedMerchant}&am=${order.amount}&cu=INR`;
             const fallbackUpiUri = `upi://pay?${upiBase}`;
             const phonepeUri = `phonepe://pay?${upiBase}`;
-            const gpayUri = `gpay://upi/pay?${upiBase}`;
             const paytmUri = `paytmmp://pay?${upiBase}`;
+
+            const handleAppClick = (e, appKey) => {
+              if (activeUpi) {
+                try {
+                  navigator.clipboard?.writeText(activeUpi);
+                  setCopiedUpi(true);
+                  setTimeout(() => setCopiedUpi(false), 2200);
+                } catch (_) {}
+              }
+              const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+              const isAndroid = /Android/i.test(navigator.userAgent);
+
+              if (!isMobile) {
+                e.preventDefault();
+                showUserWarning(
+                  'Scan QR on Mobile',
+                  `UPI Apps (PhonePe, GPay, Paytm) open directly on mobile devices.<br/><br/>UPI ID <strong>${activeUpi}</strong> has been copied to clipboard! Please scan the QR code above with your mobile phone to complete payment.`
+                );
+                return;
+              }
+
+              let targetUrl = fallbackUpiUri;
+              if (appKey === 'phonepe') {
+                targetUrl = isAndroid
+                  ? `intent://pay?${upiBase}#Intent;scheme=upi;package=com.phonepe.app;end`
+                  : phonepeUri;
+              } else if (appKey === 'gpay') {
+                targetUrl = isAndroid
+                  ? `intent://pay?${upiBase}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`
+                  : fallbackUpiUri;
+              } else if (appKey === 'paytm') {
+                targetUrl = isAndroid
+                  ? `intent://pay?${upiBase}#Intent;scheme=upi;package=net.one97.paytm;end`
+                  : paytmUri;
+              } else {
+                targetUrl = fallbackUpiUri;
+              }
+
+              window.location.href = targetUrl;
+            };
 
             return (
             <div>
@@ -862,67 +934,19 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                   )}
                 </div>
                 <div style={{ fontSize: '11px', color: '#f59e0b', fontWeight: 800, marginTop: '8px' }}>
-                  Scan QR with PhonePe / GPay / Paytm or Pay directly below:
+                  Scan QR code with PhonePe / Google Pay / Paytm or tap your app below:
                 </div>
-              </div>
-
-              {/* Official UPI ID Bar with 1-Tap Copy */}
-              <div
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid rgba(245, 158, 11, 0.35)',
-                  borderRadius: '12px',
-                  padding: '10px 14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: '14px',
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: '9.5px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 700 }}>
-                    OFFICIAL UPI ID
-                  </div>
-                  <div style={{ fontFamily: 'monospace', fontSize: '13px', fontWeight: 800, color: '#f59e0b' }}>
-                    {activeUpi}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleCopyUpi}
-                  style={{
-                    backgroundColor: copiedUpi ? '#10b981' : '#f59e0b',
-                    color: '#000',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '6px 12px',
-                    fontSize: '11.5px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <Copy size={12} />
-                  <span>{copiedUpi ? 'Copied!' : 'Copy UPI'}</span>
-                </button>
               </div>
 
               {/* 1-Tap Direct UPI Payment App Launch Buttons */}
               <div style={{ marginBottom: '14px' }}>
-                <div style={{ fontSize: '12px', fontWeight: 800, color: '#fff', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Zap size={14} color="#fbbf24" /> Pay Directly via Any UPI App (1-Tap):
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#f1f5f9', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Zap size={14} color="#fbbf24" /> Tap to Pay via UPI App (Instant Open):
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
                   <a
                     href={phonepeUri}
-                    onClick={() => {
-                      try {
-                        navigator.clipboard?.writeText(activeUpi);
-                        showUserToast('UPI ID copied! Opening PhonePe...', 'info');
-                      } catch (_) {}
-                    }}
+                    onClick={(e) => handleAppClick(e, 'phonepe')}
                     style={{
                       textDecoration: 'none',
                       backgroundColor: 'rgba(95, 37, 159, 0.25)',
@@ -933,6 +957,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
+                      cursor: 'pointer',
                     }}
                   >
                     <Smartphone size={16} color="#a855f7" />
@@ -940,13 +965,8 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                   </a>
 
                   <a
-                    href={gpayUri}
-                    onClick={() => {
-                      try {
-                        navigator.clipboard?.writeText(activeUpi);
-                        showUserToast('UPI ID copied! Opening Google Pay...', 'info');
-                      } catch (_) {}
-                    }}
+                    href={fallbackUpiUri}
+                    onClick={(e) => handleAppClick(e, 'gpay')}
                     style={{
                       textDecoration: 'none',
                       backgroundColor: 'rgba(26, 115, 232, 0.25)',
@@ -957,6 +977,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
+                      cursor: 'pointer',
                     }}
                   >
                     <Smartphone size={16} color="#38bdf8" />
@@ -965,12 +986,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
 
                   <a
                     href={paytmUri}
-                    onClick={() => {
-                      try {
-                        navigator.clipboard?.writeText(activeUpi);
-                        showUserToast('UPI ID copied! Opening Paytm...', 'info');
-                      } catch (_) {}
-                    }}
+                    onClick={(e) => handleAppClick(e, 'paytm')}
                     style={{
                       textDecoration: 'none',
                       backgroundColor: 'rgba(0, 185, 241, 0.25)',
@@ -981,6 +997,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
+                      cursor: 'pointer',
                     }}
                   >
                     <Smartphone size={16} color="#06b6d4" />
@@ -989,12 +1006,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
 
                   <a
                     href={fallbackUpiUri}
-                    onClick={() => {
-                      try {
-                        navigator.clipboard?.writeText(activeUpi);
-                        showUserToast('UPI ID copied! Opening UPI app...', 'info');
-                      } catch (_) {}
-                    }}
+                    onClick={(e) => handleAppClick(e, 'other')}
                     style={{
                       textDecoration: 'none',
                       backgroundColor: 'rgba(245, 158, 11, 0.25)',
@@ -1005,14 +1017,12 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
+                      cursor: 'pointer',
                     }}
                   >
                     <Zap size={16} color="#f59e0b" />
                     <div style={{ fontSize: '11px', fontWeight: 800, color: '#f59e0b', marginTop: '2px' }}>Any UPI</div>
                   </a>
-                </div>
-                <div style={{ fontSize: '11px', color: '#cbd5e1', marginTop: '8px', background: 'rgba(251, 191, 36, 0.08)', border: '1px solid rgba(251, 191, 36, 0.25)', borderRadius: '8px', padding: '6px 10px', lineHeight: '1.4' }}>
-                  <strong style={{ color: '#fbbf24' }}>💡 PhonePe & UPI Tip:</strong> Agar PhonePe app me <em>"Verification Failed"</em> aaye, to upar diya gaya <strong>"Copy UPI"</strong> button dabayein aur PhonePe me <strong>"To UPI ID"</strong> me paste karke pay karein, ya <strong>QR Code scan</strong> karein.
                 </div>
               </div>
 
@@ -1041,24 +1051,26 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                   <label style={{ fontSize: '12px', fontWeight: 700, color: '#f1f5f9' }}>
                     Enter 12-Digit UPI UTR / Reference ID:
                   </label>
-                  <button
-                    type="button"
-                    onClick={handleAutoFillTestUtr}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#f59e0b',
-                      fontSize: '11px',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      padding: 0,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    <Zap size={11} /> Auto-Fill Test UTR
-                  </button>
+                  {import.meta.env.DEV && (
+                    <button
+                      type="button"
+                      onClick={handleAutoFillTestUtr}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#f59e0b',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        padding: 0,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <Zap size={11} /> Auto-Fill Test UTR
+                    </button>
+                  )}
                 </div>
 
                 <div style={{ position: 'relative' }}>
