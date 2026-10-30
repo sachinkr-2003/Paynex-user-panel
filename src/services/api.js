@@ -17,12 +17,25 @@ async function request(endpoint, options = {}) {
       headers,
     });
 
+    const contentType = response.headers.get('content-type') || '';
+    if (response.status === 502 || response.status === 503 || response.status === 504) {
+      throw new Error(`Server is offline (${response.status} Bad Gateway). Please check back shortly.`);
+    }
+
+    if (!contentType.includes('application/json')) {
+      const text = await response.text();
+      throw new Error(`Server returned unexpected response (${response.status}): ${text.slice(0, 100)}`);
+    }
+
     const data = await response.json();
     if (!response.ok) {
       throw new Error(data.message || `HTTP error! status: ${response.status}`);
     }
     return data;
   } catch (error) {
+    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      throw new Error('Unable to connect to Paynex server. Please verify your connection.');
+    }
     console.error(`User API Error [${endpoint}]:`, error.message);
     throw error;
   }
