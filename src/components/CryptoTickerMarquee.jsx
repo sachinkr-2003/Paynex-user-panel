@@ -15,7 +15,48 @@ const INITIAL_COINS = [
 const CryptoTickerMarquee = ({ onSelectAsset }) => {
   const [coins, setCoins] = useState(INITIAL_COINS);
 
-  // Micro-fluctuations simulation
+  // Fetch real-time market data from Binance API
+  useEffect(() => {
+    const fetchLivePrices = async () => {
+      try {
+        const pairs = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT'];
+        const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(JSON.stringify(pairs))}`);
+        if (res.ok) {
+          const list = await res.json();
+          const map = {};
+          list.forEach((item) => {
+            map[item.symbol] = {
+              price: Number(item.lastPrice),
+              change: Number(item.priceChangePercent),
+            };
+          });
+
+          setCoins((prev) =>
+            prev.map((c) => {
+              const pair = c.symbol.replace('/', '');
+              if (map[pair]) {
+                const newP = map[pair].price;
+                const flash = newP >= c.price ? 'bull' : 'bear';
+                return {
+                  ...c,
+                  price: newP,
+                  change: map[pair].change,
+                  flash,
+                };
+              }
+              return c;
+            })
+          );
+        }
+      } catch (_) {}
+    };
+
+    fetchLivePrices();
+    const pollTimer = setInterval(fetchLivePrices, 8000);
+    return () => clearInterval(pollTimer);
+  }, []);
+
+  // Micro-fluctuations simulation between polls
   useEffect(() => {
     const interval = setInterval(() => {
       setCoins((prev) =>

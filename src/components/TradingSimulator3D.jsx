@@ -1,10 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
-import { Zap, BarChart2, Trophy, X, ArrowRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Zap, Trophy, X, ArrowRight, Clock } from 'lucide-react';
+import GrowwLiveChart from './GrowwLiveChart';
 
 const ASSETS = {
-  'BTC/USDT': { name: 'Bitcoin', basePrice: 68420, step: 4.5, icon: '₿', color: '#f59e0b', payout: 95 },
-  'ETH/USDT': { name: 'Ethereum', basePrice: 3520, step: 0.65, icon: 'Ξ', color: '#2563eb', payout: 92 },
-  'SOL/USDT': { name: 'Solana', basePrice: 184.5, step: 0.12, icon: '◎', color: '#06b6d4', payout: 90 },
+  'BTC/USDT': { name: 'Bitcoin', symbol: 'BTC/USDT', basePrice: 78000, icon: '₿', color: '#f59e0b', payout: 95 },
+  'ETH/USDT': { name: 'Ethereum', symbol: 'ETH/USDT', basePrice: 2300, icon: 'Ξ', color: '#2563eb', payout: 92 },
+  'SOL/USDT': { name: 'Solana', symbol: 'SOL/USDT', basePrice: 184.5, icon: '◎', color: '#06b6d4', payout: 90 },
+  'RELIANCE': { name: 'Reliance Ind.', symbol: 'RELIANCE', basePrice: 1260, icon: '📈', color: '#10b981', payout: 90 },
+  'TATAMOTORS': { name: 'Tata Motors', symbol: 'TATAMOTORS', basePrice: 271, icon: '🚗', color: '#38bdf8', payout: 88 },
 };
 
 const TIMEFRAMES = [
@@ -21,65 +24,8 @@ const TradingSimulator3D = ({ demoBalance, setDemoBalance }) => {
   const [selectedTimeframe, setSelectedTimeframe] = useState(TIMEFRAMES[1]);
   const [betAmount, setBetAmount] = useState(1000);
   const [currentPrice, setCurrentPrice] = useState(ASSETS['BTC/USDT'].basePrice);
-  const [priceHistory, setPriceHistory] = useState([]);
   const [activeTrade, setActiveTrade] = useState(null);
   const [tradeResult, setTradeResult] = useState(null);
-  const [candleType, setCandleType] = useState('line'); // 'line' or 'candle'
-  const canvasRef = useRef(null);
-
-  // Initialize Price History
-  useEffect(() => {
-    const asset = ASSETS[selectedAsset];
-    let price = asset.basePrice;
-    const history = [];
-    for (let i = 0; i < 40; i++) {
-      const open = price;
-      const change = (Math.random() - 0.49) * asset.step * 8;
-      const close = open + change;
-      const high = Math.max(open, close) + Math.random() * asset.step * 3;
-      const low = Math.min(open, close) - Math.random() * asset.step * 3;
-      price = close;
-      history.push({ open, close, high, low, time: i });
-    }
-    setPriceHistory(history);
-    setCurrentPrice(price);
-  }, [selectedAsset]);
-
-  // Real-Time Price Engine Ticking
-  useEffect(() => {
-    const asset = ASSETS[selectedAsset];
-    const interval = setInterval(() => {
-      const delta = (Math.random() - 0.485) * asset.step * 4;
-      setCurrentPrice((prev) => {
-        const nextPrice = Number((prev + delta).toFixed(2));
-        setPriceHistory((hist) => {
-          if (hist.length === 0) return hist;
-          const updated = [...hist];
-          const last = { ...updated[updated.length - 1] };
-          last.close = nextPrice;
-          last.high = Math.max(last.high, nextPrice);
-          last.low = Math.min(last.low, nextPrice);
-          updated[updated.length - 1] = last;
-
-          // Occasionally create new candle
-          if (Math.random() > 0.65 && updated.length < 50) {
-            updated.push({
-              open: nextPrice,
-              close: nextPrice,
-              high: nextPrice,
-              low: nextPrice,
-              time: updated.length,
-            });
-            if (updated.length > 45) updated.shift();
-          }
-          return updated;
-        });
-        return nextPrice;
-      });
-    }, 700);
-
-    return () => clearInterval(interval);
-  }, [selectedAsset]);
 
   // Active Trade Countdown Timer
   useEffect(() => {
@@ -121,152 +67,6 @@ const TradingSimulator3D = ({ demoBalance, setDemoBalance }) => {
 
     return () => clearInterval(timer);
   }, [activeTrade, currentPrice, setDemoBalance]);
-
-  // Canvas Drawing for High-Tech Lasers & Candlesticks
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || priceHistory.length === 0) return;
-    const ctx = canvas.getContext('2d');
-    const width = (canvas.width = canvas.parentElement.clientWidth);
-    const height = (canvas.height = 360);
-
-    // Clear
-    ctx.fillStyle = '#05060e';
-    ctx.fillRect(0, 0, width, height);
-
-    // Grid lines
-    ctx.strokeStyle = 'rgba(245, 158, 11, 0.1)';
-    ctx.lineWidth = 1;
-    for (let y = 40; y < height; y += 50) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
-      ctx.stroke();
-    }
-    for (let x = 60; x < width; x += 80) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
-      ctx.stroke();
-    }
-
-    // Min & Max Price for scaling
-    const prices = priceHistory.flatMap((c) => [c.low, c.high]);
-    if (activeTrade) prices.push(activeTrade.entryPrice);
-    const minP = Math.min(...prices) * 0.999;
-    const maxP = Math.max(...prices) * 1.001;
-    const range = maxP - minP || 1;
-
-    const getY = (val) => height - ((val - minP) / range) * (height - 60) - 30;
-
-    const candleWidth = (width - 100) / priceHistory.length;
-
-    if (candleType === 'candle') {
-      // Candlestick rendering
-      priceHistory.forEach((c, idx) => {
-        const x = idx * candleWidth + 20;
-        const isGreen = c.close >= c.open;
-        const color = isGreen ? '#10b981' : '#ef4444';
-
-        // Wicks
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(x + candleWidth / 2, getY(c.high));
-        ctx.lineTo(x + candleWidth / 2, getY(c.low));
-        ctx.stroke();
-
-        // Body
-        const top = Math.min(getY(c.open), getY(c.close));
-        const bodyHeight = Math.max(3, Math.abs(getY(c.close) - getY(c.open)));
-        ctx.fillStyle = color;
-        ctx.fillRect(x + 2, top, candleWidth - 4, bodyHeight);
-      });
-    } else {
-      // Area Laser Glow Line Chart
-      ctx.beginPath();
-      priceHistory.forEach((c, idx) => {
-        const x = idx * candleWidth + 20;
-        const y = getY(c.close);
-        if (idx === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      });
-
-      // Gradient Fill (Gold into Electric Blue)
-      const lastX = (priceHistory.length - 1) * candleWidth + 20;
-      ctx.lineTo(lastX, height);
-      ctx.lineTo(20, height);
-      ctx.closePath();
-      const areaGrad = ctx.createLinearGradient(0, 0, 0, height);
-      areaGrad.addColorStop(0, 'rgba(245, 158, 11, 0.32)');
-      areaGrad.addColorStop(0.5, 'rgba(37, 99, 235, 0.15)');
-      areaGrad.addColorStop(1, 'transparent');
-      ctx.fillStyle = areaGrad;
-      ctx.fill();
-
-      // Top glowing stroke
-      ctx.beginPath();
-      priceHistory.forEach((c, idx) => {
-        const x = idx * candleWidth + 20;
-        const y = getY(c.close);
-        if (idx === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      });
-      ctx.strokeStyle = '#fbbf24';
-      ctx.lineWidth = 2.5;
-      ctx.shadowColor = '#f59e0b';
-      ctx.shadowBlur = 14;
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-    }
-
-    // Active Strike Price Line (if bet is placed)
-    if (activeTrade) {
-      const strikeY = getY(activeTrade.entryPrice);
-      ctx.setLineDash([6, 4]);
-      ctx.strokeStyle = activeTrade.direction === 'CALL' ? '#10b981' : '#ef4444';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(0, strikeY);
-      ctx.lineTo(width, strikeY);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Badge on line
-      ctx.fillStyle = activeTrade.direction === 'CALL' ? '#10b981' : '#ef4444';
-      ctx.fillRect(width - 120, strikeY - 12, 110, 24);
-      ctx.fillStyle = '#000';
-      ctx.font = 'bold 11px JetBrains Mono';
-      ctx.fillText(`${activeTrade.direction} @ $${activeTrade.entryPrice}`, width - 114, strikeY + 4);
-    }
-
-    // Current Price Pulse Beacon
-    const currentY = getY(currentPrice);
-    ctx.setLineDash([3, 3]);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    ctx.beginPath();
-    ctx.moveTo(0, currentY);
-    ctx.lineTo(width, currentY);
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // Right Price Tag
-    ctx.fillStyle = '#f59e0b';
-    ctx.fillRect(width - 90, currentY - 12, 85, 24);
-    ctx.fillStyle = '#000';
-    ctx.font = 'bold 12px JetBrains Mono';
-    ctx.fillText(`$${currentPrice.toFixed(2)}`, width - 84, currentY + 4);
-
-    // Glowing dot at the end
-    const lastPointX = (priceHistory.length - 1) * candleWidth + 20;
-    ctx.beginPath();
-    ctx.arc(lastPointX, currentY, 6, 0, Math.PI * 2);
-    ctx.fillStyle = '#38bdf8';
-    ctx.shadowColor = '#38bdf8';
-    ctx.shadowBlur = 15;
-    ctx.fill();
-    ctx.shadowBlur = 0;
-  }, [priceHistory, currentPrice, activeTrade, candleType]);
 
   const handlePlaceBet = (direction) => {
     if (demoBalance < betAmount) {
@@ -412,59 +212,11 @@ const TradingSimulator3D = ({ demoBalance, setDemoBalance }) => {
             })}
           </div>
 
-          {/* Timeframe & Chart Style */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            {/* Chart type toggle */}
-            <div
-              style={{
-                display: 'flex',
-                background: 'rgba(255, 255, 255, 0.05)',
-                borderRadius: '10px',
-                padding: '3px',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-              }}
-            >
-              <button
-                onClick={() => setCandleType('line')}
-                style={{
-                  background: candleType === 'line' ? '#f59e0b' : 'transparent',
-                  color: candleType === 'line' ? '#000' : '#fff',
-                  border: 'none',
-                  padding: '5px 12px',
-                  borderRadius: '7px',
-                  fontSize: '12px',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <Zap size={13} />
-                <span>Laser Line</span>
-              </button>
-              <button
-                onClick={() => setCandleType('candle')}
-                style={{
-                  background: candleType === 'candle' ? '#f59e0b' : 'transparent',
-                  color: candleType === 'candle' ? '#000' : '#fff',
-                  border: 'none',
-                  padding: '5px 12px',
-                  borderRadius: '7px',
-                  fontSize: '12px',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <BarChart2 size={13} />
-                <span>Candlestick</span>
-              </button>
-            </div>
-
-            {/* Timeframe selector */}
+          {/* Contract Duration Selector */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '11px', color: '#94a3b8', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <Clock size={12} color="#38bdf8" /> Expiry:
+            </span>
             <div
               style={{
                 display: 'flex',
@@ -499,36 +251,43 @@ const TradingSimulator3D = ({ demoBalance, setDemoBalance }) => {
 
         {/* Middle Area: Canvas Chart + Real-Time Sidebar Controls */}
         <div className="trading-deck-grid">
-          {/* Main Chart Canvas Viewport */}
+          {/* Main Chart Viewport: White-Label Groww-Style Real Market Chart */}
           <div
             className="chart-viewport"
-            style={{ minHeight: '360px', position: 'relative', minWidth: 0, overflow: 'hidden' }}
+            style={{ position: 'relative', minWidth: 0, overflow: 'hidden' }}
           >
-            <canvas ref={canvasRef} style={{ width: '100%', height: '360px', display: 'block' }} />
+            <GrowwLiveChart
+              symbol={selectedAsset}
+              assetName={assetInfo.name || selectedAsset}
+              basePrice={assetInfo.basePrice}
+              height={330}
+              onPriceUpdate={(p) => setCurrentPrice(p)}
+              currencySymbol={selectedAsset.includes('USDT') ? '$' : '₹'}
+            />
 
             {/* Active Contract Overlay Banner */}
             {activeTrade && (
               <div
                 style={{
                   position: 'absolute',
-                  top: '16px',
+                  top: '80px',
                   left: '16px',
-                  background: 'rgba(6, 7, 26, 0.88)',
+                  background: 'rgba(6, 7, 26, 0.92)',
                   backdropFilter: 'blur(10px)',
-                  border: `1px solid ${activeTrade.direction === 'CALL' ? '#10b981' : '#ef4444'}`,
+                  border: `1.5px solid ${activeTrade.direction === 'CALL' ? '#10b981' : '#ef4444'}`,
                   borderRadius: '12px',
                   padding: '10px 16px',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '16px',
-                  boxShadow: `0 0 20px ${activeTrade.direction === 'CALL' ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
-                  zIndex: 10,
+                  boxShadow: `0 0 24px ${activeTrade.direction === 'CALL' ? 'rgba(16, 185, 129, 0.45)' : 'rgba(239, 68, 68, 0.45)'}`,
+                  zIndex: 20,
                 }}
               >
                 <div>
                   <div style={{ fontSize: '11px', color: '#94a3b8' }}>Contract In Progress</div>
                   <div style={{ fontSize: '14px', fontWeight: 800, color: activeTrade.direction === 'CALL' ? '#10b981' : '#ef4444' }}>
-                    {activeTrade.direction} (₹{activeTrade.amount}) @ ${activeTrade.entryPrice}
+                    {activeTrade.direction} (₹{activeTrade.amount}) @ {selectedAsset.includes('USDT') ? '$' : '₹'}{activeTrade.entryPrice}
                   </div>
                 </div>
 

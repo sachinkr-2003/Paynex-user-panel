@@ -140,6 +140,43 @@ export const userApi = {
   // Dynamic Stocks & Game Assets
   getAssets: () => request('/assets'),
 
+  // Live Real-Time Market Chart & Quotes (White-Label Groww-Style)
+  getMarketChart: async (symbol, timeframe = '1D') => {
+    try {
+      return await request(`/assets/market-chart/${encodeURIComponent(symbol)}?timeframe=${encodeURIComponent(timeframe)}`);
+    } catch (err) {
+      // In case backend is offline or loading, if it's crypto we can fetch direct Binance ticker
+      const clean = String(symbol || '').toUpperCase().replace('/', '');
+      if (clean.includes('BTC') || clean.includes('ETH') || clean.includes('SOL') || clean.includes('BNB') || clean.includes('USDT')) {
+        const pair = clean.includes('USDT') ? clean : `${clean}USDT`;
+        try {
+          const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${pair}`);
+          if (res.ok) {
+            const t = await res.json();
+            const p = Number(t.lastPrice);
+            const ch = Number(t.priceChange);
+            return {
+              success: true,
+              symbol,
+              currentPrice: p,
+              previousClose: Number(t.prevClosePrice) || p,
+              change: ch,
+              changePercent: Number(t.priceChangePercent) || 0,
+              isPositive: ch >= 0,
+              high: Number(t.highPrice) || p,
+              low: Number(t.lowPrice) || p,
+              open: Number(t.openPrice) || p,
+              volume: Number(t.volume) || 0,
+              currency: 'USDT',
+              candles: [],
+            };
+          }
+        } catch (_) {}
+      }
+      throw err;
+    }
+  },
+
   // Investment Plans
   getPlans: () => request('/plans'),
   subscribePlan: (planId) =>

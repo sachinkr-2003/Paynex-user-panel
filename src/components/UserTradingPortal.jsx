@@ -3,6 +3,7 @@ import userApi from '../services/api';
 import { showUserSuccess, showUserWarning, showUserError } from '../utils/swal';
 import { FIFTY_STOCKS_MAP, getCompanyQrUrl, enrichStockWithPayment, getCustomQrOverride, getStockGroup, getSavedGroupQrs, getSavedGroupInterestRates, DEFAULT_GROUP_INTEREST } from '../data/stocksData';
 import AssetIcon from './AssetIcon';
+import GrowwLiveChart from './GrowwLiveChart';
 import {
   Zap,
   Flame,
@@ -2514,48 +2515,27 @@ const UserTradingPortal = ({
                       </span>
                     </div>
                   </div>
-
-                  {/* Middle Row: Price Display & Key Stats */}
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-                      <span style={{ fontSize: 'clamp(22px, 5.5vw, 27px)', fontWeight: 900, color: '#fbbf24', fontFamily: 'monospace', letterSpacing: '-0.5px' }}>
-                        ₹{currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </span>
-                      <span style={{ fontSize: '11.5px', color: '#10b981', fontWeight: 800, background: 'rgba(16, 185, 129, 0.12)', padding: '2px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                        <TrendingUp size={12} /> +{currentAssetRate}% Fixed Return
-                      </span>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#94a3b8' }}>
-                      <span>Min Buy: <strong style={{ color: '#fff' }}>₹{Math.max(1000, Number(assetInfo.minStake) || 1000).toLocaleString('en-IN')}</strong></span>
-                      <span>•</span>
-                      <span>Vol: <strong style={{ color: '#fff' }}>₹14.8M</strong></span>
-                    </div>
-                  </div>
                 </div>
 
-                {/* Live Canvas Interactive Area */}
-                <div
-                  style={{
-                    position: 'relative',
-                    width: '100%',
-                    height: `${chartHeight}px`,
-                    borderRadius: '14px',
-                    overflow: 'hidden',
-                    background: '#070a14',
-                    border: '1px solid rgba(255, 255, 255, 0.06)',
-                  }}
-                >
-                  <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
+                {/* White-Label Groww-Style Real Market Live Chart */}
+                <div style={{ position: 'relative' }}>
+                  <GrowwLiveChart
+                    symbol={selectedAsset}
+                    assetName={assetInfo.name || selectedAsset}
+                    basePrice={Number(assetInfo.basePrice) || 1250}
+                    height={chartHeight}
+                    onPriceUpdate={(p) => setCurrentPrice(p)}
+                    currencySymbol="₹"
+                  />
 
                   {/* Active Investment HUD Overlay */}
                   {activeTrade && (
                     <div
                       style={{
                         position: 'absolute',
-                        top: '12px',
-                        left: '12px',
-                        maxWidth: 'calc(100% - 24px)',
+                        top: '82px',
+                        left: '14px',
+                        maxWidth: 'calc(100% - 28px)',
                         background: 'rgba(5, 7, 20, 0.94)',
                         border: '1.5px solid #10b981',
                         borderRadius: '12px',
@@ -2565,6 +2545,7 @@ const UserTradingPortal = ({
                         gap: '12px',
                         boxShadow: '0 8px 30px rgba(0, 0, 0, 0.85)',
                         backdropFilter: 'blur(8px)',
+                        zIndex: 20,
                       }}
                     >
                       <div
@@ -2607,65 +2588,6 @@ const UserTradingPortal = ({
                       </div>
                     </div>
                   )}
-                </div>
-
-                {/* 24H Market Stats Strip under Chart */}
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginTop: '12px',
-                    padding: '8px 12px',
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    borderRadius: '10px',
-                    border: '1px solid rgba(255, 255, 255, 0.06)',
-                    flexWrap: 'wrap',
-                    gap: '8px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    {CHART_TIMEFRAMES.map((tf) => {
-                      const isSel = chartTimeframe === tf.id;
-                      return (
-                        <button
-                          key={tf.id}
-                          type="button"
-                          onClick={() => {
-                            setChartTimeframe(tf.id);
-                            setSelectedTimeframe({ label: tf.label, seconds: tf.durationSec });
-                          }}
-                          style={{
-                            fontSize: '11px',
-                            fontWeight: 800,
-                            padding: '3px 8px',
-                            borderRadius: '6px',
-                            background: isSel ? 'rgba(245, 158, 11, 0.28)' : 'rgba(255, 255, 255, 0.04)',
-                            color: isSel ? '#fbbf24' : '#94a3b8',
-                            border: isSel ? '1.2px solid #fbbf24' : '1px solid rgba(255, 255, 255, 0.08)',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                            boxShadow: isSel ? '0 0 10px rgba(245, 158, 11, 0.3)' : 'none',
-                          }}
-                          title={tf.desc}
-                        >
-                          {tf.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '10.5px' }}>
-                    <span style={{ color: '#94a3b8' }}>
-                      24h High: <strong style={{ color: '#34d399' }}>₹{(currentPrice * 1.025).toLocaleString('en-IN', { maximumFractionDigits: 1 })}</strong>
-                    </span>
-                    <span style={{ color: '#94a3b8' }}>
-                      24h Low: <strong style={{ color: '#ef4444' }}>₹{(currentPrice * 0.978).toLocaleString('en-IN', { maximumFractionDigits: 1 })}</strong>
-                    </span>
-                    <span style={{ color: '#94a3b8' }}>
-                      Trend: <strong style={{ color: '#10b981' }}>▲ Bullish (+{currentAssetRate}%)</strong>
-                    </span>
-                  </div>
                 </div>
               </div>
 

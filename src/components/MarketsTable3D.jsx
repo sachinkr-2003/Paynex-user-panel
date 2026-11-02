@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AssetIcon from './AssetIcon';
 
 const MARKETS_DATA = [
@@ -25,9 +25,54 @@ const MiniSparkline = ({ isPositive }) => (
 );
 
 const MarketsTable3D = ({ onSelectAsset }) => {
+  const [markets, setMarkets] = useState(MARKETS_DATA);
   const [activeTab, setActiveTab] = useState('all');
 
-  const filtered = MARKETS_DATA.filter((item) => {
+  // Fetch real market prices from Binance for live public website table
+  useEffect(() => {
+    const fetchLiveTableData = async () => {
+      try {
+        const pairs = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT', 'NEARUSDT', 'AVAXUSDT'];
+        const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(JSON.stringify(pairs))}`);
+        if (res.ok) {
+          const list = await res.json();
+          const map = {};
+          list.forEach((item) => {
+            map[item.symbol] = {
+              price: Number(item.lastPrice),
+              change: Number(item.priceChangePercent),
+              high: Number(item.highPrice),
+              low: Number(item.lowPrice),
+              volume: (Number(item.quoteVolume) / 1000000).toFixed(1) + 'M',
+            };
+          });
+
+          setMarkets((prev) =>
+            prev.map((item) => {
+              const pair = `${item.symbol}USDT`;
+              if (map[pair]) {
+                return {
+                  ...item,
+                  price: map[pair].price,
+                  change: map[pair].change,
+                  high: map[pair].high,
+                  low: map[pair].low,
+                  volume: map[pair].volume,
+                };
+              }
+              return item;
+            })
+          );
+        }
+      } catch (_) {}
+    };
+
+    fetchLiveTableData();
+    const interval = setInterval(fetchLiveTableData, 8000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const filtered = markets.filter((item) => {
     if (activeTab === 'all') return true;
     if (activeTab === 'gainers') return item.change > 4;
     return item.category === activeTab;
