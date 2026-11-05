@@ -3,11 +3,13 @@ import { Zap, Trophy, X, ArrowRight, Clock } from 'lucide-react';
 import GrowwLiveChart from './GrowwLiveChart';
 
 const ASSETS = {
-  'BTC/USDT': { name: 'Bitcoin', symbol: 'BTC/USDT', basePrice: 78000, icon: '₿', color: '#f59e0b', payout: 95 },
-  'ETH/USDT': { name: 'Ethereum', symbol: 'ETH/USDT', basePrice: 2300, icon: 'Ξ', color: '#2563eb', payout: 92 },
+  'BTC/USDT': { name: 'Bitcoin', symbol: 'BTC/USDT', basePrice: 68420, icon: '₿', color: '#f59e0b', payout: 95 },
+  'ETH/USDT': { name: 'Ethereum', symbol: 'ETH/USDT', basePrice: 3524, icon: 'Ξ', color: '#2563eb', payout: 92 },
   'SOL/USDT': { name: 'Solana', symbol: 'SOL/USDT', basePrice: 184.5, icon: '◎', color: '#06b6d4', payout: 90 },
-  'RELIANCE': { name: 'Reliance Ind.', symbol: 'RELIANCE', basePrice: 1260, icon: '📈', color: '#10b981', payout: 90 },
-  'TATAMOTORS': { name: 'Tata Motors', symbol: 'TATAMOTORS', basePrice: 271, icon: '🚗', color: '#38bdf8', payout: 88 },
+  'RELIANCE': { name: 'Reliance Industries', symbol: 'RELIANCE', basePrice: 1295.0, icon: '🏢', color: '#10b981', payout: 90 },
+  'TATAMOTORS': { name: 'Tata Motors', symbol: 'TATAMOTORS', basePrice: 404.0, icon: '🚗', color: '#38bdf8', payout: 88 },
+  'TCS': { name: 'TCS', symbol: 'TCS', basePrice: 3850, icon: '💻', color: '#8b5cf6', payout: 88 },
+  'INFY': { name: 'Infosys', symbol: 'INFY', basePrice: 1580, icon: '⚡', color: '#06b6d4', payout: 88 },
 };
 
 const TIMEFRAMES = [
@@ -261,7 +263,7 @@ const TradingSimulator3D = ({ demoBalance, setDemoBalance }) => {
               assetName={assetInfo.name || selectedAsset}
               basePrice={assetInfo.basePrice}
               height={330}
-              onPriceUpdate={(p) => setCurrentPrice(p)}
+              onPriceUpdate={(p) => setCurrentPrice((prev) => (prev === p ? prev : p))}
               currencySymbol={selectedAsset.includes('USDT') ? '$' : '₹'}
             />
 

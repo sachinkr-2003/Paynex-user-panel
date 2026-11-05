@@ -32,7 +32,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
   const [paymentTab, setPaymentTab] = useState('upi');
 
   // Company Catalog
-  const [companies, setCompanies] = useState([]);
+  const [companies, setCompanies] = useState(() => FIFTY_STOCKS.map(enrichStockWithPayment));
   const [companiesLoaded, setCompaniesLoaded] = useState(false);
   const [selectedCompanyId, setSelectedCompanyId] = useState(
     initialCompany?.id || initialCompany?.symbol || 'TATAMOTORS'
@@ -47,7 +47,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
     }
   }, [initialCompany]);
 
-  // Fetch live companies DIRECTLY from backend — no localStorage, always fresh
+  // Fetch live companies DIRECTLY from backend with instant fallback to enriched stocks
   useEffect(() => {
     if (!isOpen) return;
     let isMounted = true;
@@ -55,28 +55,44 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
       try {
         const res = await userApi.getAssets();
         if (!isMounted) return;
-        if (res.success && Array.isArray(res.assets) && res.assets.length > 0) {
-          const groupQrs = res.groupQrs || {};
-          const groupRates = res.groupInterestRates || {};
-          const enriched = res.assets.map((a) => {
-            const grp = Number(a.group) || 1;
-            const qr = (groupQrs[grp] && groupQrs[grp].trim()) ? groupQrs[grp].trim() : (a.qrCode || '');
-            const rate = groupRates[grp] !== undefined ? Number(groupRates[grp]) : Number(a.returnPercent) || 5;
-            return {
-              ...a,
-              qrCode: qr,
-              returnPercent: rate,
-              upiId: (a.upiId && a.upiId.trim()) ? a.upiId.trim() : 'paynex.crypto@icici',
-              payeeName: (a.payeeName && a.payeeName.trim()) ? a.payeeName.trim() : `${a.name} Trading Desk`,
-              minStake: Number(a.minStake) || 100,
-            };
-          });
-          setCompanies(enriched);
-          setCompaniesLoaded(true);
-        }
+        const assetList = (res?.success && Array.isArray(res.assets) && res.assets.length > 0)
+          ? res.assets
+          : ((res?.success && Array.isArray(res.allAssets) && res.allAssets.length > 0) ? res.allAssets : FIFTY_STOCKS);
+        const groupQrs = (res?.groupQrs && typeof res.groupQrs === 'object') ? res.groupQrs : getSavedGroupQrs();
+        const groupRates = (res?.groupInterestRates && typeof res.groupInterestRates === 'object') ? res.groupInterestRates : getSavedGroupInterestRates();
+
+        const enriched = assetList.map((a, idx) => {
+          const grp = Number(a.group) || getStockGroup(a, idx) || 1;
+          const safeGrp = Math.min(5, Math.max(1, grp));
+          const defaultGroupQr = `/images/qr_group_${safeGrp}.jpg`;
+          const groupQr = (groupQrs && (groupQrs[safeGrp] || groupQrs[String(safeGrp)]) && (groupQrs[safeGrp] || groupQrs[String(safeGrp)]).trim()) || '';
+          const stockQr = (a.qrCode && typeof a.qrCode === 'string' && a.qrCode.trim()) || '';
+          const rawQr = groupQr || stockQr || defaultGroupQr;
+          const cleanQr = rawQr.startsWith('assets/') ? `/images/${rawQr.split('/').pop()}` : rawQr;
+
+          const groupRate = (groupRates && (groupRates[safeGrp] !== undefined && groupRates[safeGrp] !== null))
+            ? Number(groupRates[safeGrp])
+            : ((groupRates && (groupRates[String(safeGrp)] !== undefined && groupRates[String(safeGrp)] !== null))
+              ? Number(groupRates[String(safeGrp)])
+              : null);
+          const serverRate = (a.returnPercent !== undefined && a.returnPercent !== null && Number(a.returnPercent) > 0)
+            ? Number(a.returnPercent)
+            : null;
+          const rate = Math.max(1, Number(groupRate ?? serverRate ?? DEFAULT_GROUP_INTEREST[safeGrp] ?? 11.5));
+          return {
+            ...a,
+            group: safeGrp,
+            qrCode: cleanQr || defaultGroupQr,
+            returnPercent: rate,
+            upiId: (a.upiId && a.upiId.trim()) ? a.upiId.trim() : 'paynex.crypto@icici',
+            payeeName: (a.payeeName && a.payeeName.trim()) ? a.payeeName.trim() : `${a.name} Trading Desk`,
+            minStake: Number(a.minStake) || 100,
+          };
+        });
+        setCompanies(enriched);
+        setCompaniesLoaded(true);
       } catch (_) {
-        // fallback to static data if API fails
-        if (isMounted && !companiesLoaded) {
+        if (isMounted) {
           setCompanies(FIFTY_STOCKS.map(enrichStockWithPayment));
           setCompaniesLoaded(true);
         }
@@ -97,8 +113,6 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
       setScreenshotFileName('');
       setLoading(false);
       setSubmittingUtr(false);
-      setCompanies([]);
-      setCompaniesLoaded(false);
       if (timerRef.current) clearInterval(timerRef.current);
       if (pollerRef.current) clearInterval(pollerRef.current);
     }
@@ -505,7 +519,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                       }}
                     >
                       {companies.map((c) => {
-                        const rate = c.returnPercent !== undefined && c.returnPercent !== null ? c.returnPercent : 5;
+                        const rate = c.returnPercent !== undefined && c.returnPercent !== null ? c.returnPercent : (DEFAULT_GROUP_INTEREST[c.group] || 11.5);
                         return (
                           <option key={c.id || c.symbol} value={c.id || c.symbol}>
                             {c.name} ({c.symbol}) • Return: +{rate}% Guaranteed
@@ -545,7 +559,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                             border: '1px solid #10b981',
                           }}
                         >
-                          +{currentCompany.returnPercent || 5}% Guaranteed
+                          +{currentCompany.returnPercent || (DEFAULT_GROUP_INTEREST[currentCompany.group] || 11.5)}% Guaranteed
                         </span>
                       </div>
                       <div style={{ fontSize: '11px', color: '#94a3b8' }}>
@@ -560,6 +574,7 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                     {(() => {
                       const compQr = currentCompany.qrCode || (typeof getCompanyQrUrl === 'function' ? getCompanyQrUrl(currentCompany, amount) : '');
                       const isImg = compQr && (compQr.startsWith('data:image') || compQr.startsWith('http') || compQr.startsWith('/') || compQr.includes('.png') || compQr.includes('.jpg'));
+                      const safeGrp = Math.min(5, Math.max(1, Number(currentCompany.group) || 1));
                       return (
                         <div
                           style={{
@@ -577,7 +592,15 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                           title={`${currentCompany.name} Assigned QR Code`}
                         >
                           {isImg ? (
-                            <img src={compQr} alt="QR" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                            <img
+                              src={compQr}
+                              alt="QR"
+                              onError={(e) => {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.src = `/images/qr_group_${safeGrp}.jpg`;
+                              }}
+                              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                            />
                           ) : (
                             <QRCodeSVG value={`upi://pay?pa=${currentCompany.upiId || 'paynex.crypto@icici'}&pn=${encodeURIComponent(currentCompany.name)}&am=${amount}&cu=INR`} size={50} />
                           )}
@@ -915,6 +938,11 @@ const UpiPaymentGateway = ({ isOpen, onClose, onRechargeSuccess, initialCompany 
                     <img
                       src={activeQr}
                       alt={`${companyDisplayName} Payment QR`}
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        const safeGrp = Math.min(5, Math.max(1, Number(currentCompany?.group) || 1));
+                        e.currentTarget.src = `/images/qr_group_${safeGrp}.jpg`;
+                      }}
                       style={{
                         width: '190px',
                         height: '190px',

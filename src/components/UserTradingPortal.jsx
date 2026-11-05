@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import userApi from '../services/api';
 import { showUserSuccess, showUserWarning, showUserError } from '../utils/swal';
 import { FIFTY_STOCKS_MAP, getCompanyQrUrl, enrichStockWithPayment, getCustomQrOverride, getStockGroup, getSavedGroupQrs, getSavedGroupInterestRates, DEFAULT_GROUP_INTEREST } from '../data/stocksData';
@@ -293,6 +293,21 @@ const UserTradingPortal = ({
   }, [currentTab]);
   const [assetsMap, setAssetsMap] = useState(DEFAULT_ASSETS);
   const ASSETS = assetsMap;
+
+  // Deduplicated unique list of assets (prevents duplicate BTC/USDT and BTC entries)
+  const uniqueAssetEntries = useMemo(() => {
+    const seen = new Set();
+    const result = [];
+    for (const [key, item] of Object.entries(assetsMap || {})) {
+      if (!item || item.isEnabled === false) continue;
+      const uid = (item.id || item.symbol || key).toUpperCase();
+      if (!seen.has(uid)) {
+        seen.add(uid);
+        result.push([key, item]);
+      }
+    }
+    return result;
+  }, [assetsMap]);
   const [selectedAsset, setSelectedAsset] = useState('BTC/USDT');
   const [chartTimeframe, setChartTimeframe] = useState('1S');
   const [selectedTimeframe, setSelectedTimeframe] = useState(TIMEFRAMES[1]);
@@ -346,7 +361,11 @@ const UserTradingPortal = ({
     const fetchLiveAssets = async () => {
       try {
         const res = await userApi.getAssets();
-        if (res && res.success && Array.isArray(res.assets) && res.assets.length > 0) {
+        const assetList = (res && res.success && Array.isArray(res.assets) && res.assets.length > 0)
+          ? res.assets
+          : ((res && res.success && Array.isArray(res.allAssets) && res.allAssets.length > 0) ? res.allAssets : []);
+
+        if (res && res.success && (assetList.length > 0 || res.groupQrs || res.groupInterestRates)) {
           if (res.groupQrs && typeof res.groupQrs === 'object') {
             try {
               localStorage.setItem('paynex_group_qrs', JSON.stringify(res.groupQrs));
@@ -361,41 +380,44 @@ const UserTradingPortal = ({
           const savedQrs = getSavedGroupQrs();
           const savedRates = getSavedGroupInterestRates();
           const masterEngineRate = Number(res.defaultGameProfitPercent) || 12;
-          res.assets.forEach((a) => {
+          const targetList = assetList.length > 0 ? assetList : Object.values(assetsMap);
+          targetList.forEach((a) => {
             const grp = getStockGroup(a);
-            const groupQr = (res.groupQrs && res.groupQrs[grp] && res.groupQrs[grp].trim())
-              ? res.groupQrs[grp].trim()
-              : ((savedQrs && savedQrs[grp] && savedQrs[grp].trim()) ? savedQrs[grp].trim() : '');
+            const safeGrp = Math.min(5, Math.max(1, grp));
+            const defaultAssetQr = `/images/qr_group_${safeGrp}.jpg`;
+            const rawGroupQr = (res.groupQrs && (res.groupQrs[safeGrp] || res.groupQrs[String(safeGrp)]) && (res.groupQrs[safeGrp] || res.groupQrs[String(safeGrp)]).trim())
+              ? (res.groupQrs[safeGrp] || res.groupQrs[String(safeGrp)]).trim()
+              : ((savedQrs && (savedQrs[safeGrp] || savedQrs[String(safeGrp)]) && (savedQrs[safeGrp] || savedQrs[String(safeGrp)]).trim()) ? (savedQrs[safeGrp] || savedQrs[String(safeGrp)]).trim() : defaultAssetQr);
+            const groupQr = rawGroupQr.startsWith('assets/') ? `/images/${rawGroupQr.split('/').pop()}` : rawGroupQr;
             const custom = getCustomQrOverride(a);
-            const groupRate = (res.groupInterestRates && (res.groupInterestRates[grp] !== undefined || res.groupInterestRates[String(grp)] !== undefined))
-              ? Number(res.groupInterestRates[grp] ?? res.groupInterestRates[String(grp)])
-              : ((savedRates && (savedRates[grp] !== undefined || savedRates[String(grp)] !== undefined))
-                ? Number(savedRates[grp] ?? savedRates[String(grp)])
+            const groupRate = (res.groupInterestRates && (res.groupInterestRates[safeGrp] !== undefined || res.groupInterestRates[String(safeGrp)] !== undefined))
+              ? Number(res.groupInterestRates[safeGrp] ?? res.groupInterestRates[String(safeGrp)])
+              : ((savedRates && (savedRates[safeGrp] !== undefined || savedRates[String(safeGrp)] !== undefined))
+                ? Number(savedRates[safeGrp] ?? savedRates[String(safeGrp)])
                 : null);
-            const assetBackendRate = (a.returnPercent !== undefined && a.returnPercent !== null && Number(a.returnPercent) > 0)
+            const defaultGroupRate = DEFAULT_GROUP_INTEREST[safeGrp] || 11.5;
+            const serverRate = (a.returnPercent !== undefined && a.returnPercent !== null && Number(a.returnPercent) > 0)
               ? Number(a.returnPercent)
               : null;
-            const customRate = (custom?.returnPercent !== undefined && custom?.returnPercent !== null)
-              ? Number(custom.returnPercent)
-              : null;
-
-            // Admin Group Live Control: Group Rate (Groups 1..5) is authoritative
-            const defaultGroupRate = DEFAULT_GROUP_INTEREST[grp] || 5;
-            const rawRate = groupRate ?? assetBackendRate ?? customRate ?? defaultGroupRate;
-            const effectiveReturn = Math.max(1, Number(rawRate));
+            // Admin Group Rate takes highest precedence over individual/cached rates
+            const effectiveReturn = Math.max(1, Number(groupRate ?? serverRate ?? defaultGroupRate));
             const effectiveEnabled = (a.isEnabled !== undefined && a.isEnabled !== null)
               ? (a.isEnabled !== false)
               : (custom?.isEnabled !== undefined ? Boolean(custom.isEnabled) : true);
-            // Priority: group QR (from server) > asset's own qrCode (from server) > local custom override
-            const effectiveQr = groupQr || (a.qrCode && a.qrCode.trim() ? a.qrCode.trim() : '') || (custom?.qrCode || '');
-            const effectiveUpi = (a.upiId && a.upiId.trim()) ? a.upiId : (custom?.upiId || '');
+            // Admin Group QR takes highest precedence
+            const serverQr = (a.qrCode && typeof a.qrCode === 'string' && a.qrCode.trim().length > 0)
+              ? a.qrCode.trim()
+              : null;
+            const rawEffectiveQr = groupQr || serverQr || (custom?.qrCode || '') || defaultAssetQr;
+            const effectiveQr = rawEffectiveQr.startsWith('assets/') ? `/images/${rawEffectiveQr.split('/').pop()}` : rawEffectiveQr;
+            const effectiveUpi = (a.upiId && a.upiId.trim()) ? a.upiId : (custom?.upiId || 'paynex.crypto@icici');
             const effectivePayee = (a.payeeName && a.payeeName.trim()) ? a.payeeName : (custom?.payeeName || `${a.name} Trading Desk`);
             const enriched = {
               id: a.id,
               name: a.name,
               symbol: a.symbol,
               category: a.category || 'Stock',
-              group: grp,
+              group: safeGrp,
               basePrice: Number(a.basePrice) || 1000,
               step: Number(a.step) || Math.max(1, (Number(a.basePrice) * 0.001)),
               icon: a.icon || 'stock',
@@ -412,7 +434,7 @@ const UserTradingPortal = ({
             if (a.id) map[a.id] = enriched;
             if (a.symbol) map[a.symbol] = enriched;
           });
-          if (isMounted) {
+          if (isMounted && Object.keys(map).length > 0) {
             setAssetsMap((prev) => ({ ...prev, ...map }));
           }
         }
@@ -465,12 +487,24 @@ const UserTradingPortal = ({
     const fetchLiveRate = async () => {
       try {
         const res = await userApi.getStakingRate();
-        if (isMounted && res && res.success && res.returnPercent) {
-          const cleanRate = Math.min(12, Math.max(2, Number(res.returnPercent)));
-          setAdminProfitPercent(cleanRate);
-          try {
-            localStorage.setItem('paynex_admin_percent', cleanRate);
-          } catch (_) {}
+        if (isMounted && res && res.success) {
+          if (res.returnPercent) {
+            const cleanRate = Math.min(12, Math.max(2, Number(res.returnPercent)));
+            setAdminProfitPercent(cleanRate);
+            try {
+              localStorage.setItem('paynex_admin_percent', cleanRate);
+            } catch (_) {}
+          }
+          if (res.groupInterestRates && typeof res.groupInterestRates === 'object') {
+            try {
+              localStorage.setItem('paynex_group_interest_rates', JSON.stringify(res.groupInterestRates));
+            } catch (_) {}
+          }
+          if (res.groupQrs && typeof res.groupQrs === 'object') {
+            try {
+              localStorage.setItem('paynex_group_qrs', JSON.stringify(res.groupQrs));
+            } catch (_) {}
+          }
         }
       } catch (err) {
         console.warn('Staking rate sync notice:', err.message);
@@ -2244,7 +2278,7 @@ const UserTradingPortal = ({
         {/* ======================================================== */}
         {currentTab === 'game' && (
           <div>
-            {/* Asset Selector Ribbon */}
+            {/* Asset Selector Ribbon (Clean & Deduplicated) */}
             <div
               className="hide-scrollbar"
               style={{
@@ -2259,8 +2293,7 @@ const UserTradingPortal = ({
                 width: '100%',
               }}
             >
-              {Object.entries(ASSETS)
-                .filter(([_, item]) => item.isEnabled !== false)
+              {uniqueAssetEntries
                 .map(([symbol, item]) => {
                 const isSel = selectedAsset === symbol;
                 return (
@@ -2524,8 +2557,16 @@ const UserTradingPortal = ({
                     assetName={assetInfo.name || selectedAsset}
                     basePrice={Number(assetInfo.basePrice) || 1250}
                     height={chartHeight}
-                    onPriceUpdate={(p) => setCurrentPrice(p)}
-                    currencySymbol="₹"
+                    onPriceUpdate={(p) => setCurrentPrice((prev) => (prev === p ? prev : p))}
+                    currencySymbol={
+                      (selectedAsset.includes('USDT') ||
+                       selectedAsset.includes('BTC') ||
+                       selectedAsset.includes('ETH') ||
+                       selectedAsset.includes('SOL') ||
+                       selectedAsset.includes('BNB') ||
+                       selectedAsset.includes('XRP') ||
+                       selectedAsset.includes('DOGE')) ? '$' : '₹'
+                    }
                   />
 
                   {/* Active Investment HUD Overlay */}
@@ -3329,7 +3370,7 @@ const UserTradingPortal = ({
             </div>
 
             <div className="market-assets-grid">
-              {Object.entries(ASSETS)
+              {uniqueAssetEntries
                 .filter(([sym, data]) => {
                   if (data.isEnabled === false) return false;
                   if (marketFilter !== 'All') {
@@ -5582,6 +5623,11 @@ const UserTradingPortal = ({
                   <img
                     src={getCompanyQrUrl(purchaseModalAsset, purchaseAmount)}
                     alt={`${purchaseModalAsset.name} Payment QR`}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      const safeGrp = Math.min(5, Math.max(1, Number(purchaseModalAsset?.group) || 1));
+                      e.currentTarget.src = `/images/qr_group_${safeGrp}.jpg`;
+                    }}
                     style={{ width: '150px', height: '150px', objectFit: 'contain', display: 'block', margin: '0 auto' }}
                   />
                   <div style={{ fontSize: '10px', fontWeight: 800, color: '#000', marginTop: '6px' }}>
